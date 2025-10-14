@@ -135,7 +135,7 @@ ${notes ? `📝 Notes: ${notes}` : ''}
 Please confirm this order to proceed. Thank you for choosing ClickEats! 🥟
     `.trim();
 
-    const pageId = '61579693577478';
+    const pageId = 'RowNelFooDelivery';
     const encodedMessage = encodeURIComponent(orderDetails);
     const webLink = `https://m.me/${pageId}?text=${encodedMessage}`;
 
