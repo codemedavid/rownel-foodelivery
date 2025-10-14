@@ -132,7 +132,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
 ${notes ? `📝 Notes: ${notes}` : ''}
 
-Please confirm this order to proceed. Thank you for choosing ClickEats! 🥟
+Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟
     `.trim();
 
     const pageId = 'RowNelFooDelivery';
