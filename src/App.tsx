@@ -1,6 +1,5 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useCart } from './hooks/useCart';
 import Header from './components/Header';
 import Menu from './components/Menu';
 import Cart from './components/Cart';
@@ -9,54 +8,44 @@ import FloatingCartButton from './components/FloatingCartButton';
 import AdminDashboard from './components/AdminDashboard';
 import AdminLogin from './components/AdminLogin';
 import ProtectedRoute from './components/ProtectedRoute';
+import MerchantsList from './components/MerchantsList';
 import { useMenu } from './hooks/useMenu';
 import { AuthProvider } from './contexts/AuthContext';
+import { MerchantProvider, useMerchant } from './contexts/MerchantContext';
+import { CartProvider } from './contexts/CartContext';
 
-function MainApp() {
-  const cart = useCart();
+function MerchantMenu() {
+  const { selectedMerchant } = useMerchant();
   const { menuItems } = useMenu();
   const [currentView, setCurrentView] = React.useState<'menu' | 'cart' | 'checkout'>('menu');
-  const [selectedCategory, setSelectedCategory] = React.useState<string>('all');
 
   const handleViewChange = (view: 'menu' | 'cart' | 'checkout') => {
     setCurrentView(view);
   };
 
-  const handleCategoryClick = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-  };
+  // Filter menu items based on selected merchant
+  const filteredMenuItems = menuItems
+    .filter(item => selectedMerchant ? item.merchantId === selectedMerchant.id : true);
 
-  // Filter menu items based on selected category
-  const filteredMenuItems = selectedCategory === 'all' 
-    ? menuItems 
-    : menuItems.filter(item => item.category === selectedCategory);
+  if (!selectedMerchant) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-cream-50 font-inter">
       <Header 
-        cartItemsCount={cart.getTotalItems()}
         onCartClick={() => handleViewChange('cart')}
         onMenuClick={() => handleViewChange('menu')}
-        onCategoryClick={handleCategoryClick}
-        selectedCategory={selectedCategory}
       />
       
       {currentView === 'menu' && (
         <Menu 
           menuItems={filteredMenuItems}
-          addToCart={cart.addToCart}
-          cartItems={cart.cartItems}
-          updateQuantity={cart.updateQuantity}
         />
       )}
       
       {currentView === 'cart' && (
         <Cart 
-          cartItems={cart.cartItems}
-          updateQuantity={cart.updateQuantity}
-          removeFromCart={cart.removeFromCart}
-          clearCart={cart.clearCart}
-          getTotalPrice={cart.getTotalPrice}
           onContinueShopping={() => handleViewChange('menu')}
           onCheckout={() => handleViewChange('checkout')}
         />
@@ -64,15 +53,12 @@ function MainApp() {
       
       {currentView === 'checkout' && (
         <Checkout 
-          cartItems={cart.cartItems}
-          totalPrice={cart.getTotalPrice()}
           onBack={() => handleViewChange('cart')}
         />
       )}
       
       {currentView === 'menu' && (
         <FloatingCartButton 
-          itemCount={cart.getTotalItems()}
           onCartClick={() => handleViewChange('cart')}
         />
       )}
@@ -83,20 +69,25 @@ function MainApp() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<MainApp />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } 
-          />
-        </Routes>
-      </Router>
+      <CartProvider>
+        <MerchantProvider>
+          <Router>
+            <Routes>
+              <Route path="/" element={<MerchantsList />} />
+              <Route path="/merchant/:merchantId" element={<MerchantMenu />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+            </Routes>
+          </Router>
+        </MerchantProvider>
+      </CartProvider>
     </AuthProvider>
   );
 }

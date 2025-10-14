@@ -11,7 +11,7 @@ export interface Category {
   updated_at: string;
 }
 
-export const useCategories = () => {
+export const useCategories = (merchantId?: string, menuItems?: any[]) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,15 +20,54 @@ export const useCategories = () => {
     try {
       setLoading(true);
       
-      const { data, error: fetchError } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('active', true)
-        .order('sort_order', { ascending: true });
+      // If merchantId is provided, derive categories from menu items
+      if (merchantId && menuItems) {
+        // Get unique categories from menu items
+        const uniqueCategories = new Map<string, Category>();
+        
+        menuItems.forEach(item => {
+          if (!uniqueCategories.has(item.category)) {
+            uniqueCategories.set(item.category, {
+              id: item.category,
+              name: item.category,
+              icon: '🍽️', // Default icon
+              sort_order: 0,
+              active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          }
+        });
+        
+        // Now fetch the actual category details from database
+        const categoryIds = Array.from(uniqueCategories.keys());
+        if (categoryIds.length > 0) {
+          const { data: categoryData, error: fetchError } = await supabase
+            .from('categories')
+            .select('*')
+            .in('id', categoryIds)
+            .eq('active', true)
+            .order('sort_order', { ascending: true });
 
-      if (fetchError) throw fetchError;
+          if (fetchError) throw fetchError;
+          setCategories(categoryData || []);
+        } else {
+          setCategories([]);
+        }
+      } else {
+        // For admin views, fetch all categories
+        let query = supabase
+          .from('categories')
+          .select('*')
+          .eq('active', true);
+        
+        const { data, error: fetchError } = await query
+          .order('sort_order', { ascending: true });
 
-      setCategories(data || []);
+        if (fetchError) throw fetchError;
+        setCategories(data || []);
+      }
+
       setError(null);
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -135,7 +174,7 @@ export const useCategories = () => {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [merchantId, menuItems]);
 
   return {
     categories,

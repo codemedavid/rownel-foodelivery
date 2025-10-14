@@ -321,7 +321,7 @@ if (receiptFile && !receiptUrl) {
 
 **Order Details Format:**
 ```
-🛒 ClickEats ORDER
+🛒 Row-Nel FooDelivery ORDER
 
 👤 Customer: [Name]
 📞 Contact: [Phone]

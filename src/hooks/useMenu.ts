@@ -38,6 +38,7 @@ export const useMenu = () => {
 
         return {
           id: item.id,
+          merchantId: item.merchant_id,
           name: item.name,
           description: item.description,
           basePrice: item.base_price,
@@ -85,6 +86,7 @@ export const useMenu = () => {
       const { data: menuItem, error: itemError } = await supabase
         .from('menu_items')
         .insert({
+          merchant_id: item.merchantId,
           name: item.name,
           description: item.description,
           base_price: item.basePrice,

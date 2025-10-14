@@ -1,13 +1,16 @@
 import React from 'react';
 import { useCategories } from '../hooks/useCategories';
+import { useMerchant } from '../contexts/MerchantContext';
 
 interface MobileNavProps {
   activeCategory: string;
   onCategoryClick: (categoryId: string) => void;
+  menuItems?: any[];
 }
 
-const MobileNav: React.FC<MobileNavProps> = ({ activeCategory, onCategoryClick }) => {
-  const { categories } = useCategories();
+const MobileNav: React.FC<MobileNavProps> = ({ activeCategory, onCategoryClick, menuItems }) => {
+  const { selectedMerchant } = useMerchant();
+  const { categories } = useCategories(selectedMerchant?.id, menuItems);
 
   return (
     <div className="sticky top-16 z-40 bg-white/95 backdrop-blur-sm border-b border-red-200 md:hidden shadow-sm">

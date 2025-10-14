@@ -1,3 +1,28 @@
+// Merchant Types
+export interface Merchant {
+  id: string;
+  name: string;
+  description?: string;
+  logoUrl?: string;
+  coverImageUrl?: string;
+  category: string; // 'restaurant', 'cafe', 'bakery', 'fast-food'
+  cuisineType?: string; // 'Filipino', 'Chinese', 'Italian', etc.
+  deliveryFee: number;
+  minimumOrder: number;
+  estimatedDeliveryTime?: string;
+  rating: number;
+  totalReviews: number;
+  active: boolean;
+  featured: boolean;
+  address?: string;
+  contactNumber?: string;
+  email?: string;
+  openingHours?: Record<string, string>; // e.g., { "monday": "09:00-22:00" }
+  paymentMethods?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Variation {
   id: string;
   name: string;
@@ -14,6 +39,7 @@ export interface AddOn {
 
 export interface MenuItem {
   id: string;
+  merchantId: string; // Link to merchant
   name: string;
   description: string;
   basePrice: number;
@@ -47,6 +73,7 @@ export interface CartItem extends MenuItem {
 }
 
 export interface OrderData {
+  merchantId: string; // Which merchant this order is for
   items: CartItem[];
   customerName: string;
   contactNumber: string;

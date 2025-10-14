@@ -106,9 +106,9 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
 
   return (
     <>
-      <div className={`bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group animate-scale-in border border-gray-100 ${!item.available ? 'opacity-60' : ''}`}>
+      <div className={`bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden group border border-gray-100 ${!item.available ? 'opacity-60' : ''}`}>
         {/* Image Container with Badges */}
-        <div className="relative h-48 bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="relative h-52 bg-gradient-to-br from-green-50 to-green-100">
           {item.image ? (
             <img
               src={item.image}
@@ -211,7 +211,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
               ) : quantity === 0 ? (
                 <button
                   onClick={handleAddToCart}
-                  className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-2.5 rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 transform hover:scale-105 font-medium text-sm shadow-lg hover:shadow-xl"
+                  className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2.5 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 transform hover:scale-105 font-medium text-sm shadow-lg hover:shadow-xl"
                 >
                   {item.variations?.length || item.addOns?.length ? 'Customize' : 'Add to Cart'}
                 </button>
@@ -238,12 +238,12 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
           {/* Stock indicator */}
           {item.trackInventory && item.stockQuantity !== null && (
             <div className="mt-3">
-              {item.stockQuantity > item.lowStockThreshold ? (
+              {item.stockQuantity! > (item.lowStockThreshold ?? 0) ? (
                 <div className="flex items-center space-x-2 text-xs text-green-700 bg-green-50 px-3 py-2 rounded-lg border border-green-200">
                   <span className="font-semibold">✓</span>
                   <span className="font-medium">{item.stockQuantity} in stock</span>
                 </div>
-              ) : item.stockQuantity > 0 ? (
+              ) : item.stockQuantity! > 0 ? (
                 <div className="flex items-center space-x-2 text-xs text-orange-700 bg-orange-50 px-3 py-2 rounded-lg border border-orange-200 animate-pulse">
                   <span className="font-semibold">⚠️</span>
                   <span className="font-medium">Only {item.stockQuantity} left!</span>
@@ -288,12 +288,12 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
               {/* Stock indicator in modal */}
               {item.trackInventory && item.stockQuantity !== null && (
                 <div className="mb-6">
-                  {item.stockQuantity > item.lowStockThreshold ? (
+                  {item.stockQuantity! > (item.lowStockThreshold ?? 0) ? (
                     <div className="flex items-center space-x-2 text-sm text-green-700 bg-green-50 px-4 py-3 rounded-lg border border-green-200">
                       <span className="font-semibold">✓</span>
                       <span className="font-medium">{item.stockQuantity} available in stock</span>
                     </div>
-                  ) : item.stockQuantity > 0 ? (
+                  ) : item.stockQuantity! > 0 ? (
                     <div className="flex items-center space-x-2 text-sm text-orange-700 bg-orange-50 px-4 py-3 rounded-lg border border-orange-200">
                       <span className="font-semibold">⚠️</span>
                       <span className="font-medium">Hurry! Only {item.stockQuantity} left in stock</span>
@@ -317,7 +317,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                         key={variation.id}
                         className={`flex items-center justify-between p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
                           selectedVariation?.id === variation.id
-                            ? 'border-red-500 bg-red-50'
+                            ? 'border-green-600 bg-green-50'
                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
@@ -327,7 +327,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                             name="variation"
                             checked={selectedVariation?.id === variation.id}
                             onChange={() => setSelectedVariation(variation)}
-                            className="text-red-600 focus:ring-red-500"
+                            className="text-green-600 focus:ring-green-600"
                           />
                           <span className="font-medium text-gray-900">{variation.name}</span>
                         </div>
@@ -355,51 +355,51 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                             key={addOn.id}
                             className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
                           >
-                            <div className="flex-1">
-                              <span className="font-medium text-gray-900">{addOn.name}</span>
-                              <div className="text-sm text-gray-600">
-                                {addOn.price > 0 ? `₱${addOn.price.toFixed(2)} each` : 'Free'}
-                              </div>
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-900">{addOn.name}</span>
+                          <div className="text-sm text-gray-600">
+                            {addOn.price > 0 ? `₱${addOn.price.toFixed(2)} each` : 'Free'}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          {selectedAddOns.find(a => a.id === addOn.id) ? (
+                            <div className="flex items-center space-x-2 bg-green-100 rounded-xl p-1 border border-green-200">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = selectedAddOns.find(a => a.id === addOn.id);
+                                  updateAddOnQuantity(addOn, (current?.quantity || 1) - 1);
+                                }}
+                                className="p-1.5 hover:bg-green-200 rounded-lg transition-colors duration-200"
+                              >
+                                <Minus className="h-3 w-3 text-green-700" />
+                              </button>
+                              <span className="font-semibold text-gray-900 min-w-[24px] text-center text-sm">
+                                {selectedAddOns.find(a => a.id === addOn.id)?.quantity || 0}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = selectedAddOns.find(a => a.id === addOn.id);
+                                  updateAddOnQuantity(addOn, (current?.quantity || 0) + 1);
+                                }}
+                                className="p-1.5 hover:bg-green-200 rounded-lg transition-colors duration-200"
+                              >
+                                <Plus className="h-3 w-3 text-green-700" />
+                              </button>
                             </div>
-                            
-                            <div className="flex items-center space-x-2">
-                              {selectedAddOns.find(a => a.id === addOn.id) ? (
-                                <div className="flex items-center space-x-2 bg-red-100 rounded-xl p-1 border border-red-200">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const current = selectedAddOns.find(a => a.id === addOn.id);
-                                      updateAddOnQuantity(addOn, (current?.quantity || 1) - 1);
-                                    }}
-                                    className="p-1.5 hover:bg-red-200 rounded-lg transition-colors duration-200"
-                                  >
-                                    <Minus className="h-3 w-3 text-red-600" />
-                                  </button>
-                                  <span className="font-semibold text-gray-900 min-w-[24px] text-center text-sm">
-                                    {selectedAddOns.find(a => a.id === addOn.id)?.quantity || 0}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const current = selectedAddOns.find(a => a.id === addOn.id);
-                                      updateAddOnQuantity(addOn, (current?.quantity || 0) + 1);
-                                    }}
-                                    className="p-1.5 hover:bg-red-200 rounded-lg transition-colors duration-200"
-                                  >
-                                    <Plus className="h-3 w-3 text-red-600" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => updateAddOnQuantity(addOn, 1)}
-                                  className="flex items-center space-x-1 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 text-sm font-medium shadow-lg"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                  <span>Add</span>
-                                </button>
-                              )}
-                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => updateAddOnQuantity(addOn, 1)}
+                              className="flex items-center space-x-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm font-medium shadow-lg"
+                            >
+                              <Plus className="h-3 w-3" />
+                              <span>Add</span>
+                            </button>
+                          )}
+                        </div>
                           </div>
                         ))}
                       </div>
@@ -412,13 +412,13 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
               <div className="border-t border-gray-200 pt-4 mb-6">
                 <div className="flex items-center justify-between text-2xl font-bold text-gray-900">
                   <span>Total:</span>
-                  <span className="text-red-600">₱{calculatePrice().toFixed(2)}</span>
+                  <span className="text-green-600">₱{calculatePrice().toFixed(2)}</span>
                 </div>
               </div>
 
               <button
                 onClick={handleCustomizedAddToCart}
-                className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-4 rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-200 font-semibold flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 font-semibold flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 <ShoppingCart className="h-5 w-5" />
                 <span>Add to Cart - ₱{calculatePrice().toFixed(2)}</span>

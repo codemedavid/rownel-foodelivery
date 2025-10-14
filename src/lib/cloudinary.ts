@@ -85,6 +85,73 @@ export const uploadReceiptToCloudinary = async (
 };
 
 /**
+ * Upload menu item image to Cloudinary using unsigned upload preset
+ * @param file - The image file to upload
+ * @param folder - Optional folder path in Cloudinary (defaults to 'menu-items')
+ * @returns Promise with the secure URL of the uploaded image
+ */
+export const uploadMenuImageToCloudinary = async (
+  file: File,
+  folder: string = 'menu-items'
+): Promise<string> => {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error(
+      'Cloudinary configuration missing. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET in your .env file.'
+    );
+  }
+
+  // Validate file type
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  if (!validTypes.includes(file.type.toLowerCase())) {
+    throw new Error('Invalid file type. Please upload a JPG, PNG, WEBP, or GIF image.');
+  }
+
+  // Validate file size (max 10MB)
+  const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+  if (file.size > maxSize) {
+    throw new Error('File size too large. Please upload an image under 10MB.');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+    formData.append('folder', folder);
+    
+    // Add timestamp to filename for uniqueness
+    const timestamp = Date.now();
+    formData.append('public_id', `menu_${timestamp}`);
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new Error(
+        errorData?.error?.message || `Upload failed with status ${response.status}`
+      );
+    }
+
+    const data: CloudinaryUploadResult = await response.json();
+    return data.secure_url;
+  } catch (error) {
+    console.error('Cloudinary upload error:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to upload image. Please try again.');
+  }
+};
+
+/**
  * Compress and optimize an image file before upload
  * @param file - The original image file
  * @param maxWidth - Maximum width (default 1200px)

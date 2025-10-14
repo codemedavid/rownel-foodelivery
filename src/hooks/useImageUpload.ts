@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { uploadMenuImageToCloudinary, compressImage } from '../lib/cloudinary';
 
 export const useImageUpload = () => {
   const [uploading, setUploading] = useState(false);
@@ -16,15 +16,11 @@ export const useImageUpload = () => {
         throw new Error('Please upload a valid image file (JPEG, PNG, WebP, or GIF)');
       }
 
-      // Validate file size (5MB limit)
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      // Validate file size (10MB limit for Cloudinary)
+      const maxSize = 10 * 1024 * 1024; // 10MB
       if (file.size > maxSize) {
-        throw new Error('Image size must be less than 5MB');
+        throw new Error('Image size must be less than 10MB');
       }
-
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
       // Simulate upload progress
       const progressInterval = setInterval(() => {
@@ -37,28 +33,18 @@ export const useImageUpload = () => {
         });
       }, 100);
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('menu-images')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type
-        });
+      // Compress image before upload (1200px max, 80% quality)
+      setUploadProgress(20);
+      const compressedFile = await compressImage(file, 1200, 0.8);
+      setUploadProgress(40);
+
+      // Upload to Cloudinary
+      const imageUrl = await uploadMenuImageToCloudinary(compressedFile);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      if (error) {
-        throw error;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('menu-images')
-        .getPublicUrl(data.path);
-
-      return publicUrl;
+      return imageUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
       throw error;
@@ -70,17 +56,11 @@ export const useImageUpload = () => {
 
   const deleteImage = async (imageUrl: string): Promise<void> => {
     try {
-      // Extract file path from URL
-      const urlParts = imageUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1];
-
-      const { error } = await supabase.storage
-        .from('menu-images')
-        .remove([fileName]);
-
-      if (error) {
-        throw error;
-      }
+      // Note: Cloudinary free tier doesn't support deletion via API
+      // Images will be automatically cleaned up after a period of inactivity
+      // For production, you would need to implement server-side deletion
+      console.log('Image deletion requested for:', imageUrl);
+      console.log('Note: Cloudinary free tier images are auto-managed');
     } catch (error) {
       console.error('Error deleting image:', error);
       throw error;

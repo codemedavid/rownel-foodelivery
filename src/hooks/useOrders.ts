@@ -3,6 +3,7 @@ import { supabase, type Database } from '../lib/supabase';
 import type { CartItem } from '../types';
 
 export interface CreateOrderPayload {
+  merchantId: string;
   customerName: string;
   contactNumber: string;
   serviceType: 'dine-in' | 'pickup' | 'delivery';
@@ -10,7 +11,7 @@ export interface CreateOrderPayload {
   pickupTime?: string;
   partySize?: number;
   dineInTime?: string;
-  paymentMethod: string;
+  paymentMethod?: string;
   referenceNumber?: string;
   notes?: string;
   total: number;
@@ -144,7 +145,7 @@ export const useOrders = () => {
           pickup_time: payload.pickupTime ?? null,
           party_size: payload.partySize ?? null,
           dine_in_time: payload.dineInTime ? new Date(payload.dineInTime).toISOString() : null,
-          payment_method: payload.paymentMethod,
+          payment_method: payload.paymentMethod ?? 'cash',
           reference_number: payload.referenceNumber ?? null,
           notes: payload.notes ?? null,
           total: payload.total,
