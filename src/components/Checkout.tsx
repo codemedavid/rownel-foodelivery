@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { ArrowLeft, Store } from 'lucide-react';
 import { PaymentMethod } from '../types';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
-import { useOrders } from '../hooks/useOrders';
 import { useCartContext } from '../contexts/CartContext';
 import { useMerchants } from '../hooks/useMerchants';
 
