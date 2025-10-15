@@ -11,8 +11,7 @@ interface CheckoutProps {
 
 const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const { paymentMethods } = usePaymentMethods();
-  const { createOrder, creating, error } = useOrders();
-  const { cartItems, getTotalPrice, clearCart } = useCartContext();
+  const { cartItems, getTotalPrice } = useCartContext();
   const { merchants } = useMerchants();
   const totalPrice = getTotalPrice();
   
@@ -22,7 +21,6 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const [landmark, setLandmark] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
-  const [uiNotice, setUiNotice] = useState<string | null>(null);
 
   // Group cart items by merchant
   const itemsByMerchant = useMemo(() => {
@@ -62,44 +60,10 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
   const selectedPaymentMethod = paymentMethods.find(method => method.id === paymentMethod);
 
-  const handlePlaceOrder = async () => {
-    // Persist orders to database - one order per merchant
-    try {
-      const mergedNotes = landmark ? `${notes ? notes + ' | ' : ''}Landmark: ${landmark}` : notes;
-      
-      // Create orders for each merchant
-      for (const [merchantId, items] of Object.entries(itemsByMerchant)) {
-        const merchantSubtotal = getMerchantSubtotal(merchantId);
-        
-        await createOrder({
-          merchantId,
-          customerName,
-          contactNumber,
-          serviceType: 'delivery',
-          address,
-          paymentMethod,
-          notes: mergedNotes,
-          total: merchantSubtotal,
-          items: items,
-        });
-      }
-    } catch (e) {
-      const raw = e instanceof Error ? e.message : '';
-      if (/insufficient stock/i.test(raw)) {
-        setUiNotice(raw);
-        return;
-      }
-      if (/rate limit/i.test(raw)) {
-        setUiNotice('Too many orders: Please wait 1 minute before placing another order.');
-      } else if (/missing identifiers/i.test(raw)) {
-        setUiNotice('Too many orders: Please wait 1 minute before placing another order.');
-      } else {
-        setUiNotice('Too many orders: Please wait 1 minute before placing another order.');
-      }
-      return;
-    }
-
+  const handlePlaceOrder = () => {
     // Build order details with merchant grouping
+    const mergedNotes = landmark ? `${notes ? notes + ' | ' : ''}Landmark: ${landmark}` : notes;
+    
     let orderDetails = `
 🛒 Row-Nel FooDelivery ORDER
 
@@ -142,25 +106,43 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
 💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}
 
-${notes ? `📝 Notes: ${notes}` : ''}
+${mergedNotes ? `📝 Notes: ${mergedNotes}` : ''}
 Delivery fee: Will be calculated in few minutes.
 
 Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟
     `.trim();
 
+    // Copy order details to clipboard as backup
+    copyOrderDetails(orderDetails);
+
+    // Try both page ID formats to be safe
     const pageId = 'RowNelFooDelivery';
     const encodedMessage = encodeURIComponent(orderDetails);
+    
+    // Try the m.me format first
     const webLink = `https://m.me/${pageId}?text=${encodedMessage}`;
+    
+    console.log('Attempting redirect to:', webLink);
+    console.log('Order details length:', orderDetails.length);
 
-    // Best effort: copy order details so user can paste in Messenger if text cannot be prefilled
-    await copyOrderDetails(orderDetails);
+    // Use a more reliable approach - prevent default form submission and handle redirect
+    const redirectToMessenger = () => {
+      try {
+        // Try the standard m.me link first
+        window.location.replace(webLink);
+      } catch (error) {
+        console.error('Redirect failed, trying alternative methods:', error);
+        // Fallback to opening in new window
+        const newWindow = window.open(webLink, '_blank');
+        if (!newWindow) {
+          // If popup is blocked, try to redirect current window
+          window.location.href = webLink;
+        }
+      }
+    };
 
-    // Clear cart after successful order
-    clearCart();
-
-    // Use window.location for both mobile and desktop to avoid popup blocker
-    // This will navigate away from the site but ensures the link always works
-    window.location.href = webLink;
+    // Small delay to ensure all operations complete
+    setTimeout(redirectToMessenger, 100);
   };
 
   const isDetailsValid = customerName && contactNumber && address;
@@ -178,11 +160,6 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
         <h1 className="text-3xl font-noto font-semibold text-black ml-8">Delivery Details</h1>
       </div>
 
-      {uiNotice && (
-        <div className="mb-4 rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-800 p-4 text-sm">
-          {uiNotice}
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Order Summary */}
@@ -360,19 +337,17 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
             </div>
 
             <button
+              type="button"
               onClick={handlePlaceOrder}
-              disabled={!isDetailsValid || creating}
+              disabled={!isDetailsValid}
               className={`w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform ${
-                isDetailsValid && !creating
+                isDetailsValid
                   ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-[1.02]'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {creating ? 'Placing Order...' : 'Place Order via Messenger'}
+              Place Order via Messenger
             </button>
-            {error && !uiNotice && (
-              <p className="text-sm text-red-600 text-center mt-2">{error}</p>
-            )}
             
             <p className="text-xs text-gray-500 text-center mt-3">
               You'll be redirected to Facebook Messenger to confirm your order. Please attach your payment receipt screenshot.

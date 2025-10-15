@@ -55,21 +55,24 @@ const Cart: React.FC<CartProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <button
-          onClick={onContinueShopping}
-          className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors duration-200"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          <span>Continue Shopping</span>
-        </button>
-        <h1 className="text-3xl font-noto font-semibold text-black">Your Cart</h1>
-        <button
-          onClick={clearCart}
-          className="text-red-500 hover:text-red-600 transition-colors duration-200"
-        >
-          Clear All
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onContinueShopping}
+            className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors duration-200"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span className="hidden sm:inline">Continue Shopping</span>
+            <span className="sm:hidden">Back</span>
+          </button>
+          <button
+            onClick={clearCart}
+            className="text-red-500 hover:text-red-600 transition-colors duration-200 text-sm font-medium"
+          >
+            Clear All
+          </button>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-noto font-semibold text-black text-center sm:text-left">Your Cart</h1>
       </div>
 
       {/* Items grouped by merchant */}
@@ -80,56 +83,65 @@ const Cart: React.FC<CartProps> = ({
         return (
           <div key={merchantId} className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
             {/* Merchant Header */}
-            <div className="bg-gradient-to-r from-green-50 to-green-100 px-6 py-4 border-b border-green-200">
+            <div className="bg-gradient-to-r from-green-50 to-green-100 px-4 sm:px-6 py-3 sm:py-4 border-b border-green-200">
               <div className="flex items-center space-x-3">
-                <Store className="h-5 w-5 text-green-600" />
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{merchant?.name || 'Unknown Restaurant'}</h3>
-                  <p className="text-sm text-gray-600">{items.length} item{items.length > 1 ? 's' : ''}</p>
+                <Store className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{merchant?.name || 'Unknown Restaurant'}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">{items.length} item{items.length > 1 ? 's' : ''}</p>
                 </div>
               </div>
             </div>
 
             {/* Items for this merchant */}
             {items.map((item, index) => (
-              <div key={item.id} className={`p-6 ${index !== items.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                <div className="flex items-center justify-between">
+              <div key={item.id} className={`p-4 sm:p-6 ${index !== items.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {/* Item Details */}
                   <div className="flex-1">
-                    <h3 className="text-lg font-noto font-medium text-black mb-1">{item.name}</h3>
-                    {item.selectedVariation && (
-                      <p className="text-sm text-gray-500 mb-1">Size: {item.selectedVariation.name}</p>
-                    )}
-                    {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                      <p className="text-sm text-gray-500 mb-1">
-                        Add-ons: {item.selectedAddOns.map(addOn => 
-                          addOn.quantity && addOn.quantity > 1 
-                            ? `${addOn.name} x${addOn.quantity}`
-                            : addOn.name
-                        ).join(', ')}
-                      </p>
-                    )}
-                    <p className="text-lg font-semibold text-black">₱{item.totalPrice} each</p>
+                    <h3 className="text-base sm:text-lg font-noto font-medium text-black mb-2 leading-tight">{item.name}</h3>
+                    
+                    <div className="space-y-1 mb-3">
+                      {item.selectedVariation && (
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          <span className="font-medium">Size:</span> {item.selectedVariation.name}
+                        </p>
+                      )}
+                      {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          <span className="font-medium">Add-ons:</span> {item.selectedAddOns.map(addOn => 
+                            addOn.quantity && addOn.quantity > 1 
+                              ? `${addOn.name} x${addOn.quantity}`
+                              : addOn.name
+                          ).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between sm:justify-start sm:gap-4">
+                      <span className="text-sm text-gray-600">₱{item.totalPrice} each</span>
+                      <span className="text-lg sm:text-xl font-semibold text-black">
+                        ₱{item.totalPrice * item.quantity}
+                      </span>
+                    </div>
                   </div>
                   
-                  <div className="flex items-center space-x-4 ml-4">
-                    <div className="flex items-center space-x-3 bg-yellow-100 rounded-full p-1">
+                  {/* Quantity Controls & Actions */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4">
+                    <div className="flex items-center bg-yellow-100 rounded-lg px-3 py-2">
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="p-2 hover:bg-yellow-200 rounded-full transition-colors duration-200"
+                        className="p-1 hover:bg-yellow-200 rounded-full transition-colors duration-200"
                       >
                         <Minus className="h-4 w-4" />
                       </button>
-                      <span className="font-semibold text-black min-w-[32px] text-center">{item.quantity}</span>
+                      <span className="font-semibold text-black min-w-[36px] text-center mx-2">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="p-2 hover:bg-yellow-200 rounded-full transition-colors duration-200"
+                        className="p-1 hover:bg-yellow-200 rounded-full transition-colors duration-200"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
-                    </div>
-                    
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-black">₱{item.totalPrice * item.quantity}</p>
                     </div>
                     
                     <button
@@ -144,10 +156,13 @@ const Cart: React.FC<CartProps> = ({
             ))}
 
             {/* Merchant Subtotal */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+            <div className="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600 font-medium">Subtotal for {merchant?.name || 'this restaurant'}:</span>
-                <span className="text-xl font-semibold text-black">₱{subtotal.toFixed(2)}</span>
+                <span className="text-sm sm:text-base text-gray-600 font-medium">
+                  <span className="hidden sm:inline">Subtotal for {merchant?.name || 'this restaurant'}:</span>
+                  <span className="sm:hidden">{merchant?.name || 'Subtotal'}:</span>
+                </span>
+                <span className="text-lg sm:text-xl font-semibold text-black">₱{subtotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -155,15 +170,15 @@ const Cart: React.FC<CartProps> = ({
       })}
 
       {/* Overall Total */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex items-center justify-between text-2xl font-noto font-semibold text-black mb-6">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+        <div className="flex items-center justify-between text-xl sm:text-2xl font-noto font-semibold text-black mb-4 sm:mb-6">
           <span>Total:</span>
           <span>₱{getTotalPrice().toFixed(2)}</span>
         </div>
         
         <button
           onClick={onCheckout}
-          className="w-full bg-red-600 text-white py-4 rounded-xl hover:bg-red-700 transition-all duration-200 transform hover:scale-[1.02] font-medium text-lg"
+          className="w-full bg-red-600 text-white py-3 sm:py-4 rounded-xl hover:bg-red-700 transition-all duration-200 transform hover:scale-[1.02] font-medium text-base sm:text-lg"
         >
           Proceed to Checkout
         </button>
