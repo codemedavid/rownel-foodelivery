@@ -144,6 +144,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}
 
 ${notes ? `📝 Notes: ${notes}` : ''}
+Delivery fee: Will be calculated in few minutes.
 
 Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟
     `.trim();
