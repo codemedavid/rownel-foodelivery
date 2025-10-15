@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ArrowLeft, Store } from 'lucide-react';
+import { PaymentMethod } from '../types';
+import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import { useOrders } from '../hooks/useOrders';
 import { useCartContext } from '../contexts/CartContext';
 import { useMerchants } from '../hooks/useMerchants';
@@ -9,6 +11,7 @@ interface CheckoutProps {
 }
 
 const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
+  const { paymentMethods } = usePaymentMethods();
   const { createOrder, creating, error } = useOrders();
   const { cartItems, getTotalPrice, clearCart } = useCartContext();
   const { merchants } = useMerchants();
@@ -19,6 +22,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const [address, setAddress] = useState('');
   const [landmark, setLandmark] = useState('');
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
   const [uiNotice, setUiNotice] = useState<string | null>(null);
 
   // Group cart items by merchant
@@ -50,6 +54,15 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     }
   };
 
+  // Set default payment method when payment methods are loaded
+  React.useEffect(() => {
+    if (paymentMethods.length > 0 && !paymentMethod) {
+      setPaymentMethod(paymentMethods[0].id as PaymentMethod);
+    }
+  }, [paymentMethods, paymentMethod]);
+
+  const selectedPaymentMethod = paymentMethods.find(method => method.id === paymentMethod);
+
   const handlePlaceOrder = async () => {
     // Persist orders to database - one order per merchant
     try {
@@ -65,7 +78,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
           contactNumber,
           serviceType: 'delivery',
           address,
-          paymentMethod: 'cash',
+          paymentMethod,
           notes: mergedNotes,
           total: merchantSubtotal,
           items: items,
@@ -128,7 +141,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     orderDetails += `
 💰 TOTAL: ₱${totalPrice.toFixed(2)}
 
-💳 Payment: Cash on Delivery
+💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}
 
 ${notes ? `📝 Notes: ${notes}` : ''}
 
@@ -286,6 +299,54 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
               />
             </div>
 
+            {/* Payment Method Selection */}
+            <div>
+              <label className="block text-sm font-medium text-black mb-3">Payment Method *</label>
+              <div className="grid grid-cols-1 gap-3">
+                {paymentMethods.map((method) => (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(method.id as PaymentMethod)}
+                    className={`p-4 rounded-lg border-2 transition-all duration-200 flex items-center space-x-3 ${
+                      paymentMethod === method.id
+                        ? 'border-red-600 bg-red-600 text-white'
+                        : 'border-red-300 bg-white text-gray-700 hover:border-red-400'
+                    }`}
+                  >
+                    <span className="text-2xl">💳</span>
+                    <span className="font-medium">{method.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment Details with QR Code */}
+            {selectedPaymentMethod && (
+              <div className="bg-red-50 rounded-lg p-4">
+                <h3 className="font-medium text-black mb-3">Payment Details</h3>
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 mb-1">{selectedPaymentMethod.name}</p>
+                    <p className="font-mono text-black font-medium">{selectedPaymentMethod.account_number}</p>
+                    <p className="text-sm text-gray-600 mb-3">Account Name: {selectedPaymentMethod.account_name}</p>
+                    <p className="text-xl font-semibold text-black">Amount: ₱{totalPrice.toFixed(2)}</p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <img 
+                      src={selectedPaymentMethod.qr_code_url} 
+                      alt={`${selectedPaymentMethod.name} QR Code`}
+                      className="w-32 h-32 rounded-lg border-2 border-red-300 shadow-sm"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.pexels.com/photos/8867482/pexels-photo-8867482.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop';
+                      }}
+                    />
+                    <p className="text-xs text-gray-500 text-center mt-2">Scan to pay</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Special Notes */}
             <div>
               <label className="block text-sm font-medium text-black mb-2">Special Instructions</label>
@@ -314,7 +375,7 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
             )}
             
             <p className="text-xs text-gray-500 text-center mt-3">
-              You'll be redirected to Facebook Messenger to confirm your order.
+              You'll be redirected to Facebook Messenger to confirm your order. Please attach your payment receipt screenshot.
             </p>
           </form>
         </div>
