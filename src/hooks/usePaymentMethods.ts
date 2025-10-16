@@ -9,6 +9,7 @@ export interface PaymentMethod {
   qr_code_url: string;
   active: boolean;
   sort_order: number;
+  merchant_id: string | null; // NULL means available for all merchants
   created_at: string;
   updated_at: string;
 }
@@ -72,7 +73,8 @@ export const usePaymentMethods = () => {
           account_name: method.account_name,
           qr_code_url: method.qr_code_url,
           active: method.active,
-          sort_order: method.sort_order
+          sort_order: method.sort_order,
+          merchant_id: method.merchant_id
         })
         .select()
         .single();
@@ -89,16 +91,23 @@ export const usePaymentMethods = () => {
 
   const updatePaymentMethod = async (id: string, updates: Partial<PaymentMethod>) => {
     try {
+      const updateData: any = {
+        name: updates.name,
+        account_number: updates.account_number,
+        account_name: updates.account_name,
+        qr_code_url: updates.qr_code_url,
+        active: updates.active,
+        sort_order: updates.sort_order
+      };
+
+      // Include merchant_id if it exists in updates (can be null for "All Merchants")
+      if ('merchant_id' in updates) {
+        updateData.merchant_id = updates.merchant_id;
+      }
+
       const { error: updateError } = await supabase
         .from('payment_methods')
-        .update({
-          name: updates.name,
-          account_number: updates.account_number,
-          account_name: updates.account_name,
-          qr_code_url: updates.qr_code_url,
-          active: updates.active,
-          sort_order: updates.sort_order
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (updateError) throw updateError;

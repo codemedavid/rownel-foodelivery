@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Save, X, ArrowLeft, CreditCard, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, ArrowLeft, CreditCard } from 'lucide-react';
 import { usePaymentMethods, PaymentMethod } from '../hooks/usePaymentMethods';
+import { useMerchants } from '../hooks/useMerchants';
 import ImageUpload from './ImageUpload';
 
 interface PaymentMethodManagerProps {
@@ -9,16 +10,27 @@ interface PaymentMethodManagerProps {
 
 const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({ onBack }) => {
   const { paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod, refetchAll } = usePaymentMethods();
+  const { merchants } = useMerchants();
   const [currentView, setCurrentView] = useState<'list' | 'add' | 'edit'>('list');
   const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    id: string;
+    name: string;
+    account_number: string;
+    account_name: string;
+    qr_code_url: string;
+    active: boolean;
+    sort_order: number;
+    merchant_id: string | null;
+  }>({
     id: '',
     name: '',
     account_number: '',
     account_name: '',
     qr_code_url: '',
     active: true,
-    sort_order: 0
+    sort_order: 0,
+    merchant_id: null // null = all merchants
   });
 
   React.useEffect(() => {
@@ -34,7 +46,8 @@ const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({ onBack }) =
       account_name: '',
       qr_code_url: '',
       active: true,
-      sort_order: nextSortOrder
+      sort_order: nextSortOrder,
+      merchant_id: null // Default to "All Merchants"
     });
     setCurrentView('add');
   };
@@ -48,7 +61,8 @@ const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({ onBack }) =
       account_name: method.account_name,
       qr_code_url: method.qr_code_url,
       active: method.active,
-      sort_order: method.sort_order
+      sort_order: method.sort_order,
+      merchant_id: method.merchant_id
     });
     setCurrentView('edit');
   };
@@ -183,6 +197,25 @@ const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({ onBack }) =
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-black mb-2">Merchant Availability</label>
+                <select
+                  value={formData.merchant_id || ''}
+                  onChange={(e) => setFormData({ ...formData, merchant_id: e.target.value || null })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="">🌐 All Merchants (Shared)</option>
+                  {merchants.map(merchant => (
+                    <option key={merchant.id} value={merchant.id}>
+                      {merchant.name} (Specific)
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Select "All Merchants" to make this payment method available for all merchants, or choose a specific merchant
+                </p>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-black mb-2">Account Number/Phone *</label>
                 <input
                   type="text"
@@ -308,7 +341,16 @@ const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({ onBack }) =
                         <h3 className="font-medium text-black">{method.name}</h3>
                         <p className="text-sm text-gray-600">{method.account_number}</p>
                         <p className="text-sm text-gray-500">Account: {method.account_name}</p>
-                        <p className="text-xs text-gray-400">ID: {method.id} • Order: #{method.sort_order}</p>
+                        <p className="text-xs text-gray-400">
+                          ID: {method.id} • Order: #{method.sort_order}
+                          {method.merchant_id ? (
+                            <span className="ml-2">
+                              • {merchants.find(m => m.id === method.merchant_id)?.name || 'Unknown Merchant'}
+                            </span>
+                          ) : (
+                            <span className="ml-2 text-blue-600 font-medium">• 🌐 All Merchants</span>
+                          )}
+                        </p>
                       </div>
                     </div>
                     

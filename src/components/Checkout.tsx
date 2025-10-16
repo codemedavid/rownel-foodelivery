@@ -10,7 +10,7 @@ interface CheckoutProps {
 }
 
 const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
-  const { paymentMethods } = usePaymentMethods();
+  const { paymentMethods: allPaymentMethods } = usePaymentMethods();
   const { cartItems, getTotalPrice } = useCartContext();
   const { merchants } = useMerchants();
   const totalPrice = getTotalPrice();
@@ -35,6 +35,24 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     
     return grouped;
   }, [cartItems]);
+
+  // Get unique merchant IDs from cart
+  const merchantIds = useMemo(() => Object.keys(itemsByMerchant), [itemsByMerchant]);
+
+  // Filter payment methods based on cart merchants
+  // Show: 1) All-merchant payment methods (merchant_id = null)
+  //       2) Merchant-specific methods if cart only has one merchant
+  const paymentMethods = useMemo(() => {
+    return allPaymentMethods.filter(method => {
+      // Always show payment methods available for all merchants
+      if (method.merchant_id === null) return true;
+      
+      // If cart has items from a single merchant, show that merchant's specific payment methods
+      if (merchantIds.length === 1 && method.merchant_id === merchantIds[0]) return true;
+      
+      return false;
+    });
+  }, [allPaymentMethods, merchantIds]);
 
   // Calculate subtotal for a merchant
   const getMerchantSubtotal = (merchantId: string) => {
