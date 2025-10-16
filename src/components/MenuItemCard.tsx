@@ -208,14 +208,25 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
                 >
                   Unavailable
                 </button>
-              ) : quantity === 0 ? (
+              ) : (item.variations?.length || item.addOns?.length) ? (
+                // Always show "Customize" for items with variations/add-ons
+                // This allows adding the same item with different customizations
                 <button
                   onClick={handleAddToCart}
                   className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2.5 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 transform hover:scale-105 font-medium text-sm shadow-lg hover:shadow-xl"
                 >
-                  {item.variations?.length || item.addOns?.length ? 'Customize' : 'Add to Cart'}
+                  Customize
+                </button>
+              ) : quantity === 0 ? (
+                // For simple items (no customization), show "Add to Cart"
+                <button
+                  onClick={handleAddToCart}
+                  className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2.5 rounded-xl hover:from-green-700 hover:to-green-800 transition-all duration-200 transform hover:scale-105 font-medium text-sm shadow-lg hover:shadow-xl"
+                >
+                  Add to Cart
                 </button>
               ) : (
+                // For simple items in cart, show quantity controls
                 <div className="flex items-center space-x-2 bg-gradient-to-r from-yellow-100 to-orange-100 rounded-xl p-1 border border-yellow-200">
                   <button
                     onClick={handleDecrement}
