@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:inventory": "node test-inventory-system.js",
+    "check:inventory": "node check-inventory-status.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.56.1",

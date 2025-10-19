@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash2, Save, X, ArrowLeft, Coffee, TrendingUp, Package, Users, FolderOpen, CreditCard, Settings, ShoppingCart, LogOut, Boxes, Store } from 'lucide-react';
-import { MenuItem, Variation, AddOn } from '../types';
+import { MenuItem, Variation, AddOn, VariationGroup } from '../types';
 import { addOnCategories } from '../data/menuData';
 import { useMenu } from '../hooks/useMenu';
 import { useCategories } from '../hooks/useCategories';
@@ -31,6 +31,7 @@ const AdminDashboard: React.FC = () => {
     popular: false,
     available: true,
     variations: [],
+    variationGroups: [],
     addOns: [],
     trackInventory: false,
     stockQuantity: null,
@@ -48,6 +49,7 @@ const AdminDashboard: React.FC = () => {
       popular: false,
       available: true,
       variations: [],
+      variationGroups: [],
       addOns: [],
       trackInventory: false,
       stockQuantity: null,
@@ -245,6 +247,59 @@ const AdminDashboard: React.FC = () => {
   const removeAddOn = (index: number) => {
     const updatedAddOns = formData.addOns?.filter((_, i) => i !== index) || [];
     setFormData({ ...formData, addOns: updatedAddOns });
+  };
+
+  // Variation Groups Management
+  const addVariationGroup = () => {
+    const newGroup: VariationGroup = {
+      id: `vg-${Date.now()}`,
+      name: '',
+      required: true,
+      sortOrder: (formData.variationGroups?.length || 0),
+      variations: []
+    };
+    setFormData({
+      ...formData,
+      variationGroups: [...(formData.variationGroups || []), newGroup]
+    });
+  };
+
+  const updateVariationGroup = (index: number, field: keyof VariationGroup, value: any) => {
+    const updatedGroups = [...(formData.variationGroups || [])];
+    updatedGroups[index] = { ...updatedGroups[index], [field]: value };
+    setFormData({ ...formData, variationGroups: updatedGroups });
+  };
+
+  const removeVariationGroup = (index: number) => {
+    const updatedGroups = formData.variationGroups?.filter((_, i) => i !== index) || [];
+    setFormData({ ...formData, variationGroups: updatedGroups });
+  };
+
+  const addVariationToGroup = (groupIndex: number) => {
+    const updatedGroups = [...(formData.variationGroups || [])];
+    const newVariation: Variation = {
+      id: `var-${Date.now()}`,
+      name: '',
+      price: 0,
+      sortOrder: updatedGroups[groupIndex].variations.length
+    };
+    updatedGroups[groupIndex].variations = [...updatedGroups[groupIndex].variations, newVariation];
+    setFormData({ ...formData, variationGroups: updatedGroups });
+  };
+
+  const updateVariationInGroup = (groupIndex: number, varIndex: number, field: keyof Variation, value: string | number) => {
+    const updatedGroups = [...(formData.variationGroups || [])];
+    updatedGroups[groupIndex].variations[varIndex] = {
+      ...updatedGroups[groupIndex].variations[varIndex],
+      [field]: value
+    };
+    setFormData({ ...formData, variationGroups: updatedGroups });
+  };
+
+  const removeVariationFromGroup = (groupIndex: number, varIndex: number) => {
+    const updatedGroups = [...(formData.variationGroups || [])];
+    updatedGroups[groupIndex].variations = updatedGroups[groupIndex].variations.filter((_, i) => i !== varIndex);
+    setFormData({ ...formData, variationGroups: updatedGroups });
   };
 
   // Dashboard Stats
@@ -498,43 +553,105 @@ const AdminDashboard: React.FC = () => {
               />
             </div>
 
-            {/* Variations Section */}
+            {/* Grouped Variations Section */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-playfair font-medium text-black">Size Variations</h3>
+                <div>
+                  <h3 className="text-lg font-playfair font-medium text-black">Variation Groups</h3>
+                  <p className="text-sm text-gray-500 mt-1">Add different types of variations (e.g., Size, Temperature, Style)</p>
+                </div>
                 <button
-                  onClick={addVariation}
-                  className="flex items-center space-x-2 px-3 py-2 bg-cream-100 text-black rounded-lg hover:bg-cream-200 transition-colors duration-200"
+                  type="button"
+                  onClick={addVariationGroup}
+                  className="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Add Variation</span>
+                  <span>Add Variation Group</span>
                 </button>
               </div>
 
-              {formData.variations?.map((variation, index) => (
-                <div key={variation.id} className="flex items-center space-x-3 mb-3 p-4 bg-gray-50 rounded-lg">
-                  <input
-                    type="text"
-                    value={variation.name}
-                    onChange={(e) => updateVariation(index, 'name', e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Variation name (e.g., Small, Medium, Large)"
-                  />
-                  <input
-                    type="number"
-                    value={variation.price}
-                    onChange={(e) => updateVariation(index, 'price', Number(e.target.value))}
-                    className="w-24 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Price"
-                  />
-                  <button
-                    onClick={() => removeVariation(index)}
-                    className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+              {formData.variationGroups?.map((group, groupIndex) => (
+                <div key={group.id} className="mb-6 p-4 border-2 border-gray-200 rounded-lg bg-white">
+                  {/* Group Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex-1 flex items-center space-x-3">
+                      <input
+                        type="text"
+                        value={group.name}
+                        onChange={(e) => updateVariationGroup(groupIndex, 'name', e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-medium"
+                        placeholder="Group name (e.g., Size, Temperature, Style)"
+                      />
+                      <label className="flex items-center space-x-2 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={group.required}
+                          onChange={(e) => updateVariationGroup(groupIndex, 'required', e.target.checked)}
+                          className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Required</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removeVariationGroup(groupIndex)}
+                        className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Variations in this group */}
+                  <div className="ml-4 space-y-2">
+                    {group.variations.map((variation, varIndex) => (
+                      <div key={variation.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <input
+                          type="text"
+                          value={variation.name}
+                          onChange={(e) => updateVariationInGroup(groupIndex, varIndex, 'name', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Option name (e.g., Small, Hot, Straight)"
+                        />
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">+₱</span>
+                          <input
+                            type="number"
+                            value={variation.price}
+                            onChange={(e) => updateVariationInGroup(groupIndex, varIndex, 'price', Number(e.target.value))}
+                            className="w-24 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            placeholder="0"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeVariationFromGroup(groupIndex, varIndex)}
+                          className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => addVariationToGroup(groupIndex)}
+                      className="flex items-center space-x-2 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+                    >
+                      <Plus className="h-3 w-3" />
+                      <span>Add Option to {group.name || 'this group'}</span>
+                    </button>
+                  </div>
                 </div>
               ))}
+
+              {(!formData.variationGroups || formData.variationGroups.length === 0) && (
+                <div className="p-6 text-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <p className="text-gray-500 text-sm mb-2">No variation groups added yet</p>
+                  <p className="text-gray-400 text-xs">
+                    Click "Add Variation Group" to create groups like Size, Temperature, or Style
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Add-ons Section */}

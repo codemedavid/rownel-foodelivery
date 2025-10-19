@@ -27,6 +27,16 @@ export interface Variation {
   id: string;
   name: string;
   price: number;
+  variationGroup?: string; // The group this variation belongs to (e.g., "Size", "Temperature")
+  sortOrder?: number; // Order within the group
+}
+
+export interface VariationGroup {
+  id: string;
+  name: string; // e.g., "Size", "Temperature", "Style"
+  required: boolean; // If true, customer must select one option
+  sortOrder: number; // Order of groups in UI
+  variations: Variation[]; // Variations belonging to this group
 }
 
 export interface AddOn {
@@ -47,7 +57,8 @@ export interface MenuItem {
   image?: string;
   popular?: boolean;
   available?: boolean;
-  variations?: Variation[];
+  variations?: Variation[]; // Flat list of variations (for backward compatibility)
+  variationGroups?: VariationGroup[]; // Grouped variations (new structure)
   addOns?: AddOn[];
   // Discount pricing fields
   discountPrice?: number;
@@ -66,7 +77,8 @@ export interface MenuItem {
 
 export interface CartItem extends MenuItem {
   quantity: number;
-  selectedVariation?: Variation;
+  selectedVariation?: Variation; // For backward compatibility (single variation)
+  selectedVariations?: Record<string, Variation>; // For grouped variations: { "Size": {...}, "Temperature": {...} }
   selectedAddOns?: AddOn[];
   totalPrice: number;
   menuItemId: string;

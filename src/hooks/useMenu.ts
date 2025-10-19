@@ -11,12 +11,13 @@ export const useMenu = () => {
     try {
       setLoading(true);
       
-      // Fetch menu items with their variations and add-ons
+      // Fetch menu items with their variations, variation_groups, and add-ons
       const { data: items, error: itemsError } = await supabase
         .from('menu_items')
         .select(`
           *,
           variations (*),
+          variation_groups (*),
           add_ons (*)
         `)
         .order('created_at', { ascending: true });
@@ -35,6 +36,33 @@ export const useMenu = () => {
         
         // Calculate effective price
         const effectivePrice = isDiscountActive && item.discount_price ? item.discount_price : item.base_price;
+
+        // Group variations by variation_group
+        const variationsByGroup: Record<string, any[]> = {};
+        item.variations?.forEach((v: any) => {
+          const group = v.variation_group || 'default';
+          if (!variationsByGroup[group]) {
+            variationsByGroup[group] = [];
+          }
+          variationsByGroup[group].push(v);
+        });
+
+        // Create variation groups with their variations
+        const variationGroups = item.variation_groups?.map((vg: any) => ({
+          id: vg.id,
+          name: vg.name,
+          required: vg.required ?? true,
+          sortOrder: vg.sort_order ?? 0,
+          variations: (variationsByGroup[vg.name] || [])
+            .map((v: any) => ({
+              id: v.id,
+              name: v.name,
+              price: v.price,
+              variationGroup: v.variation_group,
+              sortOrder: v.sort_order ?? 0
+            }))
+            .sort((a: any, b: any) => a.sortOrder - b.sortOrder)
+        })).sort((a: any, b: any) => a.sortOrder - b.sortOrder) || [];
 
         return {
           id: item.id,
@@ -56,12 +84,17 @@ export const useMenu = () => {
           stockQuantity: item.stock_quantity,
           lowStockThreshold: item.low_stock_threshold ?? 0,
           autoDisabled: item.track_inventory ? item.available === false : false,
-          variations: item.variations?.map(v => ({
+          // Keep flat variations list for backward compatibility
+          variations: item.variations?.map((v: any) => ({
             id: v.id,
             name: v.name,
-            price: v.price
+            price: v.price,
+            variationGroup: v.variation_group,
+            sortOrder: v.sort_order ?? 0
           })) || [],
-          addOns: item.add_ons?.map(a => ({
+          // Add grouped variations
+          variationGroups,
+          addOns: item.add_ons?.map((a: any) => ({
             id: a.id,
             name: a.name,
             price: a.price,
@@ -107,15 +140,51 @@ export const useMenu = () => {
 
       if (itemError) throw itemError;
 
-      // Insert variations if any
-      if (item.variations && item.variations.length > 0) {
+      // Insert variation groups if any
+      if (item.variationGroups && item.variationGroups.length > 0) {
+        const { data: insertedGroups, error: groupsError } = await supabase
+          .from('variation_groups')
+          .insert(
+            item.variationGroups.map(vg => ({
+              menu_item_id: menuItem.id,
+              name: vg.name,
+              required: vg.required ?? true,
+              sort_order: vg.sortOrder ?? 0
+            }))
+          )
+          .select();
+
+        if (groupsError) throw groupsError;
+
+        // Insert variations for each group
+        for (const group of item.variationGroups) {
+          if (group.variations && group.variations.length > 0) {
+            const { error: variationsError } = await supabase
+              .from('variations')
+              .insert(
+                group.variations.map(v => ({
+                  menu_item_id: menuItem.id,
+                  name: v.name,
+                  price: v.price,
+                  variation_group: group.name,
+                  sort_order: v.sortOrder ?? 0
+                }))
+              );
+
+            if (variationsError) throw variationsError;
+          }
+        }
+      } else if (item.variations && item.variations.length > 0) {
+        // Fallback: Insert variations without groups (backward compatibility)
         const { error: variationsError } = await supabase
           .from('variations')
           .insert(
             item.variations.map(v => ({
               menu_item_id: menuItem.id,
               name: v.name,
-              price: v.price
+              price: v.price,
+              variation_group: v.variationGroup || 'default',
+              sort_order: v.sortOrder ?? 0
             }))
           );
 
@@ -181,19 +250,55 @@ export const useMenu = () => {
 
       if (itemError) throw itemError;
 
-      // Delete existing variations and add-ons
+      // Delete existing variations, variation_groups, and add-ons
       await supabase.from('variations').delete().eq('menu_item_id', id);
+      await supabase.from('variation_groups').delete().eq('menu_item_id', id);
       await supabase.from('add_ons').delete().eq('menu_item_id', id);
 
-      // Insert new variations
-      if (updates.variations && updates.variations.length > 0) {
+      // Insert new variation groups if any
+      if (updates.variationGroups && updates.variationGroups.length > 0) {
+        const { error: groupsError } = await supabase
+          .from('variation_groups')
+          .insert(
+            updates.variationGroups.map(vg => ({
+              menu_item_id: id,
+              name: vg.name,
+              required: vg.required ?? true,
+              sort_order: vg.sortOrder ?? 0
+            }))
+          );
+
+        if (groupsError) throw groupsError;
+
+        // Insert variations for each group
+        for (const group of updates.variationGroups) {
+          if (group.variations && group.variations.length > 0) {
+            const { error: variationsError } = await supabase
+              .from('variations')
+              .insert(
+                group.variations.map(v => ({
+                  menu_item_id: id,
+                  name: v.name,
+                  price: v.price,
+                  variation_group: group.name,
+                  sort_order: v.sortOrder ?? 0
+                }))
+              );
+
+            if (variationsError) throw variationsError;
+          }
+        }
+      } else if (updates.variations && updates.variations.length > 0) {
+        // Fallback: Insert new variations without groups (backward compatibility)
         const { error: variationsError } = await supabase
           .from('variations')
           .insert(
             updates.variations.map(v => ({
               menu_item_id: id,
               name: v.name,
-              price: v.price
+              price: v.price,
+              variation_group: v.variationGroup || 'default',
+              sort_order: v.sortOrder ?? 0
             }))
           );
 
