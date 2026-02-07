@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Save, X, ArrowLeft, Coffee, TrendingUp, Package, Users, FolderOpen, CreditCard, Settings, ShoppingCart, LogOut, Boxes, Store } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, X, ArrowLeft, Coffee, TrendingUp, Package, Users, FolderOpen, CreditCard, Settings, ShoppingCart, LogOut, Boxes, Store, Megaphone } from 'lucide-react';
 import { MenuItem, Variation, AddOn, VariationGroup } from '../types';
 import { addOnCategories } from '../data/menuData';
 import { useMenu } from '../hooks/useMenu';
@@ -13,12 +13,13 @@ import OrdersManager from './OrdersManager';
 import InventoryManager from './InventoryManager';
 import CustomersManager from './CustomersManager';
 import MerchantManager from './MerchantManager';
+import PromotionManager from './PromotionManager';
 
 const AdminDashboard: React.FC = () => {
   const { user, signOut } = useAuth();
   const { menuItems, loading, addMenuItem, updateMenuItem, deleteMenuItem } = useMenu();
   const { categories } = useCategories();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments' | 'settings' | 'orders' | 'inventory' | 'customers' | 'merchants'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments' | 'settings' | 'orders' | 'inventory' | 'customers' | 'merchants' | 'promotions'>('dashboard');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1095,6 +1096,11 @@ const AdminDashboard: React.FC = () => {
     return <MerchantManager onBack={() => setCurrentView('dashboard')} />;
   }
 
+  // Promotions View
+  if (currentView === 'promotions') {
+    return <PromotionManager onBack={() => setCurrentView('dashboard')} />;
+  }
+
   // Dashboard View
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1225,6 +1231,13 @@ const AdminDashboard: React.FC = () => {
               >
                 <CreditCard className="h-5 w-5 text-gray-400" />
                 <span className="font-medium text-gray-900">Payment Methods</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('promotions')}
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+              >
+                <Megaphone className="h-5 w-5 text-gray-400" />
+                <span className="font-medium text-gray-900">Promotion Banners</span>
               </button>
               <button
                 onClick={() => setCurrentView('orders')}

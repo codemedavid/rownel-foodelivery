@@ -9,6 +9,7 @@ import AdminDashboard from './components/AdminDashboard';
 import AdminLogin from './components/AdminLogin';
 import ProtectedRoute from './components/ProtectedRoute';
 import MerchantsList from './components/MerchantsList';
+import MenuItemDetailsPage from './components/MenuItemDetailsPage';
 import { useMenu } from './hooks/useMenu';
 import { AuthProvider } from './contexts/AuthContext';
 import { MerchantProvider, useMerchant } from './contexts/MerchantContext';
@@ -75,6 +76,7 @@ function App() {
             <Routes>
               <Route path="/" element={<MerchantsList />} />
               <Route path="/merchant/:merchantId" element={<MerchantMenu />} />
+              <Route path="/merchant/:merchantId/item/:itemId" element={<MenuItemDetailsPage />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route 
                 path="/admin" 

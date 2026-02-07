@@ -8,6 +8,11 @@ export interface CreateOrderPayload {
   contactNumber: string;
   serviceType: 'dine-in' | 'pickup' | 'delivery';
   address?: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  distanceKm?: number;
+  deliveryFee?: number;
+  deliveryFeeBreakdown?: Record<string, unknown>;
   pickupTime?: string;
   partySize?: number;
   dineInTime?: string;
@@ -138,10 +143,16 @@ export const useOrders = () => {
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
+          merchant_id: payload.merchantId,
           customer_name: payload.customerName,
           contact_number: payload.contactNumber,
           service_type: payload.serviceType,
           address: payload.address ?? null,
+          delivery_latitude: payload.deliveryLatitude ?? null,
+          delivery_longitude: payload.deliveryLongitude ?? null,
+          distance_km: payload.distanceKm ?? null,
+          delivery_fee: payload.deliveryFee ?? null,
+          delivery_fee_breakdown: payload.deliveryFeeBreakdown ?? null,
           pickup_time: payload.pickupTime ?? null,
           party_size: payload.partySize ?? null,
           dine_in_time: payload.dineInTime ? new Date(payload.dineInTime).toISOString() : null,

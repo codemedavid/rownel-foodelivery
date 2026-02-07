@@ -5,11 +5,21 @@ export const useCart = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const calculateItemPrice = (item: MenuItem, variation?: Variation, addOns?: AddOn[]) => {
+  const calculateItemPrice = (
+    item: MenuItem,
+    variation?: Variation,
+    addOns?: AddOn[],
+    selectedVariations?: Record<string, Variation>
+  ) => {
     // Prefer effectivePrice (discounted) when available, fallback to basePrice
     let price = item.effectivePrice ?? item.basePrice;
     if (variation) {
       price += variation.price;
+    }
+    if (selectedVariations) {
+      Object.values(selectedVariations).forEach((selected) => {
+        price += selected.price;
+      });
     }
     if (addOns) {
       addOns.forEach(addOn => {
@@ -19,8 +29,14 @@ export const useCart = () => {
     return price;
   };
 
-  const addToCart = useCallback((item: MenuItem, quantity: number = 1, variation?: Variation, addOns?: AddOn[]) => {
-    const totalPrice = calculateItemPrice(item, variation, addOns);
+  const addToCart = useCallback((
+    item: MenuItem,
+    quantity: number = 1,
+    variation?: Variation,
+    addOns?: AddOn[],
+    selectedVariations?: Record<string, Variation>
+  ) => {
+    const totalPrice = calculateItemPrice(item, variation, addOns, selectedVariations);
     const menuItemId = item.id;
 
     // Group add-ons by name and sum their quantities
@@ -34,10 +50,21 @@ export const useCart = () => {
       return groups;
     }, [] as (AddOn & { quantity: number })[]);
 
+    const selectedVariationsSignature = selectedVariations
+      ? Object.entries(selectedVariations)
+          .sort(([groupA], [groupB]) => groupA.localeCompare(groupB))
+          .map(([groupName, selected]) => `${groupName}:${selected.id}`)
+      : [];
+
     setCartItems(prev => {
       const existingItem = prev.find(cartItem => 
         cartItem.menuItemId === menuItemId && 
         cartItem.selectedVariation?.id === variation?.id &&
+        JSON.stringify(
+          Object.entries(cartItem.selectedVariations || {})
+            .sort(([groupA], [groupB]) => groupA.localeCompare(groupB))
+            .map(([groupName, selected]) => `${groupName}:${selected.id}`)
+        ) === JSON.stringify(selectedVariationsSignature) &&
         JSON.stringify(cartItem.selectedAddOns?.map(a => `${a.id}-${a.quantity || 1}`).sort()) === JSON.stringify(groupedAddOns?.map(a => `${a.id}-${a.quantity}`).sort())
       );
       
@@ -48,13 +75,14 @@ export const useCart = () => {
             : cartItem
         );
       } else {
-        const uniqueId = `${item.id}-${variation?.id || 'default'}-${addOns?.map(a => a.id).join(',') || 'none'}`;
+        const uniqueId = `${item.id}-${variation?.id || 'default'}-${selectedVariationsSignature.join('|') || 'no-groups'}-${groupedAddOns?.map(a => `${a.id}-${a.quantity}`).join(',') || 'none'}`;
         return [...prev, { 
           ...item,
           id: uniqueId,
           menuItemId,
           quantity,
           selectedVariation: variation,
+          selectedVariations,
           selectedAddOns: groupedAddOns || [],
           totalPrice
         }];

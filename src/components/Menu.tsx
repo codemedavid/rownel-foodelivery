@@ -22,12 +22,32 @@ interface MenuProps {
   menuItems: MenuItem[];
 }
 
+const fallbackDishSuggestions = [
+  { id: 'fallback-dish-1', name: 'Chef Special Dumplings', description: 'Steamed dumplings with a savory pork and shrimp filling.' },
+  { id: 'fallback-dish-2', name: 'Crispy Chili Chicken', description: 'Lightly battered chicken tossed in sweet chili glaze.' },
+  { id: 'fallback-dish-3', name: 'Garlic Butter Noodles', description: 'Wok-tossed noodles with garlic, butter, and spring onions.' },
+  { id: 'fallback-dish-4', name: 'Honey Soy Rice Bowl', description: 'Grilled protein over steamed rice with honey soy sauce.' },
+  { id: 'fallback-dish-5', name: 'Salted Egg Prawns', description: 'Crispy prawns coated in rich and creamy salted egg sauce.' },
+  { id: 'fallback-dish-6', name: 'Braised Beef Rice', description: 'Slow-braised beef served over warm jasmine rice.' },
+  { id: 'fallback-dish-7', name: 'Mango Tapioca Cup', description: 'Chilled mango cream dessert with chewy tapioca pearls.' },
+  { id: 'fallback-dish-8', name: 'Lemongrass Iced Tea', description: 'Refreshing house-brewed tea infused with lemongrass.' }
+];
+
 const Menu: React.FC<MenuProps> = ({ menuItems }) => {
   const navigate = useNavigate();
   const { selectedMerchant } = useMerchant();
-  const { addToCart, cartItems, updateQuantity } = useCartContext();
+  const { cartItems, updateQuantity } = useCartContext();
   const { categories } = useCategories(selectedMerchant?.id, menuItems);
   const [activeCategory, setActiveCategory] = React.useState('hot-coffee');
+  const randomPicks = React.useMemo(() => {
+    if (menuItems.length === 0) return [];
+    const shuffled = [...menuItems].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(4, shuffled.length));
+  }, [menuItems]);
+  const randomFallbackPicks = React.useMemo(() => {
+    const shuffled = [...fallbackDishSuggestions].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 4);
+  }, []);
 
   // Preload images when menu items change
   React.useEffect(() => {
@@ -60,6 +80,11 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
     }
   };
 
+  const handleOpenDetails = (itemId: string) => {
+    if (!selectedMerchant) return;
+    navigate(`/merchant/${selectedMerchant.id}/item/${itemId}`);
+  };
+
   React.useEffect(() => {
     if (categories.length > 0) {
       // Set default to dim-sum if it exists, otherwise first category
@@ -72,13 +97,20 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
 
   React.useEffect(() => {
     const handleScroll = () => {
-      const sections = categories.map(cat => document.getElementById(cat.id)).filter(Boolean);
+      const sections = [
+        document.getElementById('random-picks'),
+        ...categories.map(cat => document.getElementById(cat.id))
+      ].filter(Boolean);
       const scrollPosition = window.scrollY + 200;
 
       for (let i = sections.length - 1; i >= 0; i--) {
         const section = sections[i];
         if (section && section.offsetTop <= scrollPosition) {
-          setActiveCategory(categories[i].id);
+          if (i === 0) {
+            setActiveCategory('random-picks');
+          } else {
+            setActiveCategory(categories[i - 1].id);
+          }
           break;
         }
       }
@@ -86,7 +118,7 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [categories]);
 
   if (!selectedMerchant) {
     return null;
@@ -133,9 +165,55 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
         activeCategory={activeCategory}
         onCategoryClick={handleCategoryClick}
         menuItems={menuItems}
+        showRandomPicks
       />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <section id="random-picks" className="mb-12">
+          <div className="flex items-center mb-6">
+            <span className="text-3xl mr-3">🎲</span>
+            <h3 className="text-2xl font-bold text-gray-900">Random Picks</h3>
+            <span className="ml-3 text-sm text-gray-500">(refresh for new dishes)</span>
+          </div>
+
+          {randomPicks.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {randomPicks.map((item) => {
+                const cartItem = cartItems.find(cartItem =>
+                  cartItem.menuItemId === item.id &&
+                  !cartItem.selectedVariation &&
+                  (!cartItem.selectedAddOns || cartItem.selectedAddOns.length === 0)
+                );
+                return (
+                  <MenuItemCard
+                    key={`random-${item.id}`}
+                    item={item}
+                    quantity={cartItem?.quantity || 0}
+                    cartItemId={cartItem?.id}
+                    onUpdateQuantity={updateQuantity}
+                    onOpenDetails={handleOpenDetails}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {randomFallbackPicks.map((dish) => (
+                <div
+                  key={dish.id}
+                  className="rounded-2xl border border-gray-100 bg-white p-5 shadow-md"
+                >
+                  <div className="mb-2 inline-block rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
+                    Suggested
+                  </div>
+                  <h4 className="mb-2 text-lg font-semibold text-gray-900">{dish.name}</h4>
+                  <p className="text-sm text-gray-600">{dish.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         {categories.map((category) => {
           const categoryItems = menuItems.filter(item => item.category === category.id);
           
@@ -160,10 +238,10 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
                     <MenuItemCard
                       key={item.id}
                       item={item}
-                      onAddToCart={addToCart}
                       quantity={cartItem?.quantity || 0}
                       cartItemId={cartItem?.id}
                       onUpdateQuantity={updateQuantity}
+                      onOpenDetails={handleOpenDetails}
                     />
                   );
                 })}

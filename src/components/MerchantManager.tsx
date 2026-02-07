@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, X, ArrowLeft, Star, Package, ChefHat, Save } from 'lucide-react';
+import { Plus, Edit, Trash2, X, ArrowLeft, Star, Package, ChefHat, Save, MapPin, CheckCircle2 } from 'lucide-react';
 import { Merchant, MenuItem, Variation, AddOn } from '../types';
 import { useMerchants } from '../hooks/useMerchants';
 import { useMenu } from '../hooks/useMenu';
 import { useCategories } from '../hooks/useCategories';
 import { addOnCategories } from '../data/menuData';
 import { supabase } from '../lib/supabase';
+import { calculateDeliveryFee } from '../lib/deliveryPricing';
 import ImageUpload from './ImageUpload';
+import AddressAutocompleteInput from './AddressAutocompleteInput';
+import type { OSMAddressSuggestion } from '../lib/osm';
 
 interface MerchantManagerProps {
   onBack: () => void;
@@ -23,6 +26,10 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [editingMerchant, setEditingMerchant] = useState<Merchant | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [merchantFormErrors, setMerchantFormErrors] = useState<{
+    name?: string;
+    address?: string;
+  }>({});
 
   const [merchantFormData, setMerchantFormData] = useState<Partial<Merchant>>({
     name: '',
@@ -37,6 +44,14 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
     active: true,
     featured: false,
     address: '',
+    formattedAddress: '',
+    latitude: null,
+    longitude: null,
+    baseDeliveryFee: 0,
+    deliveryFeePerKm: 4,
+    minDeliveryFee: null,
+    maxDeliveryFee: null,
+    maxDeliveryDistanceKm: 20,
     contactNumber: '',
     email: '',
     openingHours: {},
@@ -68,10 +83,12 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
     setShowAddItemForm(false);
     setEditingItem(null);
     setEditingMerchant(null);
+    setMerchantFormErrors({});
   };
 
   const handleAddMerchant = () => {
     setEditingMerchant(null);
+    setMerchantFormErrors({});
     setMerchantFormData({
       name: '',
       description: '',
@@ -85,6 +102,14 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
       active: true,
       featured: false,
       address: '',
+      formattedAddress: '',
+      latitude: null,
+      longitude: null,
+      baseDeliveryFee: 0,
+      deliveryFeePerKm: 4,
+      minDeliveryFee: null,
+      maxDeliveryFee: null,
+      maxDeliveryDistanceKm: 20,
       contactNumber: '',
       email: '',
       openingHours: {},
@@ -95,6 +120,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
 
   const handleEditMerchant = (merchant: Merchant) => {
     setEditingMerchant(merchant);
+    setMerchantFormErrors({});
     setMerchantFormData(merchant);
     setCurrentView('edit-merchant');
   };
@@ -121,8 +147,46 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
   };
 
   const handleSaveMerchant = async () => {
-    if (!merchantFormData.name) {
-      alert('Please enter a merchant name');
+    const nextErrors: { name?: string; address?: string } = {};
+
+    const name = merchantFormData.name?.trim() || '';
+    const address = merchantFormData.address?.trim() || '';
+    const hasGeocodedAddress = merchantFormData.latitude != null && merchantFormData.longitude != null;
+
+    if (!name) {
+      nextErrors.name = 'Merchant name is required.';
+    }
+
+    if (!address) {
+      nextErrors.address = 'Delivery address is required.';
+    } else if (!hasGeocodedAddress) {
+      nextErrors.address = 'Select a suggested address to pin the exact merchant location.';
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setMerchantFormErrors(nextErrors);
+      return;
+    }
+
+    setMerchantFormErrors({});
+
+    const baseDeliveryFee = Number(merchantFormData.baseDeliveryFee ?? merchantFormData.deliveryFee ?? 0);
+    const deliveryFeePerKm = Number(merchantFormData.deliveryFeePerKm ?? 0);
+    const minDeliveryFee = merchantFormData.minDeliveryFee ?? null;
+    const maxDeliveryFee = merchantFormData.maxDeliveryFee ?? null;
+    const maxDeliveryDistanceKm = Number(merchantFormData.maxDeliveryDistanceKm ?? 20);
+
+    if (baseDeliveryFee < 0 || deliveryFeePerKm < 0 || maxDeliveryDistanceKm < 0) {
+      alert('Delivery pricing values cannot be negative');
+      return;
+    }
+
+    if (
+      typeof minDeliveryFee === 'number' &&
+      typeof maxDeliveryFee === 'number' &&
+      minDeliveryFee > maxDeliveryFee
+    ) {
+      alert('Minimum delivery fee cannot be greater than maximum delivery fee');
       return;
     }
 
@@ -130,11 +194,16 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
       setIsProcessing(true);
 
       const merchantData = {
-        name: merchantFormData.name,
+        name,
         description: merchantFormData.description || null,
         category: merchantFormData.category,
         cuisine_type: merchantFormData.cuisineType || null,
-        delivery_fee: merchantFormData.deliveryFee || 0,
+        delivery_fee: baseDeliveryFee,
+        base_delivery_fee: baseDeliveryFee,
+        delivery_fee_per_km: deliveryFeePerKm,
+        min_delivery_fee: minDeliveryFee,
+        max_delivery_fee: maxDeliveryFee,
+        max_delivery_distance_km: maxDeliveryDistanceKm,
         minimum_order: merchantFormData.minimumOrder || 0,
         estimated_delivery_time: merchantFormData.estimatedDeliveryTime || null,
         rating: merchantFormData.rating || 0,
@@ -142,6 +211,10 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
         active: merchantFormData.active ?? true,
         featured: merchantFormData.featured ?? false,
         address: merchantFormData.address || null,
+        formatted_address: merchantFormData.formattedAddress || merchantFormData.address || null,
+        latitude: merchantFormData.latitude ?? null,
+        longitude: merchantFormData.longitude ?? null,
+        osm_place_id: merchantFormData.osmPlaceId || null,
         contact_number: merchantFormData.contactNumber || null,
         email: merchantFormData.email || null,
         opening_hours: merchantFormData.openingHours || null,
@@ -196,6 +269,27 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
       lowStockThreshold: 0
     });
     setShowAddItemForm(true);
+  };
+
+  const handleMerchantAddressSelect = (suggestion: OSMAddressSuggestion) => {
+    setMerchantFormErrors((prev) => ({ ...prev, address: undefined }));
+    setMerchantFormData((prev) => ({
+      ...prev,
+      address: suggestion.displayName,
+      formattedAddress: suggestion.displayName,
+      latitude: suggestion.latitude,
+      longitude: suggestion.longitude,
+      osmPlaceId: suggestion.placeId,
+    }));
+  };
+
+  const handleMerchantAddressClearSelection = () => {
+    setMerchantFormData((prev) => ({
+      ...prev,
+      latitude: null,
+      longitude: null,
+      osmPlaceId: undefined,
+    }));
   };
 
   const handleEditItem = (item: MenuItem) => {
@@ -716,10 +810,21 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                   <input
                     type="text"
                     value={merchantFormData.name || ''}
-                    onChange={(e) => setMerchantFormData({ ...merchantFormData, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setMerchantFormData({ ...merchantFormData, name: value });
+                      if (value.trim()) {
+                        setMerchantFormErrors((prev) => ({ ...prev, name: undefined }));
+                      }
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                      merchantFormErrors.name ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
                     placeholder="Enter merchant name"
                   />
+                  {merchantFormErrors.name && (
+                    <p className="mt-2 text-xs text-red-600">{merchantFormErrors.name}</p>
+                  )}
                 </div>
 
                 <div>
@@ -777,14 +882,24 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
               <h3 className="text-lg font-playfair font-medium text-black mb-4">Pricing</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">Delivery Fee (₱)</label>
+                  <label className="block text-sm font-medium text-black mb-2">Base Delivery Fee (₱)</label>
                   <input
                     type="number"
-                    value={merchantFormData.deliveryFee || 0}
-                    onChange={(e) => setMerchantFormData({ ...merchantFormData, deliveryFee: Number(e.target.value) })}
+                    min={0}
+                    step="0.01"
+                    value={merchantFormData.baseDeliveryFee ?? merchantFormData.deliveryFee ?? 0}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setMerchantFormData({
+                        ...merchantFormData,
+                        baseDeliveryFee: value,
+                        deliveryFee: value,
+                      });
+                    }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     placeholder="0"
                   />
+                  <p className="mt-1 text-xs text-gray-500">Starting delivery fee before distance charges.</p>
                 </div>
 
                 <div>
@@ -797,6 +912,57 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                     placeholder="0"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">Delivery Fee per KM (₱)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={merchantFormData.deliveryFeePerKm ?? 0}
+                    onChange={(e) => setMerchantFormData({ ...merchantFormData, deliveryFeePerKm: Number(e.target.value) })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="0"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Additional fee charged for every kilometer.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">Max Delivery Radius (km)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    value={merchantFormData.maxDeliveryDistanceKm ?? 20}
+                    onChange={(e) => setMerchantFormData({ ...merchantFormData, maxDeliveryDistanceKm: Number(e.target.value) })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="20"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Orders outside this radius will be blocked.</p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-xl border border-green-100 bg-green-50 p-4">
+                <p className="text-sm font-medium text-green-900">Delivery Fee Formula</p>
+                <p className="mt-1 text-xs text-green-800">
+                  Delivery Fee = Base Fee + (Distance in km × Fee per km), with optional min/max caps.
+                </p>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {[1, 3, 5].map((distanceKm) => {
+                    const previewFee = calculateDeliveryFee(distanceKm, {
+                      baseDeliveryFee: Number(merchantFormData.baseDeliveryFee ?? merchantFormData.deliveryFee ?? 0),
+                      deliveryFeePerKm: Number(merchantFormData.deliveryFeePerKm ?? 4),
+                      minDeliveryFee: merchantFormData.minDeliveryFee ?? null,
+                      maxDeliveryFee: merchantFormData.maxDeliveryFee ?? null,
+                    });
+
+                    return (
+                      <div key={distanceKm} className="rounded-lg bg-white px-3 py-2 text-center">
+                        <p className="text-xs text-gray-500">{distanceKm} km</p>
+                        <p className="text-sm font-semibold text-gray-900">₱{previewFee.toFixed(2)}</p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -804,15 +970,45 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
             <div>
               <h3 className="text-lg font-playfair font-medium text-black mb-4">Contact Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-black mb-2">Address</label>
-                  <input
-                    type="text"
+                <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50/70 p-4">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-800">
+                    <MapPin className="h-4 w-4 text-green-700" />
+                    <span>Merchant Delivery Address</span>
+                  </div>
+                  <AddressAutocompleteInput
+                    label="Delivery Address"
+                    required
                     value={merchantFormData.address || ''}
-                    onChange={(e) => setMerchantFormData({ ...merchantFormData, address: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Enter address"
+                    onChange={(value) =>
+                      setMerchantFormData({
+                        ...merchantFormData,
+                        address: value,
+                        formattedAddress: value,
+                      })
+                    }
+                    onSelect={handleMerchantAddressSelect}
+                    onClearSelection={handleMerchantAddressClearSelection}
+                    placeholder="Search and select the merchant delivery address"
+                    rows={2}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 ${
+                      merchantFormErrors.address ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
+                    countryCodes={['ph']}
                   />
+                  <p className="mt-2 text-xs text-gray-500">
+                    Start typing, then choose a suggested address to pin the merchant location.
+                  </p>
+                  {merchantFormErrors.address && (
+                    <p className="mt-2 text-xs text-red-600">{merchantFormErrors.address}</p>
+                  )}
+                  {merchantFormData.latitude !== null && merchantFormData.longitude !== null ? (
+                    <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Location pinned ({merchantFormData.latitude.toFixed(6)}, {merchantFormData.longitude.toFixed(6)})
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs text-amber-700">No pinned location yet.</p>
+                  )}
                 </div>
 
                 <div>
@@ -989,6 +1185,26 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                     <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                       <span>Delivery: ₱{merchant.deliveryFee}</span>
                       <span>Min: ₱{merchant.minimumOrder}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+                      <p className="rounded-lg bg-blue-50 px-3 py-2 text-blue-800">
+                        ₱{(merchant.deliveryFeePerKm ?? 4).toFixed(2)}/km
+                      </p>
+                      <p className="rounded-lg bg-purple-50 px-3 py-2 text-purple-800 text-right">
+                        Radius: {(merchant.maxDeliveryDistanceKm ?? 20).toFixed(1)} km
+                      </p>
+                    </div>
+
+                    <div className="mb-4">
+                      {merchant.address ? (
+                        <p className="text-xs text-green-700 bg-green-50 px-3 py-2 rounded-lg">
+                          Delivery address configured
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-800 bg-amber-50 px-3 py-2 rounded-lg">
+                          Delivery address not configured
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200">

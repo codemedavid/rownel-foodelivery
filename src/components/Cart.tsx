@@ -107,6 +107,14 @@ const Cart: React.FC<CartProps> = ({
                           <span className="font-medium">Size:</span> {item.selectedVariation.name}
                         </p>
                       )}
+                      {item.selectedVariations && Object.keys(item.selectedVariations).length > 0 && (
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          <span className="font-medium">Options:</span>{' '}
+                          {Object.entries(item.selectedVariations)
+                            .map(([groupName, variation]) => `${groupName}: ${variation.name}`)
+                            .join(', ')}
+                        </p>
+                      )}
                       {item.selectedAddOns && item.selectedAddOns.length > 0 && (
                         <p className="text-xs sm:text-sm text-gray-500">
                           <span className="font-medium">Add-ons:</span> {item.selectedAddOns.map(addOn => 

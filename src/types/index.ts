@@ -15,10 +15,19 @@ export interface Merchant {
   active: boolean;
   featured: boolean;
   address?: string;
+  formattedAddress?: string;
+  osmPlaceId?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   contactNumber?: string;
   email?: string;
   openingHours?: Record<string, string>; // e.g., { "monday": "09:00-22:00" }
   paymentMethods?: string[];
+  baseDeliveryFee?: number;
+  deliveryFeePerKm?: number;
+  minDeliveryFee?: number | null;
+  maxDeliveryFee?: number | null;
+  maxDeliveryDistanceKm?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -91,6 +100,11 @@ export interface OrderData {
   contactNumber: string;
   serviceType: 'dine-in' | 'pickup' | 'delivery';
   address?: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  distanceKm?: number;
+  deliveryFee?: number;
+  deliveryFeeBreakdown?: Record<string, unknown>;
   pickupTime?: string;
   // Dine-in specific fields
   partySize?: number;
@@ -120,4 +134,17 @@ export interface SiteSettings {
   site_description: string;
   currency: string;
   currency_code: string;
+}
+
+export interface Promotion {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  ctaText?: string | null;
+  ctaLink?: string | null;
+  bannerImageUrl?: string | null;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }

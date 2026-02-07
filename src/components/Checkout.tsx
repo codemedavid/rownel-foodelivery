@@ -4,6 +4,9 @@ import { PaymentMethod } from '../types';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import { useCartContext } from '../contexts/CartContext';
 import { useMerchants } from '../hooks/useMerchants';
+import AddressAutocompleteInput from './AddressAutocompleteInput';
+import type { OSMAddressSuggestion } from '../lib/osm';
+import { calculateDeliveryFee, haversineKm } from '../lib/deliveryPricing';
 
 interface CheckoutProps {
   onBack: () => void;
@@ -18,6 +21,9 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const [customerName, setCustomerName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [address, setAddress] = useState('');
+  const [deliveryLatitude, setDeliveryLatitude] = useState<number | null>(null);
+  const [deliveryLongitude, setDeliveryLongitude] = useState<number | null>(null);
+  const [deliveryOsmPlaceId, setDeliveryOsmPlaceId] = useState<string | null>(null);
   const [landmark, setLandmark] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
@@ -38,6 +44,80 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
   // Get unique merchant IDs from cart
   const merchantIds = useMemo(() => Object.keys(itemsByMerchant), [itemsByMerchant]);
+
+  const deliveryQuotesByMerchant = useMemo(() => {
+    const quotes: Record<
+      string,
+      {
+        deliverable: boolean;
+        reason?: string;
+        distanceKm?: number;
+        deliveryFee?: number;
+      }
+    > = {};
+
+    for (const merchantId of merchantIds) {
+      const merchant = merchants.find((m) => m.id === merchantId);
+
+      if (!merchant) {
+        quotes[merchantId] = { deliverable: false, reason: 'Merchant not found.' };
+        continue;
+      }
+
+      if (deliveryLatitude === null || deliveryLongitude === null) {
+        quotes[merchantId] = {
+          deliverable: false,
+          reason: 'Select a suggested delivery address to calculate distance and fee.',
+        };
+        continue;
+      }
+
+      if (merchant.latitude == null || merchant.longitude == null) {
+        quotes[merchantId] = {
+          deliverable: false,
+          reason: 'Merchant delivery location is not configured yet.',
+        };
+        continue;
+      }
+
+      const distanceKm = haversineKm(merchant.latitude, merchant.longitude, deliveryLatitude, deliveryLongitude);
+      const maxDistanceKm = merchant.maxDeliveryDistanceKm ?? null;
+      const isDeliverable = maxDistanceKm === null || distanceKm <= maxDistanceKm;
+
+      if (!isDeliverable) {
+        quotes[merchantId] = {
+          deliverable: false,
+          distanceKm,
+          reason: `Outside delivery radius (${maxDistanceKm} km max).`,
+        };
+        continue;
+      }
+
+      const deliveryFee = calculateDeliveryFee(distanceKm, {
+        baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
+        deliveryFeePerKm: merchant.deliveryFeePerKm ?? 4,
+        minDeliveryFee: merchant.minDeliveryFee,
+        maxDeliveryFee: merchant.maxDeliveryFee,
+      });
+
+      quotes[merchantId] = {
+        deliverable: true,
+        distanceKm,
+        deliveryFee,
+      };
+    }
+
+    return quotes;
+  }, [deliveryLatitude, deliveryLongitude, merchantIds, merchants]);
+
+  const deliveryFeeTotal = useMemo(() => {
+    return merchantIds.reduce((sum, merchantId) => {
+      const quote = deliveryQuotesByMerchant[merchantId];
+      return sum + (quote?.deliverable ? quote.deliveryFee ?? 0 : 0);
+    }, 0);
+  }, [merchantIds, deliveryQuotesByMerchant]);
+
+  const grandTotal = totalPrice + deliveryFeeTotal;
 
   // Filter payment methods based on cart merchants
   // Show: 1) All-merchant payment methods (merchant_id = null)
@@ -78,17 +158,43 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
   const selectedPaymentMethod = paymentMethods.find(method => method.id === paymentMethod);
 
+  const handleAddressSelected = (suggestion: OSMAddressSuggestion) => {
+    setDeliveryLatitude(suggestion.latitude);
+    setDeliveryLongitude(suggestion.longitude);
+    setDeliveryOsmPlaceId(suggestion.placeId);
+  };
+
+  const clearAddressSelection = () => {
+    setDeliveryLatitude(null);
+    setDeliveryLongitude(null);
+    setDeliveryOsmPlaceId(null);
+  };
+
+  const trimmedCustomerName = customerName.trim();
+  const trimmedContactNumber = contactNumber.trim();
+  const trimmedAddress = address.trim();
+  const isAddressValid =
+    Boolean(trimmedAddress) &&
+    deliveryLatitude !== null &&
+    deliveryLongitude !== null &&
+    Boolean(deliveryOsmPlaceId);
+
   const handlePlaceOrder = () => {
+    if (!isAddressValid) {
+      alert('Please select a valid delivery address from the suggestions before placing your order.');
+      return;
+    }
+
     // Build order details with merchant grouping
     const mergedNotes = landmark ? `${notes ? notes + ' | ' : ''}Landmark: ${landmark}` : notes;
     
     let orderDetails = `
 🛒 Row-Nel FooDelivery ORDER
 
-👤 Customer: ${customerName}
-📞 Contact: ${contactNumber}
+👤 Customer: ${trimmedCustomerName}
+📞 Contact: ${trimmedContactNumber}
 📍 Service: Delivery
-🏠 Address: ${address}${landmark ? `\n🗺️ Landmark: ${landmark}` : ''}
+🏠 Address: ${trimmedAddress}${landmark ? `\n🗺️ Landmark: ${landmark}` : ''}
 
 📋 ORDER DETAILS:
 `;
@@ -97,6 +203,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     for (const [merchantId, items] of Object.entries(itemsByMerchant)) {
       const merchant = merchants.find(m => m.id === merchantId);
       const merchantSubtotal = getMerchantSubtotal(merchantId);
+      const quote = deliveryQuotesByMerchant[merchantId];
       
       orderDetails += `\n🏪 ${merchant?.name || 'Restaurant'}:\n`;
       
@@ -104,6 +211,11 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
         let itemDetails = `  • ${item.name}`;
         if (item.selectedVariation) {
           itemDetails += ` (${item.selectedVariation.name})`;
+        }
+        if (item.selectedVariations && Object.keys(item.selectedVariations).length > 0) {
+          itemDetails += ` [${Object.entries(item.selectedVariations)
+            .map(([groupName, variation]) => `${groupName}: ${variation.name}`)
+            .join(', ')}]`;
         }
         if (item.selectedAddOns && item.selectedAddOns.length > 0) {
           itemDetails += ` + ${item.selectedAddOns.map(addOn => 
@@ -119,13 +231,15 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
       orderDetails += `  Subtotal: ₱${merchantSubtotal.toFixed(2)}\n`;
     }
 
-    orderDetails += `
-💰 TOTAL: ₱${totalPrice.toFixed(2)}
+orderDetails += `
+💰 FOOD TOTAL: ₱${totalPrice.toFixed(2)}
+🚚 DELIVERY TOTAL: ₱${deliveryFeeTotal.toFixed(2)}
+📍 DELIVERY ADDRESS: ${trimmedAddress}
+💵 GRAND TOTAL: ₱${grandTotal.toFixed(2)}
 
 💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}
 
 ${mergedNotes ? `📝 Notes: ${mergedNotes}` : ''}
-Delivery fee: Will be calculated in few minutes.
 
 Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟
     `.trim();
@@ -163,7 +277,9 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
     setTimeout(redirectToMessenger, 100);
   };
 
-  const isDetailsValid = customerName && contactNumber && address;
+  const hasUndeliverableMerchant = merchantIds.some((merchantId) => !deliveryQuotesByMerchant[merchantId]?.deliverable);
+  const isDetailsValid = trimmedCustomerName && trimmedContactNumber && isAddressValid;
+  const canPlaceOrder = Boolean(isDetailsValid) && !hasUndeliverableMerchant;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -221,6 +337,27 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
                     
                     {/* Merchant Subtotal */}
                     <div className="border-t border-gray-200 pt-3 mt-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600 font-medium">Distance:</span>
+                        <span className="text-sm text-gray-700">
+                          {deliveryQuotesByMerchant[merchantId]?.distanceKm !== undefined
+                            ? `${deliveryQuotesByMerchant[merchantId].distanceKm?.toFixed(2)} km`
+                            : 'Not available'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600 font-medium">Delivery fee:</span>
+                        <span className="text-sm text-gray-700">
+                          {deliveryQuotesByMerchant[merchantId]?.deliverable
+                            ? `₱${(deliveryQuotesByMerchant[merchantId].deliveryFee ?? 0).toFixed(2)}`
+                            : 'Not available'}
+                        </span>
+                      </div>
+                      {!deliveryQuotesByMerchant[merchantId]?.deliverable && (
+                        <p className="text-xs text-red-600 mb-2">
+                          {deliveryQuotesByMerchant[merchantId]?.reason}
+                        </p>
+                      )}
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600 font-medium">Subtotal:</span>
                         <span className="font-semibold text-black">₱{subtotal.toFixed(2)}</span>
@@ -232,10 +369,18 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
             })}
           </div>
           
-          <div className="border-t border-red-200 pt-4">
-            <div className="flex items-center justify-between text-2xl font-noto font-semibold text-black">
-              <span>Total:</span>
+          <div className="border-t border-red-200 pt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm text-gray-700">
+              <span>Food subtotal:</span>
               <span>₱{totalPrice.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-gray-700">
+              <span>Delivery fee:</span>
+              <span>₱{deliveryFeeTotal.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between text-2xl font-noto font-semibold text-black">
+              <span>Grand total:</span>
+              <span>₱{grandTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -271,17 +416,21 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
             </div>
 
             {/* Delivery Address */}
-            <div>
-              <label className="block text-sm font-medium text-black mb-2">Delivery Address *</label>
-              <textarea
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter your complete delivery address"
-                rows={3}
-                required
-              />
-            </div>
+            <AddressAutocompleteInput
+              label="Delivery Address"
+              required
+              value={address}
+              onChange={setAddress}
+              onSelect={handleAddressSelected}
+              onClearSelection={clearAddressSelection}
+              placeholder="Enter your complete delivery address"
+              countryCodes={['ph']}
+            />
+            {trimmedAddress && !isAddressValid && (
+              <p className="text-xs text-red-600 -mt-4">
+                Select a suggested address so checkout can calculate delivery and proceed.
+              </p>
+            )}
             
             <div>
               <label className="block text-sm font-medium text-black mb-2">Landmark</label>
@@ -325,7 +474,7 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
                     <p className="text-sm text-gray-600 mb-1">{selectedPaymentMethod.name}</p>
                     <p className="font-mono text-black font-medium">{selectedPaymentMethod.account_number}</p>
                     <p className="text-sm text-gray-600 mb-3">Account Name: {selectedPaymentMethod.account_name}</p>
-                    <p className="text-xl font-semibold text-black">Amount: ₱{totalPrice.toFixed(2)}</p>
+                    <p className="text-xl font-semibold text-black">Amount: ₱{grandTotal.toFixed(2)}</p>
                   </div>
                   <div className="flex-shrink-0">
                     <img 
@@ -357,15 +506,21 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
             <button
               type="button"
               onClick={handlePlaceOrder}
-              disabled={!isDetailsValid}
+              disabled={!canPlaceOrder}
               className={`w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform ${
-                isDetailsValid
+                canPlaceOrder
                   ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-[1.02]'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
               Place Order via Messenger
             </button>
+
+            {hasUndeliverableMerchant && (
+              <p className="text-xs text-red-600 text-center mt-2">
+                Some merchants are outside delivery coverage. Update your address or remove those items.
+              </p>
+            )}
             
             <p className="text-xs text-gray-500 text-center mt-3">
               You'll be redirected to Facebook Messenger to confirm your order. Please attach your payment receipt screenshot.
