@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, X, ArrowLeft, Star, Package, ChefHat, Save, MapPin, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit, Trash2, X, ArrowLeft, Star, Package, ChefHat, Save, MapPin, CheckCircle2, Copy } from 'lucide-react';
 import { Merchant, MenuItem, Variation, AddOn } from '../types';
 import { useMerchants } from '../hooks/useMerchants';
 import { useMenu } from '../hooks/useMenu';
@@ -15,6 +15,45 @@ interface MerchantManagerProps {
   onBack: () => void;
 }
 
+interface SourceVariationGroup {
+  name: string;
+  required?: boolean;
+  sort_order?: number;
+}
+
+interface SourceVariation {
+  name: string;
+  price: number;
+  variation_group?: string;
+  sort_order?: number;
+}
+
+interface SourceAddOn {
+  name: string;
+  price: number;
+  category: string;
+}
+
+interface SourceMenuItem {
+  name: string;
+  description: string;
+  base_price: number;
+  category: string;
+  popular?: boolean;
+  available?: boolean;
+  image_url?: string | null;
+  discount_price?: number | null;
+  discount_start_date?: string | null;
+  discount_end_date?: string | null;
+  discount_active?: boolean;
+  track_inventory?: boolean;
+  stock_quantity?: number | null;
+  low_stock_threshold?: number;
+  variation_groups?: SourceVariationGroup[];
+  variations?: SourceVariation[];
+  add_ons?: SourceAddOn[];
+}
+
 const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
   const { merchants, loading: merchantsLoading, refetch: refetchMerchants } = useMerchants();
   const { menuItems, loading: menuLoading, addMenuItem, updateMenuItem, deleteMenuItem, refetch: refetchMenu } = useMenu();
@@ -26,6 +65,12 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [editingMerchant, setEditingMerchant] = useState<Merchant | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [duplicationStatus, setDuplicationStatus] = useState({
+    active: false,
+    merchantName: '',
+    processed: 0,
+    total: 0,
+  });
   const [merchantFormErrors, setMerchantFormErrors] = useState<{
     name?: string;
     address?: string;
@@ -143,6 +188,188 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
       } finally {
         setIsProcessing(false);
       }
+    }
+  };
+
+  const handleDuplicateMerchant = async (merchant: Merchant) => {
+    if (!confirm(`Duplicate "${merchant.name}" including all menu items?`)) {
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setDuplicationStatus({
+        active: true,
+        merchantName: merchant.name,
+        processed: 0,
+        total: 0,
+      });
+
+      // Create merchant copy first.
+      const { data: duplicatedMerchant, error: merchantError } = await supabase
+        .from('merchants')
+        .insert({
+          name: `${merchant.name} (Copy)`,
+          description: merchant.description || null,
+          category: merchant.category,
+          cuisine_type: merchant.cuisineType || null,
+          delivery_fee: merchant.deliveryFee,
+          base_delivery_fee: merchant.baseDeliveryFee ?? merchant.deliveryFee,
+          delivery_fee_per_km: merchant.deliveryFeePerKm ?? 4,
+          min_delivery_fee: merchant.minDeliveryFee ?? null,
+          max_delivery_fee: merchant.maxDeliveryFee ?? null,
+          max_delivery_distance_km: merchant.maxDeliveryDistanceKm ?? 20,
+          minimum_order: merchant.minimumOrder,
+          estimated_delivery_time: merchant.estimatedDeliveryTime || null,
+          rating: merchant.rating,
+          total_reviews: merchant.totalReviews,
+          active: merchant.active,
+          featured: false,
+          address: merchant.address || null,
+          formatted_address: merchant.formattedAddress || merchant.address || null,
+          latitude: merchant.latitude ?? null,
+          longitude: merchant.longitude ?? null,
+          osm_place_id: merchant.osmPlaceId || null,
+          contact_number: merchant.contactNumber || null,
+          email: merchant.email || null,
+          opening_hours: merchant.openingHours || null,
+          payment_methods: merchant.paymentMethods || [],
+          logo_url: merchant.logoUrl || null,
+          cover_image_url: merchant.coverImageUrl || null,
+        })
+        .select('id')
+        .single();
+
+      if (merchantError) throw merchantError;
+
+      // Pull source items with all nested options and clone them under the new merchant.
+      const { data: sourceItems, error: sourceItemsError } = await supabase
+        .from('menu_items')
+        .select(`
+          *,
+          variations (*),
+          variation_groups (*),
+          add_ons (*)
+        `)
+        .eq('merchant_id', merchant.id)
+        .order('created_at', { ascending: true });
+
+      if (sourceItemsError) throw sourceItemsError;
+
+      const itemsToDuplicate = (sourceItems || []) as SourceMenuItem[];
+      setDuplicationStatus((prev) => ({
+        ...prev,
+        total: itemsToDuplicate.length,
+      }));
+
+      const duplicateSingleItem = async (item: SourceMenuItem) => {
+        const { data: newItem, error: newItemError } = await supabase
+          .from('menu_items')
+          .insert({
+            merchant_id: duplicatedMerchant.id,
+            name: item.name,
+            description: item.description,
+            base_price: item.base_price,
+            category: item.category,
+            popular: item.popular ?? false,
+            available: item.available ?? true,
+            image_url: item.image_url ?? null,
+            discount_price: item.discount_price ?? null,
+            discount_start_date: item.discount_start_date ?? null,
+            discount_end_date: item.discount_end_date ?? null,
+            discount_active: item.discount_active ?? false,
+            track_inventory: item.track_inventory ?? false,
+            stock_quantity: item.stock_quantity ?? null,
+            low_stock_threshold: item.low_stock_threshold ?? 0,
+          })
+          .select('id')
+          .single();
+
+        if (newItemError) throw newItemError;
+
+        const nestedInsertTasks: Promise<void>[] = [];
+
+        if (item.variation_groups?.length) {
+          nestedInsertTasks.push(
+            supabase
+              .from('variation_groups')
+              .insert(
+                item.variation_groups.map((group) => ({
+                  menu_item_id: newItem.id,
+                  name: group.name,
+                  required: group.required ?? true,
+                  sort_order: group.sort_order ?? 0,
+                }))
+              )
+              .then(({ error }) => {
+                if (error) throw error;
+              })
+          );
+        }
+
+        if (item.variations?.length) {
+          nestedInsertTasks.push(
+            supabase
+              .from('variations')
+              .insert(
+                item.variations.map((variation) => ({
+                  menu_item_id: newItem.id,
+                  name: variation.name,
+                  price: variation.price,
+                  variation_group: variation.variation_group || 'default',
+                  sort_order: variation.sort_order ?? 0,
+                }))
+              )
+              .then(({ error }) => {
+                if (error) throw error;
+              })
+          );
+        }
+
+        if (item.add_ons?.length) {
+          nestedInsertTasks.push(
+            supabase
+              .from('add_ons')
+              .insert(
+                item.add_ons.map((addOn) => ({
+                  menu_item_id: newItem.id,
+                  name: addOn.name,
+                  price: addOn.price,
+                  category: addOn.category,
+                }))
+              )
+              .then(({ error }) => {
+                if (error) throw error;
+              })
+          );
+        }
+
+        await Promise.all(nestedInsertTasks);
+        setDuplicationStatus((prev) => ({
+          ...prev,
+          processed: prev.processed + 1,
+        }));
+      };
+
+      const batchSize = 4;
+      for (let i = 0; i < itemsToDuplicate.length; i += batchSize) {
+        const batch = itemsToDuplicate.slice(i, i + batchSize);
+        await Promise.all(batch.map((item) => duplicateSingleItem(item)));
+      }
+
+      await Promise.all([refetchMerchants(), refetchMenu()]);
+      alert(`Merchant duplicated successfully as "${merchant.name} (Copy)"`);
+    } catch (error) {
+      console.error('Error duplicating merchant:', error);
+      alert('Failed to duplicate merchant');
+    } finally {
+      setIsProcessing(false);
+      setDuplicationStatus({
+        active: false,
+        merchantName: '',
+        processed: 0,
+        total: 0,
+      });
     }
   };
 
@@ -403,6 +630,40 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
   const merchantMenuItems = menuItems.filter(item => 
     selectedMerchant && item.merchantId === selectedMerchant.id
   );
+  const duplicationProgress = duplicationStatus.total > 0
+    ? Math.round((duplicationStatus.processed / duplicationStatus.total) * 100)
+    : 0;
+
+  const duplicationOverlay = duplicationStatus.active ? (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Duplicating merchant...</h2>
+        </div>
+        <p className="text-sm text-gray-700">
+          Cloning <span className="font-medium">{duplicationStatus.merchantName}</span> with menu items and options.
+        </p>
+        <p className="mt-1 text-xs text-gray-500">
+          This may take around 30 seconds to 1 minute for larger menus.
+        </p>
+        <div className="mt-5">
+          <div className="mb-2 flex items-center justify-between text-xs text-gray-600">
+            <span>Progress</span>
+            <span>
+              {duplicationStatus.processed}/{duplicationStatus.total || '?'} items
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+            <div
+              className="h-full rounded-full bg-blue-600 transition-all duration-300"
+              style={{ width: `${duplicationProgress}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   // Merchant Detail View
   if (currentView === 'merchant-detail' && selectedMerchant) {
@@ -755,6 +1016,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
             )}
           </div>
         </div>
+        {duplicationOverlay}
       </div>
     );
   }
@@ -1084,6 +1346,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
             </div>
           </div>
         </div>
+        {duplicationOverlay}
       </div>
     );
   }
@@ -1226,6 +1489,17 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
+                            handleDuplicateMerchant(merchant);
+                          }}
+                          disabled={isProcessing}
+                          className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
+                          title="Duplicate Merchant and Menu Items"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleDeleteMerchant(merchant.id);
                           }}
                           disabled={isProcessing}
@@ -1259,6 +1533,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
           </div>
         )}
       </div>
+      {duplicationOverlay}
     </div>
   );
 };
