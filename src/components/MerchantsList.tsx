@@ -5,6 +5,7 @@ import { useMerchant } from '../contexts/MerchantContext';
 import { calculateDistance } from '../utils/geolocation';
 import { MenuItem, Merchant } from '../types';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
+import MapLocationPicker from './MapLocationPicker';
 import { reverseGeocode, type OSMAddressSuggestion } from '../lib/osm';
 import { useMenu } from '../hooks/useMenu';
 import { usePromotions } from '../hooks/usePromotions';
@@ -804,6 +805,27 @@ const MerchantsList: React.FC = () => {
                 setSelectedManualLocation(null);
               }}
             />
+
+            <div className="mt-3">
+              <MapLocationPicker
+                latitude={selectedManualLocation?.latitude ?? userLocation?.latitude ?? null}
+                longitude={selectedManualLocation?.longitude ?? userLocation?.longitude ?? null}
+                onLocationSelect={(lat, lng, address, placeId) => {
+                  setSelectedManualLocation({
+                    placeId,
+                    displayName: address,
+                    latitude: lat,
+                    longitude: lng,
+                  });
+                  setManualLocationInput(address);
+                  setManualLocationError(null);
+                }}
+                showSearch={false}
+                showGpsButton={false}
+                height="220px"
+                zoom={15}
+              />
+            </div>
 
             {manualLocationError && <p className="mt-2 text-sm text-red-600">{manualLocationError}</p>}
             {locationError && <p className="mt-2 text-sm text-amber-700">{locationError}</p>}
