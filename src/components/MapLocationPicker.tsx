@@ -27,18 +27,21 @@ interface MapLocationPickerProps {
   countryCodes?: string[];
 }
 
+// Always-mounted click handler so map clicks work even when no marker exists yet
+const MapClickHandler: React.FC<{ onClick: (lat: number, lng: number) => void }> = ({ onClick }) => {
+  useMapEvents({
+    click(e) {
+      onClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+};
+
 const DraggableMarker: React.FC<{
   position: [number, number];
   onDragEnd: (lat: number, lng: number) => void;
-  onMapClick: (lat: number, lng: number) => void;
-}> = ({ position, onDragEnd, onMapClick }) => {
+}> = ({ position, onDragEnd }) => {
   const markerRef = useRef<L.Marker>(null);
-
-  useMapEvents({
-    click(e) {
-      onMapClick(e.latlng.lat, e.latlng.lng);
-    },
-  });
 
   const handleDragEnd = useCallback(() => {
     const marker = markerRef.current;
@@ -58,11 +61,11 @@ const DraggableMarker: React.FC<{
   );
 };
 
-const MapUpdater: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
+const MapUpdater: React.FC<{ lat: number; lng: number; zoom: number }> = ({ lat, lng, zoom }) => {
   const map = useMap();
   useEffect(() => {
-    map.flyTo(center, zoom, { duration: 0.8 });
-  }, [center, zoom, map]);
+    map.flyTo([lat, lng], zoom, { duration: 0.8 });
+  }, [lat, lng, zoom, map]);
   return null;
 };
 
@@ -89,34 +92,48 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
 
   const [searchValue, setSearchValue] = useState('');
   const [isLocating, setIsLocating] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([currentLat, currentLng]);
+  const [mapCenterLat, setMapCenterLat] = useState(currentLat);
+  const [mapCenterLng, setMapCenterLng] = useState(currentLng);
   const [mapZoom, setMapZoom] = useState(currentZoom);
 
+  // Local marker position for immediate visual feedback (no snap-back during async reverse geocode)
+  const [markerPos, setMarkerPos] = useState<[number, number] | null>(
+    hasCoordinates ? [latitude, longitude] : null
+  );
+
+  // Sync from parent when they push new coords (e.g., from search in parent component)
   useEffect(() => {
     if (hasCoordinates) {
-      setMapCenter([latitude, longitude]);
+      setMarkerPos([latitude, longitude]);
+      setMapCenterLat(latitude);
+      setMapCenterLng(longitude);
       setMapZoom(zoom);
     }
   }, [latitude, longitude, hasCoordinates, zoom]);
 
   const handlePinMove = useCallback(
     async (lat: number, lng: number) => {
-      setMapCenter([lat, lng]);
+      // Immediately update marker and map center for instant visual feedback
+      setMarkerPos([lat, lng]);
+      setMapCenterLat(lat);
+      setMapCenterLng(lng);
       try {
         const result = await reverseGeocode(lat, lng);
         onLocationSelect(lat, lng, result.displayName, result.placeId);
-        setSearchValue(result.displayName);
+        if (showSearch) setSearchValue(result.displayName);
       } catch {
         onLocationSelect(lat, lng, `${lat.toFixed(6)}, ${lng.toFixed(6)}`, '');
-        setSearchValue(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+        if (showSearch) setSearchValue(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
       }
     },
-    [onLocationSelect]
+    [onLocationSelect, showSearch]
   );
 
   const handleSearchSelect = useCallback(
     (suggestion: OSMAddressSuggestion) => {
-      setMapCenter([suggestion.latitude, suggestion.longitude]);
+      setMarkerPos([suggestion.latitude, suggestion.longitude]);
+      setMapCenterLat(suggestion.latitude);
+      setMapCenterLng(suggestion.longitude);
       setMapZoom(zoom);
       onLocationSelect(suggestion.latitude, suggestion.longitude, suggestion.displayName, suggestion.placeId);
     },
@@ -140,20 +157,23 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
 
   return (
     <div className="space-y-3">
-      {showSearch && (
+      {/* Search and GPS button rendered independently */}
+      {(showSearch || showGpsButton) && (
         <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <AddressAutocompleteInput
-              label=""
-              value={searchValue}
-              onChange={setSearchValue}
-              onSelect={handleSearchSelect}
-              placeholder={searchPlaceholder}
-              rows={1}
-              countryCodes={countryCodes}
-              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
-            />
-          </div>
+          {showSearch && (
+            <div className="flex-1">
+              <AddressAutocompleteInput
+                label=""
+                value={searchValue}
+                onChange={setSearchValue}
+                onSelect={handleSearchSelect}
+                placeholder={searchPlaceholder}
+                rows={1}
+                countryCodes={countryCodes}
+                className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+              />
+            </div>
+          )}
           {showGpsButton && (
             <button
               type="button"
@@ -183,17 +203,17 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MapUpdater center={mapCenter} zoom={mapZoom} />
-          {hasCoordinates && (
+          <MapUpdater lat={mapCenterLat} lng={mapCenterLng} zoom={mapZoom} />
+          <MapClickHandler onClick={handlePinMove} />
+          {markerPos && (
             <>
               <DraggableMarker
-                position={[latitude, longitude]}
+                position={markerPos}
                 onDragEnd={handlePinMove}
-                onMapClick={handlePinMove}
               />
               {showRadius && showRadius > 0 && (
                 <Circle
-                  center={[latitude, longitude]}
+                  center={markerPos}
                   radius={showRadius * 1000}
                   pathOptions={{
                     color: '#16a34a',
@@ -208,7 +228,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         </MapContainer>
       </div>
 
-      {!hasCoordinates && (
+      {!markerPos && (
         <p className="text-xs text-gray-500 flex items-center gap-1">
           <MapPin className="h-3.5 w-3.5" />
           Search for an address or click the map to place a pin.
