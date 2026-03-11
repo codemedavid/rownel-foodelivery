@@ -5,6 +5,7 @@ import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import { useCartContext } from '../contexts/CartContext';
 import { useMerchants } from '../hooks/useMerchants';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
+import MapLocationPicker from './MapLocationPicker';
 import type { OSMAddressSuggestion } from '../lib/osm';
 import { calculateDeliveryFee, haversineKm } from '../lib/deliveryPricing';
 
@@ -431,7 +432,21 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
                 Select a suggested address so checkout can calculate delivery and proceed.
               </p>
             )}
-            
+            <MapLocationPicker
+              latitude={deliveryLatitude}
+              longitude={deliveryLongitude}
+              onLocationSelect={(lat, lng, address, placeId) => {
+                setDeliveryLatitude(lat);
+                setDeliveryLongitude(lng);
+                setDeliveryOsmPlaceId(placeId);
+                setAddress(address);
+              }}
+              showSearch={false}
+              showGpsButton
+              height="250px"
+              zoom={16}
+            />
+
             <div>
               <label className="block text-sm font-medium text-black mb-2">Landmark</label>
               <input
