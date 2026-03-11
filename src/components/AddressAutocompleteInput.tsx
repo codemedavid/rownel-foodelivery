@@ -130,7 +130,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
       {searchError && <p className="mt-2 text-xs text-amber-700">{searchError}</p>}
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+        <div className="absolute z-[1000] mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
           {suggestions.map((suggestion) => (
             <button
               key={suggestion.placeId}

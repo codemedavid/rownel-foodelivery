@@ -192,7 +192,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         </div>
       )}
 
-      <div className="rounded-lg overflow-hidden border border-gray-200" style={{ height }}>
+      <div className="rounded-lg overflow-hidden border border-gray-200 relative z-0" style={{ height }}>
         <MapContainer
           center={[currentLat, currentLng]}
           zoom={currentZoom}
