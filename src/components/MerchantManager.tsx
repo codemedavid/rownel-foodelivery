@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { calculateDeliveryFee } from '../lib/deliveryPricing';
 import ImageUpload from './ImageUpload';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
+import MapLocationPicker from './MapLocationPicker';
 import type { OSMAddressSuggestion } from '../lib/osm';
 
 interface MerchantManagerProps {
@@ -1271,6 +1272,27 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                   ) : (
                     <p className="mt-2 text-xs text-amber-700">No pinned location yet.</p>
                   )}
+                  <div className="mt-3">
+                    <MapLocationPicker
+                      latitude={merchantFormData.latitude ?? null}
+                      longitude={merchantFormData.longitude ?? null}
+                      onLocationSelect={(lat, lng, address, placeId) => {
+                        setMerchantFormData({
+                          ...merchantFormData,
+                          latitude: lat,
+                          longitude: lng,
+                          address: address,
+                          formattedAddress: address,
+                          osmPlaceId: placeId,
+                        });
+                        setMerchantFormErrors({ ...merchantFormErrors, address: undefined });
+                      }}
+                      showSearch={false}
+                      showRadius={merchantFormData.maxDeliveryDistanceKm ?? undefined}
+                      height="280px"
+                      zoom={16}
+                    />
+                  </div>
                 </div>
 
                 <div>
