@@ -44,6 +44,49 @@ export interface ReverseGeocodeResult {
   longitude: number;
 }
 
+interface NominatimDetailedResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    house_number?: string;
+    road?: string;
+    pedestrian?: string;
+    footway?: string;
+    path?: string;
+    street?: string;
+    neighbourhood?: string;
+    suburb?: string;
+    village?: string;
+    town?: string;
+    city?: string;
+    municipality?: string;
+    county?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+  };
+}
+
+const formatDisplayName = (item: NominatimDetailedResult): string => {
+  if (!item.address) return item.display_name;
+
+  const addr = item.address;
+  const parts = [
+    addr.house_number,
+    addr.road || addr.pedestrian || addr.street,
+    addr.neighbourhood,
+    addr.suburb,
+    addr.village || addr.town || addr.municipality,
+    addr.city,
+    addr.county,
+    addr.state,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(', ') : item.display_name;
+};
+
 const NOMINATIM_BASE_URL = 'https://nominatim.openstreetmap.org/search';
 const NOMINATIM_REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 
@@ -60,11 +103,17 @@ export const searchAddresses = async (
     q: trimmed,
     format: 'jsonv2',
     addressdetails: '1',
-    limit: String(options?.limit ?? 5),
+    limit: String(options?.limit ?? 8),
+    dedupe: '1',
   });
 
   if (options?.countryCodes && options.countryCodes.length > 0) {
     params.set('countrycodes', options.countryCodes.join(','));
+
+    if (options.countryCodes.map((c) => c.toLowerCase()).includes('ph')) {
+      params.set('viewbox', '116.9283,4.5873,126.6042,21.3218');
+      params.set('bounded', '0');
+    }
   }
 
   const response = await fetch(`${NOMINATIM_BASE_URL}?${params.toString()}`, {
@@ -77,12 +126,12 @@ export const searchAddresses = async (
     throw new Error('Failed to fetch address suggestions');
   }
 
-  const data = (await response.json()) as NominatimResult[];
+  const data = (await response.json()) as NominatimDetailedResult[];
   return (data || [])
     .filter((item) => item.display_name && item.lat && item.lon)
     .map((item) => ({
       placeId: String(item.place_id),
-      displayName: item.display_name,
+      displayName: formatDisplayName(item),
       latitude: Number(item.lat),
       longitude: Number(item.lon),
     }))
