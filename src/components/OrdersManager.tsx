@@ -1,18 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, Search, Image as ImageIcon, Download, Calendar, DollarSign } from 'lucide-react';
-import { useOrders, OrderWithItems } from '../hooks/useOrders';
+import { useConvexOrders, ConvexOrder } from '../hooks/useConvexOrders';
+import type { Id } from '../../convex/_generated/dataModel';
 
 interface OrdersManagerProps {
   onBack: () => void;
 }
 
 const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
-  const { orders, loading, error, updateOrderStatus } = useOrders();
-  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
+  const { orders, loading, updateOrderStatus } = useConvexOrders();
+  const [error] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ConvexOrder | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'>('all');
-  const [sortKey, setSortKey] = useState<'created_at' | 'total' | 'customer_name' | 'status'>('created_at');
+  const [sortKey, setSortKey] = useState<'_creationTime' | 'total' | 'customerName' | 'status'>('_creationTime');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -59,7 +61,10 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
       setUpdating(orderId);
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(
+        orderId as Id<"orders">,
+        newStatus as "pending" | "confirmed" | "preparing" | "ready" | "completed" | "cancelled"
+      );
     } catch (err) {
       alert('Failed to update order status');
     } finally {
@@ -67,8 +72,8 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
     }
   };
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
+  const formatDateTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString('en-US', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
@@ -78,8 +83,8 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
     });
   };
 
-  const formatDateTimeForCSV = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
+  const formatDateTimeForCSV = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -96,26 +101,26 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = statusFilter === 'all' ? orders : orders.filter(o => o.status.toLowerCase() === statusFilter);
-    
+
     // Apply date filters
     let dateFiltered = base;
     if (dateFrom) {
       const fromDate = new Date(dateFrom);
       fromDate.setHours(0, 0, 0, 0);
-      dateFiltered = dateFiltered.filter(o => new Date(o.created_at) >= fromDate);
+      dateFiltered = dateFiltered.filter(o => o._creationTime >= fromDate.getTime());
     }
     if (dateTo) {
       const toDate = new Date(dateTo);
       toDate.setHours(23, 59, 59, 999);
-      dateFiltered = dateFiltered.filter(o => new Date(o.created_at) <= toDate);
+      dateFiltered = dateFiltered.filter(o => o._creationTime <= toDate.getTime());
     }
-    
+
     const searched = q.length === 0
       ? dateFiltered
       : dateFiltered.filter(o =>
-          o.customer_name.toLowerCase().includes(q) ||
-          o.contact_number.toLowerCase().includes(q) ||
-          o.id.toLowerCase().includes(q) ||
+          o.customerName.toLowerCase().includes(q) ||
+          o.contactNumber.toLowerCase().includes(q) ||
+          (o._id as string).toLowerCase().includes(q) ||
           (o.address || '').toLowerCase().includes(q)
         );
     const sorted = [...searched].sort((a, b) => {
@@ -123,13 +128,13 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
       switch (sortKey) {
         case 'total':
           return (a.total - b.total) * dir;
-        case 'customer_name':
-          return a.customer_name.localeCompare(b.customer_name) * dir;
+        case 'customerName':
+          return a.customerName.localeCompare(b.customerName) * dir;
         case 'status':
           return a.status.localeCompare(b.status) * dir;
-        case 'created_at':
+        case '_creationTime':
         default:
-          return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * dir;
+          return (a._creationTime - b._creationTime) * dir;
       }
     });
     return sorted;
@@ -140,7 +145,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
       setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     } else {
       setSortKey(key);
-      setSortDir(key === 'created_at' ? 'desc' : 'asc');
+      setSortDir(key === '_creationTime' ? 'desc' : 'asc');
     }
   };
 
@@ -149,7 +154,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
     try {
       // Filter completed orders only
       const completedOrders = filtered.filter(o => o.status.toLowerCase() === 'completed');
-      
+
       if (completedOrders.length === 0) {
         alert('No completed orders to export.');
         setExporting(false);
@@ -171,13 +176,13 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
       // CSV Rows - Exact order as specified
       const rows = completedOrders.map(order => {
         return [
-          order.id.slice(-8).toUpperCase(),
-          order.customer_name,
-          order.contact_number,
+          (order._id as string).slice(-8).toUpperCase(),
+          order.customerName,
+          order.contactNumber,
           'N/A', // Email field not in database
           order.total.toFixed(2),
-          formatDateTimeForCSV(order.created_at),
-          formatServiceType(order.service_type),
+          formatDateTimeForCSV(order._creationTime),
+          formatServiceType(order.serviceType),
           order.notes || 'N/A'
         ];
       });
@@ -192,16 +197,16 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       const dateStr = new Date().toISOString().split('T')[0];
       link.setAttribute('href', url);
       link.setAttribute('download', `completed_orders_${dateStr}.csv`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       alert(`Successfully exported ${completedOrders.length} completed order(s)!`);
     } catch (error) {
       console.error('Export error:', error);
@@ -243,7 +248,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <div className="text-red-500 text-6xl mb-4">!</div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Orders</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
@@ -310,11 +315,11 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                 </select>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => toggleSort('created_at')}
-                    className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 ${sortKey==='created_at' ? 'border-blue-500 text-blue-700 bg-blue-50' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                    onClick={() => toggleSort('_creationTime')}
+                    className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 ${sortKey==='_creationTime' ? 'border-blue-500 text-blue-700 bg-blue-50' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                   >
                     Date
-                    <ChevronDown className={`h-4 w-4 transition-transform ${sortKey==='created_at' && sortDir==='asc' ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`h-4 w-4 transition-transform ${sortKey==='_creationTime' && sortDir==='asc' ? 'rotate-180' : ''}`} />
                   </button>
                   <button
                     onClick={() => toggleSort('total')}
@@ -360,7 +365,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                   )}
                 </div>
               </div>
-              
+
               <button
                 onClick={exportToCSV}
                 disabled={exporting || filtered.filter(o => o.status.toLowerCase() === 'completed').length === 0}
@@ -374,7 +379,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
             {/* Results count */}
             {(dateFrom || dateTo) && (
               <div className="text-sm text-gray-600">
-                Showing {filtered.length} order{filtered.length !== 1 ? 's' : ''} 
+                Showing {filtered.length} order{filtered.length !== 1 ? 's' : ''}
                 {dateFrom && ` from ${new Date(dateFrom).toLocaleDateString()}`}
                 {dateTo && ` to ${new Date(dateTo).toLocaleDateString()}`}
               </div>
@@ -388,7 +393,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium mb-1">Total Sales</p>
-                <p className="text-3xl font-bold">₱{totalSales.toFixed(2)}</p>
+                <p className="text-3xl font-bold">&#8369;{totalSales.toFixed(2)}</p>
                 <p className="text-green-100 text-xs mt-1">
                   {completedOrdersCount} completed order{completedOrdersCount !== 1 ? 's' : ''}
                 </p>
@@ -419,7 +424,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
               <div>
                 <p className="text-purple-100 text-sm font-medium mb-1">Average Order</p>
                 <p className="text-3xl font-bold">
-                  ₱{completedOrdersCount > 0 ? (totalSales / completedOrdersCount).toFixed(2) : '0.00'}
+                  &#8369;{completedOrdersCount > 0 ? (totalSales / completedOrdersCount).toFixed(2) : '0.00'}
                 </p>
                 <p className="text-purple-100 text-xs mt-1">
                   Per completed order
@@ -434,7 +439,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
 
         {filtered.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">📋</div>
+            <div className="text-6xl mb-4">&#128203;</div>
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">No Orders Yet</h2>
             <p className="text-gray-600">Orders will appear here when customers place them.</p>
           </div>
@@ -457,24 +462,24 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {filtered.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50">
+                      <tr key={order._id} className="hover:bg-gray-50">
                         <td className="px-5 py-4">
-                          <div className="font-medium text-gray-900">#{order.id.slice(-8).toUpperCase()}</div>
+                          <div className="font-medium text-gray-900">#{(order._id as string).slice(-8).toUpperCase()}</div>
                           <div className="text-xs text-gray-500">{order.order_items.length} item(s)</div>
                         </td>
                         <td className="px-5 py-4">
-                          <div className="font-medium text-gray-900">{order.customer_name}</div>
-                          <div className="text-xs text-gray-500">{order.contact_number}</div>
+                          <div className="font-medium text-gray-900">{order.customerName}</div>
+                          <div className="text-xs text-gray-500">{order.contactNumber}</div>
                         </td>
-                        <td className="px-5 py-4 text-gray-700">{formatServiceType(order.service_type)}</td>
-                        <td className="px-5 py-4 font-semibold text-gray-900">₱{order.total.toFixed(2)}</td>
+                        <td className="px-5 py-4 text-gray-700">{formatServiceType(order.serviceType)}</td>
+                        <td className="px-5 py-4 font-semibold text-gray-900">&#8369;{order.total.toFixed(2)}</td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                             {getStatusIcon(order.status)}
                             <span className="ml-1 capitalize">{order.status}</span>
                           </span>
                         </td>
-                        <td className="px-5 py-4 text-gray-700">{formatDateTime(order.created_at)}</td>
+                        <td className="px-5 py-4 text-gray-700">{formatDateTime(order._creationTime)}</td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
                             <button
@@ -485,8 +490,8 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                             </button>
                             <select
                               value={order.status}
-                              onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
-                              disabled={updating === order.id}
+                              onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
+                              disabled={updating === order._id}
                               className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                             >
                               <option value="pending">Pending</option>
@@ -496,7 +501,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                               <option value="completed">Completed</option>
                               <option value="cancelled">Cancelled</option>
                             </select>
-                            {updating === order.id && (
+                            {updating === order._id && (
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                             )}
                           </div>
@@ -511,24 +516,24 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
             {/* Mobile Cards */}
             <div className="md:hidden space-y-4">
               {filtered.map((order) => (
-                <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div key={order._id} className="bg-white rounded-xl shadow-sm border border-gray-200">
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="font-semibold text-gray-900">#{order.id.slice(-8).toUpperCase()}</div>
+                      <div className="font-semibold text-gray-900">#{(order._id as string).slice(-8).toUpperCase()}</div>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                         {getStatusIcon(order.status)}
                         <span className="ml-1 capitalize">{order.status}</span>
                       </span>
                     </div>
                     <div className="text-sm text-gray-700 mb-2">
-                      <div className="font-medium">{order.customer_name}</div>
-                      <div className="text-gray-500">{order.contact_number}</div>
+                      <div className="font-medium">{order.customerName}</div>
+                      <div className="text-gray-500">{order.contactNumber}</div>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <div className="text-gray-600">{formatServiceType(order.service_type)}</div>
-                      <div className="font-semibold text-gray-900">₱{order.total.toFixed(2)}</div>
+                      <div className="text-gray-600">{formatServiceType(order.serviceType)}</div>
+                      <div className="font-semibold text-gray-900">&#8369;{order.total.toFixed(2)}</div>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">{formatDateTime(order.created_at)}</div>
+                    <div className="text-xs text-gray-500 mt-1">{formatDateTime(order._creationTime)}</div>
                     <div className="flex items-center gap-2 mt-3">
                       <button
                         onClick={() => setSelectedOrder(order)}
@@ -538,8 +543,8 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                       </button>
                       <select
                         value={order.status}
-                        onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
-                        disabled={updating === order.id}
+                        onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
+                        disabled={updating === order._id}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1"
                       >
                         <option value="pending">Pending</option>
@@ -565,7 +570,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
               <div>
                 <h3 className="text-xl font-semibold text-gray-900">
-                  Order #{selectedOrder.id.slice(-8).toUpperCase()}
+                  Order #{(selectedOrder._id as string).slice(-8).toUpperCase()}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">Complete order details</p>
               </div>
@@ -582,29 +587,29 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-3">Customer Information</h4>
                   <div className="space-y-2 text-sm">
-                    <p><strong>Name:</strong> {selectedOrder.customer_name}</p>
-                    <p><strong>Contact:</strong> {selectedOrder.contact_number}</p>
-                    <p><strong>Service Type:</strong> {formatServiceType(selectedOrder.service_type)}</p>
-                    <p><strong>Payment Method:</strong> {selectedOrder.payment_method}</p>
-                    <p><strong>Order Date:</strong> {formatDateTime(selectedOrder.created_at)}</p>
+                    <p><strong>Name:</strong> {selectedOrder.customerName}</p>
+                    <p><strong>Contact:</strong> {selectedOrder.contactNumber}</p>
+                    <p><strong>Service Type:</strong> {formatServiceType(selectedOrder.serviceType)}</p>
+                    <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod}</p>
+                    <p><strong>Order Date:</strong> {formatDateTime(selectedOrder._creationTime)}</p>
                   </div>
                 </div>
-                
+
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-3">Order Details</h4>
                   <div className="space-y-2 text-sm">
                     {selectedOrder.address && <p><strong>Address:</strong> {selectedOrder.address}</p>}
-                    {selectedOrder.pickup_time && <p><strong>Pickup Time:</strong> {selectedOrder.pickup_time}</p>}
-                    {selectedOrder.party_size && <p><strong>Party Size:</strong> {selectedOrder.party_size} person{selectedOrder.party_size !== 1 ? 's' : ''}</p>}
-                    {selectedOrder.dine_in_time && <p><strong>Dine-in Time:</strong> {formatDateTime(selectedOrder.dine_in_time)}</p>}
+                    {selectedOrder.pickupTime && <p><strong>Pickup Time:</strong> {selectedOrder.pickupTime}</p>}
+                    {selectedOrder.partySize && <p><strong>Party Size:</strong> {selectedOrder.partySize} person{selectedOrder.partySize !== 1 ? 's' : ''}</p>}
+                    {selectedOrder.dineInTime && <p><strong>Dine-in Time:</strong> {formatDateTime(new Date(selectedOrder.dineInTime).getTime())}</p>}
                     {selectedOrder.notes && <p><strong>Notes:</strong> {selectedOrder.notes}</p>}
-                    <p><strong>Total:</strong> ₱{selectedOrder.total.toFixed(2)}</p>
+                    <p><strong>Total:</strong> &#8369;{selectedOrder.total.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
 
               {/* Payment Receipt */}
-              {selectedOrder.receipt_url && (
+              {selectedOrder.receiptUrl && (
                 <div className="mb-6">
                   <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
                     <ImageIcon className="h-5 w-5 mr-2" />
@@ -612,13 +617,13 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                   </h4>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <a
-                      href={selectedOrder.receipt_url}
+                      href={selectedOrder.receiptUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="block group"
                     >
                       <img
-                        src={selectedOrder.receipt_url}
+                        src={selectedOrder.receiptUrl}
                         alt="Payment Receipt"
                         className="w-full max-w-md mx-auto rounded-lg border-2 border-gray-300 group-hover:border-blue-500 transition-colors cursor-pointer"
                         onError={(e) => {
@@ -637,24 +642,24 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                 <h4 className="font-semibold text-gray-900 mb-3">Order Items</h4>
                 <div className="space-y-3">
                   {selectedOrder.order_items.map((item) => (
-                    <div key={item.id} className="p-4 bg-gray-50 rounded-lg">
+                    <div key={item._id} className="p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">{item.name}</div>
                           {item.variation && (
                             <div className="text-sm text-gray-600 mt-1">Size: {item.variation.name}</div>
                           )}
-                          {item.add_ons && item.add_ons.length > 0 && (
+                          {item.addOns && item.addOns.length > 0 && (
                             <div className="text-sm text-gray-600 mt-1">
-                              Add-ons: {item.add_ons.map((addon: any) => 
+                              Add-ons: {item.addOns.map((addon: any) =>
                                 addon.quantity > 1 ? `${addon.name} x${addon.quantity}` : addon.name
                               ).join(', ')}
                             </div>
                           )}
                         </div>
                         <div className="text-right">
-                          <div className="font-medium text-gray-900">₱{item.unit_price.toFixed(2)} x {item.quantity}</div>
-                          <div className="text-sm text-gray-600">₱{item.subtotal.toFixed(2)}</div>
+                          <div className="font-medium text-gray-900">&#8369;{item.unitPrice.toFixed(2)} x {item.quantity}</div>
+                          <div className="text-sm text-gray-600">&#8369;{item.subtotal.toFixed(2)}</div>
                         </div>
                       </div>
                     </div>
