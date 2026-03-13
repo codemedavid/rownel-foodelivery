@@ -10,6 +10,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   changePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
   isAdmin: boolean;
+  isStaff: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -79,6 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check if user is admin (you can customize this logic based on your needs)
   const isAdmin = user?.email === 'admin@clickeats.com' || user?.user_metadata?.role === 'admin';
+  const isStaff = user?.user_metadata?.role === 'staff';
 
   const value = {
     user,
@@ -88,6 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signOut,
     changePassword,
     isAdmin,
+    isStaff,
   };
 
   return (

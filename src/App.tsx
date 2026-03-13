@@ -8,6 +8,9 @@ import FloatingCartButton from './components/FloatingCartButton';
 import AdminDashboard from './components/AdminDashboard';
 import AdminLogin from './components/AdminLogin';
 import ProtectedRoute from './components/ProtectedRoute';
+import StaffLogin from './components/StaffLogin';
+import StaffOrdersPanel from './components/StaffOrdersPanel';
+import ProtectedStaffRoute from './components/ProtectedStaffRoute';
 import MerchantsList from './components/MerchantsList';
 import MenuItemDetailsPage from './components/MenuItemDetailsPage';
 import OrderTracking from './components/OrderTracking';
@@ -81,13 +84,22 @@ function App() {
               <Route path="/track" element={<OrderTracking />} />
               <Route path="/track/:orderId" element={<OrderTracking />} />
               <Route path="/admin/login" element={<AdminLogin />} />
-              <Route 
-                path="/admin" 
+              <Route
+                path="/admin"
                 element={
                   <ProtectedRoute>
                     <AdminDashboard />
                   </ProtectedRoute>
-                } 
+                }
+              />
+              <Route path="/staff/login" element={<StaffLogin />} />
+              <Route
+                path="/staff/orders"
+                element={
+                  <ProtectedStaffRoute>
+                    <StaffOrdersPanel />
+                  </ProtectedStaffRoute>
+                }
               />
             </Routes>
           </Router>
