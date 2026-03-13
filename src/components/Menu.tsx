@@ -201,6 +201,9 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
                   !cartItem.selectedVariation &&
                   (!cartItem.selectedAddOns || cartItem.selectedAddOns.length === 0)
                 );
+                const itemCat = categories.find(c => c.id === item.category);
+                const catAvail = isCategoryAvailable(itemCat?.start_time, itemCat?.end_time);
+                const itemDisabled = !merchantOpenStatus.isOpen || !catAvail.isAvailable;
                 return (
                   <MenuItemCard
                     key={`random-${item.id}`}
@@ -209,7 +212,7 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
                     cartItemId={cartItem?.id}
                     onUpdateQuantity={updateQuantity}
                     onOpenDetails={handleOpenDetails}
-                    disabled={!merchantOpenStatus.isOpen}
+                    disabled={itemDisabled}
                   />
                 );
               })}

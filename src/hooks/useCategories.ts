@@ -109,16 +109,17 @@ export const useCategories = (merchantId?: string, menuItems?: any[]) => {
 
   const updateCategory = async (id: string, updates: Partial<Category>) => {
     try {
+      const updatePayload: Record<string, unknown> = {};
+      if (updates.name !== undefined) updatePayload.name = updates.name;
+      if (updates.icon !== undefined) updatePayload.icon = updates.icon;
+      if (updates.sort_order !== undefined) updatePayload.sort_order = updates.sort_order;
+      if (updates.active !== undefined) updatePayload.active = updates.active;
+      if ('start_time' in updates) updatePayload.start_time = updates.start_time;
+      if ('end_time' in updates) updatePayload.end_time = updates.end_time;
+
       const { error: updateError } = await supabase
         .from('categories')
-        .update({
-          name: updates.name,
-          icon: updates.icon,
-          sort_order: updates.sort_order,
-          active: updates.active,
-          start_time: updates.start_time,
-          end_time: updates.end_time
-        })
+        .update(updatePayload)
         .eq('id', id);
 
       if (updateError) throw updateError;
@@ -182,7 +183,7 @@ export const useCategories = (merchantId?: string, menuItems?: any[]) => {
 
   useEffect(() => {
     fetchCategories();
-  }, [merchantId, menuItems]);
+  }, [merchantId, menuItems?.length]);
 
   return {
     categories,
