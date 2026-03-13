@@ -14,12 +14,13 @@ import InventoryManager from './InventoryManager';
 import CustomersManager from './CustomersManager';
 import MerchantManager from './MerchantManager';
 import PromotionManager from './PromotionManager';
+import StaffManager from './StaffManager';
 
 const AdminDashboard: React.FC = () => {
   const { user, signOut } = useAuth();
   const { menuItems, loading, addMenuItem, updateMenuItem, deleteMenuItem } = useMenu();
   const { categories } = useCategories();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments' | 'settings' | 'orders' | 'inventory' | 'customers' | 'merchants' | 'promotions'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments' | 'settings' | 'orders' | 'inventory' | 'customers' | 'merchants' | 'promotions' | 'staff'>('dashboard');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1101,6 +1102,11 @@ const AdminDashboard: React.FC = () => {
     return <PromotionManager onBack={() => setCurrentView('dashboard')} />;
   }
 
+  // Staff View
+  if (currentView === 'staff') {
+    return <StaffManager onBack={() => setCurrentView('dashboard')} />;
+  }
+
   // Dashboard View
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1196,6 +1202,13 @@ const AdminDashboard: React.FC = () => {
               >
                 <Store className="h-5 w-5 text-gray-400" />
                 <span className="font-medium text-gray-900">Manage Merchants</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('staff')}
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+              >
+                <Users className="h-5 w-5 text-indigo-600" />
+                <span className="font-medium text-gray-900">Staff Management</span>
               </button>
               <button
                 onClick={handleAddItem}
