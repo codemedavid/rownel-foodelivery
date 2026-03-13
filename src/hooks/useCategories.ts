@@ -7,6 +7,8 @@ export interface Category {
   icon: string;
   sort_order: number;
   active: boolean;
+  start_time: string | null;  // "HH:MM" or null (always available)
+  end_time: string | null;    // "HH:MM" or null (always available)
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +35,8 @@ export const useCategories = (merchantId?: string, menuItems?: any[]) => {
               icon: '🍽️', // Default icon
               sort_order: 0,
               active: true,
+              start_time: null,
+              end_time: null,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
@@ -86,7 +90,9 @@ export const useCategories = (merchantId?: string, menuItems?: any[]) => {
           name: category.name,
           icon: category.icon,
           sort_order: category.sort_order,
-          active: category.active
+          active: category.active,
+          start_time: category.start_time ?? null,
+          end_time: category.end_time ?? null
         })
         .select()
         .single();
@@ -109,7 +115,9 @@ export const useCategories = (merchantId?: string, menuItems?: any[]) => {
           name: updates.name,
           icon: updates.icon,
           sort_order: updates.sort_order,
-          active: updates.active
+          active: updates.active,
+          start_time: updates.start_time,
+          end_time: updates.end_time
         })
         .eq('id', id);
 
