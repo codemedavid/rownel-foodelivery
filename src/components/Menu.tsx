@@ -5,8 +5,9 @@ import { useMerchant } from '../contexts/MerchantContext';
 import { useCartContext } from '../contexts/CartContext';
 import MenuItemCard from './MenuItemCard';
 import MobileNav from './MobileNav';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { isMerchantOpen, isCategoryAvailable } from '../lib/timeUtils';
 
 // Preload images for better performance
 const preloadImages = (items: MenuItem[]) => {
@@ -36,6 +37,10 @@ const fallbackDishSuggestions = [
 const Menu: React.FC<MenuProps> = ({ menuItems }) => {
   const navigate = useNavigate();
   const { selectedMerchant } = useMerchant();
+  const merchantOpenStatus = React.useMemo(
+    () => isMerchantOpen(selectedMerchant?.openingHours),
+    [selectedMerchant?.openingHours]
+  );
   const { cartItems, updateQuantity } = useCartContext();
   const { categories } = useCategories(selectedMerchant?.id, menuItems);
   const [activeCategory, setActiveCategory] = React.useState('hot-coffee');
@@ -161,7 +166,19 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
         </div>
       </div>
 
-      <MobileNav 
+      {!merchantOpenStatus.isOpen && (
+        <div className="bg-red-50 border-b border-red-200 px-4 sm:px-6 lg:px-8 py-3">
+          <div className="max-w-7xl mx-auto flex items-center gap-2 text-red-700">
+            <Clock className="h-4 w-4 flex-shrink-0" />
+            <p className="text-sm font-medium">
+              This store is currently closed.{' '}
+              {merchantOpenStatus.nextOpenTime && <span className="font-normal">{merchantOpenStatus.nextOpenTime}</span>}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <MobileNav
         activeCategory={activeCategory}
         onCategoryClick={handleCategoryClick}
         menuItems={menuItems}
@@ -192,6 +209,7 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
                     cartItemId={cartItem?.id}
                     onUpdateQuantity={updateQuantity}
                     onOpenDetails={handleOpenDetails}
+                    disabled={!merchantOpenStatus.isOpen}
                   />
                 );
               })}
@@ -216,17 +234,25 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
 
         {categories.map((category) => {
           const categoryItems = menuItems.filter(item => item.category === category.id);
-          
           if (categoryItems.length === 0) return null;
-          
+
+          const categoryAvailability = isCategoryAvailable(category.start_time, category.end_time);
+          const isClosed = !merchantOpenStatus.isOpen || !categoryAvailability.isAvailable;
+
           return (
-            <section key={category.id} id={category.id} className="mb-12">
+            <section key={category.id} id={category.id} className={`mb-12 ${isClosed ? 'opacity-60' : ''}`}>
               <div className="flex items-center mb-6">
                 <span className="text-3xl mr-3">{category.icon}</span>
                 <h3 className="text-2xl font-bold text-gray-900">{category.name}</h3>
                 <span className="ml-3 text-sm text-gray-500">({categoryItems.length})</span>
+                {!categoryAvailability.isAvailable && (
+                  <span className="ml-3 inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
+                    <Clock className="h-3 w-3" />
+                    {categoryAvailability.availableAt}
+                  </span>
+                )}
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {categoryItems.map((item) => {
                   const cartItem = cartItems.find(cartItem =>
@@ -242,6 +268,7 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
                       cartItemId={cartItem?.id}
                       onUpdateQuantity={updateQuantity}
                       onOpenDetails={handleOpenDetails}
+                      disabled={isClosed}
                     />
                   );
                 })}
