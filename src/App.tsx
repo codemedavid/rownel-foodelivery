@@ -10,6 +10,7 @@ import AdminLogin from './components/AdminLogin';
 import ProtectedRoute from './components/ProtectedRoute';
 import MerchantsList from './components/MerchantsList';
 import MenuItemDetailsPage from './components/MenuItemDetailsPage';
+import OrderTracking from './components/OrderTracking';
 import { useMenu } from './hooks/useMenu';
 import { AuthProvider } from './contexts/AuthContext';
 import { MerchantProvider, useMerchant } from './contexts/MerchantContext';
@@ -77,6 +78,8 @@ function App() {
               <Route path="/" element={<MerchantsList />} />
               <Route path="/merchant/:merchantId" element={<MerchantMenu />} />
               <Route path="/merchant/:merchantId/item/:itemId" element={<MenuItemDetailsPage />} />
+              <Route path="/track" element={<OrderTracking />} />
+              <Route path="/track/:orderId" element={<OrderTracking />} />
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route 
                 path="/admin" 
