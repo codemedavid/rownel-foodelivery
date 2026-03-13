@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Minus, Plus, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, Clock, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { AddOn, MenuItem, Variation } from '../types';
 import { useMerchant } from '../contexts/MerchantContext';
 import { useMenu } from '../hooks/useMenu';
 import { useCartContext } from '../contexts/CartContext';
+import { isMerchantOpen, isCategoryAvailable } from '../lib/timeUtils';
+import { useCategories } from '../hooks/useCategories';
 
 const MenuItemDetailsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,6 +31,20 @@ const MenuItemDetailsPage: React.FC = () => {
     if (!itemId || !merchantId) return null;
     return menuItems.find((menuItem) => menuItem.id === itemId && menuItem.merchantId === merchantId) ?? null;
   }, [itemId, merchantId, menuItems]);
+
+  const merchantOpenStatus = useMemo(
+    () => isMerchantOpen(selectedMerchant?.openingHours),
+    [selectedMerchant?.openingHours]
+  );
+
+  const { categories } = useCategories(merchantId, menuItems);
+  const itemCategory = categories.find(c => c.id === item?.category);
+  const categoryAvailability = useMemo(
+    () => isCategoryAvailable(itemCategory?.start_time, itemCategory?.end_time),
+    [itemCategory?.start_time, itemCategory?.end_time]
+  );
+
+  const isClosed = !merchantOpenStatus.isOpen || !categoryAvailability.isAvailable;
 
   useEffect(() => {
     if (!item) return;
@@ -346,6 +362,17 @@ const MenuItemDetailsPage: React.FC = () => {
 
             {selectionError && <p className="mt-3 text-sm text-red-600">{selectionError}</p>}
 
+            {isClosed && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                <Clock className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  {!merchantOpenStatus.isOpen
+                    ? `This store is currently closed. ${merchantOpenStatus.nextOpenTime || ''}`
+                    : categoryAvailability.availableAt || 'This category is not available right now.'}
+                </span>
+              </div>
+            )}
+
             <div className="mt-5 flex items-center justify-between border-t border-gray-200 pt-4">
               <div>
                 <p className="text-sm text-gray-600">Total</p>
@@ -354,11 +381,11 @@ const MenuItemDetailsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={!item.available}
+                disabled={!item.available || isClosed}
                 className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
                 <ShoppingCart className="h-4 w-4" />
-                Add to cart
+                {isClosed ? 'Currently closed' : 'Add to cart'}
               </button>
             </div>
           </div>
