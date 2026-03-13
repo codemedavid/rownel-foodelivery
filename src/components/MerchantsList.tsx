@@ -9,6 +9,7 @@ import MapLocationPicker from './MapLocationPicker';
 import { reverseGeocode, type OSMAddressSuggestion } from '../lib/osm';
 import { useMenu } from '../hooks/useMenu';
 import { usePromotions } from '../hooks/usePromotions';
+import { isMerchantOpen } from '../lib/timeUtils';
 
 const USER_LOCATION_STORAGE_KEY = 'userDeliveryLocation';
 const MAX_SEARCH_RESULTS = 20;
@@ -266,6 +267,9 @@ const MerchantsList: React.FC = () => {
 
   const allNearMeMerchants = useMemo(() => {
     return [...merchantsWithDistance].sort((a, b) => {
+      const aOpen = isMerchantOpen(a.openingHours).isOpen;
+      const bOpen = isMerchantOpen(b.openingHours).isOpen;
+      if (aOpen !== bOpen) return aOpen ? -1 : 1;
       const distA = a.distanceKm ?? Number.POSITIVE_INFINITY;
       const distB = b.distanceKm ?? Number.POSITIVE_INFINITY;
       return distA - distB;
@@ -383,39 +387,50 @@ const MerchantsList: React.FC = () => {
     navigate(link);
   };
 
-  const MerchantCardLarge = ({ merchant }: { merchant: MerchantWithDistance }) => (
-    <button
-      onClick={() => handleSelectMerchant(merchant.id)}
-      className="flex-shrink-0 w-64 sm:w-72 bg-white rounded-2xl p-0 shadow-sm hover:shadow-md transition-all text-left overflow-hidden border border-gray-100"
-    >
-      <div className="h-32 bg-gray-100 relative">
-        {merchant.coverImageUrl || merchant.logoUrl ? (
-          <img
-            src={merchant.coverImageUrl || merchant.logoUrl}
-            alt={merchant.name}
-            className="w-full h-full object-cover"
-          />
-        ) : null}
-        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold shadow-sm">
-          25-35 min
-        </div>
-      </div>
-      <div className="p-4">
-        <h3 className="font-bold text-gray-900 text-lg mb-1">{merchant.name}</h3>
-        <p className="text-gray-500 text-sm mb-3 line-clamp-1">{merchant.description || merchant.cuisineType}</p>
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1.5 text-gray-700 font-medium">
-            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-            {merchant.rating.toFixed(1)} <span className="text-gray-400 font-normal">({merchant.totalReviews})</span>
-          </div>
-          <div className="flex items-center gap-1 text-gray-500">
-            <MapPin className="w-3.5 h-3.5" />
-            {typeof merchant.distanceKm === 'number' ? `${merchant.distanceKm.toFixed(1)}km` : 'N/A'}
+  const MerchantCardLarge = ({ merchant }: { merchant: MerchantWithDistance }) => {
+    const openStatus = isMerchantOpen(merchant.openingHours);
+    return (
+      <button
+        onClick={() => handleSelectMerchant(merchant.id)}
+        className={`flex-shrink-0 w-64 sm:w-72 bg-white rounded-2xl p-0 shadow-sm hover:shadow-md transition-all text-left overflow-hidden border border-gray-100${!openStatus.isOpen ? ' opacity-60' : ''}`}
+      >
+        <div className="h-32 bg-gray-100 relative">
+          {merchant.coverImageUrl || merchant.logoUrl ? (
+            <img
+              src={merchant.coverImageUrl || merchant.logoUrl}
+              alt={merchant.name}
+              className="w-full h-full object-cover"
+            />
+          ) : null}
+          {!openStatus.isOpen && (
+            <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold shadow-sm">
+              Closed
+            </div>
+          )}
+          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold shadow-sm">
+            25-35 min
           </div>
         </div>
-      </div>
-    </button>
-  );
+        <div className="p-4">
+          <h3 className="font-bold text-gray-900 text-lg mb-1">{merchant.name}</h3>
+          <p className="text-gray-500 text-sm mb-3 line-clamp-1">{merchant.description || merchant.cuisineType}</p>
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-1.5 text-gray-700 font-medium">
+              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+              {merchant.rating.toFixed(1)} <span className="text-gray-400 font-normal">({merchant.totalReviews})</span>
+            </div>
+            <div className="flex items-center gap-1 text-gray-500">
+              <MapPin className="w-3.5 h-3.5" />
+              {typeof merchant.distanceKm === 'number' ? `${merchant.distanceKm.toFixed(1)}km` : 'N/A'}
+            </div>
+          </div>
+          {!openStatus.isOpen && openStatus.nextOpenTime && (
+            <p className="text-xs text-red-500 mt-1">{openStatus.nextOpenTime}</p>
+          )}
+        </div>
+      </button>
+    );
+  };
 
   const FoodSearchCard = ({ item }: { item: MenuSearchResult }) => (
     <button
@@ -653,17 +668,28 @@ const MerchantsList: React.FC = () => {
                 </button>
               </div>
               <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x">
-                {popularMerchants.map((merchant) => (
-                  <div key={merchant.id} onClick={() => handleSelectMerchant(merchant.id)} className="flex flex-col items-center gap-2 cursor-pointer min-w-[80px]">
-                    <div className="w-20 h-20 rounded-2xl bg-white shadow-sm border border-gray-100 p-2 overflow-hidden">
-                      <img src={merchant.logoUrl || ''} alt={merchant.name} className="w-full h-full object-contain" />
+                {popularMerchants.map((merchant) => {
+                  const openStatus = isMerchantOpen(merchant.openingHours);
+                  return (
+                    <div key={merchant.id} onClick={() => handleSelectMerchant(merchant.id)} className={`flex flex-col items-center gap-2 cursor-pointer min-w-[80px]${!openStatus.isOpen ? ' opacity-60' : ''}`}>
+                      <div className="w-20 h-20 rounded-2xl bg-white shadow-sm border border-gray-100 p-2 overflow-hidden relative">
+                        <img src={merchant.logoUrl || ''} alt={merchant.name} className="w-full h-full object-contain" />
+                        {!openStatus.isOpen && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-[9px] font-bold text-center py-0.5">
+                            Closed
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-gray-900 text-center line-clamp-1">{merchant.name}</span>
+                      <span className="text-[10px] text-gray-500">
+                        {typeof merchant.distanceKm === 'number' ? `${merchant.distanceKm.toFixed(1)}km` : 'N/A'}
+                      </span>
+                      {!openStatus.isOpen && openStatus.nextOpenTime && (
+                        <span className="text-[9px] text-red-500">{openStatus.nextOpenTime}</span>
+                      )}
                     </div>
-                    <span className="text-xs font-medium text-gray-900 text-center line-clamp-1">{merchant.name}</span>
-                    <span className="text-[10px] text-gray-500">
-                      {typeof merchant.distanceKm === 'number' ? `${merchant.distanceKm.toFixed(1)}km` : 'N/A'}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           </>
