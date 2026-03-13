@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { ArrowLeft, Store, AlertTriangle, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { PaymentMethod } from '../types';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import { useCartContext } from '../contexts/CartContext';
 import { useMerchants } from '../hooks/useMerchants';
+import { useConvexOrders } from '../hooks/useConvexOrders';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
 import MapLocationPicker from './MapLocationPicker';
 import type { OSMAddressSuggestion } from '../lib/osm';
@@ -16,8 +18,10 @@ interface CheckoutProps {
 
 const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const { paymentMethods: allPaymentMethods } = usePaymentMethods();
-  const { cartItems, getTotalPrice } = useCartContext();
+  const { cartItems, getTotalPrice, clearCart } = useCartContext();
   const { merchants } = useMerchants();
+  const { createOrder } = useConvexOrders();
+  const navigate = useNavigate();
   const totalPrice = getTotalPrice();
   
   const [customerName, setCustomerName] = useState('');
@@ -29,6 +33,8 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const [landmark, setLandmark] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
+  const [submitting, setSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
   // Group cart items by merchant
   const itemsByMerchant = useMemo(() => {
@@ -160,15 +166,6 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const hasMinOrderIssue = Object.values(merchantValidation).some(v => !v.minOrder.met);
   const hasClosedMerchant = Object.values(merchantValidation).some(v => !v.openStatus.isOpen);
 
-  const copyOrderDetails = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   // Set default payment method when payment methods are loaded
   React.useEffect(() => {
     if (paymentMethods.length > 0 && !paymentMethod) {
@@ -199,102 +196,90 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     deliveryLongitude !== null &&
     Boolean(deliveryOsmPlaceId);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!isAddressValid) {
       alert('Please select a valid delivery address from the suggestions before placing your order.');
       return;
     }
 
-    // Build order details with merchant grouping
-    const mergedNotes = landmark ? `${notes ? notes + ' | ' : ''}Landmark: ${landmark}` : notes;
-    
-    let orderDetails = `
-🛒 Row-Nel FooDelivery ORDER
+    setSubmitting(true);
+    setOrderError(null);
 
-👤 Customer: ${trimmedCustomerName}
-📞 Contact: ${trimmedContactNumber}
-📍 Service: Delivery
-🏠 Address: ${trimmedAddress}${landmark ? `\n🗺️ Landmark: ${landmark}` : ''}
-
-📋 ORDER DETAILS:
-`;
-
-    // Add items grouped by merchant
-    for (const [merchantId, items] of Object.entries(itemsByMerchant)) {
-      const merchant = merchants.find(m => m.id === merchantId);
-      const merchantSubtotal = getMerchantSubtotal(merchantId);
-      const quote = deliveryQuotesByMerchant[merchantId];
-      
-      orderDetails += `\n🏪 ${merchant?.name || 'Restaurant'}:\n`;
-      
-      items.forEach(item => {
-        let itemDetails = `  • ${item.name}`;
-        if (item.selectedVariation) {
-          itemDetails += ` (${item.selectedVariation.name})`;
-        }
-        if (item.selectedVariations && Object.keys(item.selectedVariations).length > 0) {
-          itemDetails += ` [${Object.entries(item.selectedVariations)
-            .map(([groupName, variation]) => `${groupName}: ${variation.name}`)
-            .join(', ')}]`;
-        }
-        if (item.selectedAddOns && item.selectedAddOns.length > 0) {
-          itemDetails += ` + ${item.selectedAddOns.map(addOn => 
-            addOn.quantity && addOn.quantity > 1 
-              ? `${addOn.name} x${addOn.quantity}`
-              : addOn.name
-          ).join(', ')}`;
-        }
-        itemDetails += ` x${item.quantity} - ₱${item.totalPrice * item.quantity}`;
-        orderDetails += itemDetails + '\n';
-      });
-      
-      orderDetails += `  Subtotal: ₱${merchantSubtotal.toFixed(2)}\n`;
-    }
-
-orderDetails += `
-💰 FOOD TOTAL: ₱${totalPrice.toFixed(2)}
-🚚 DELIVERY TOTAL: ₱${deliveryFeeTotal.toFixed(2)}
-📍 DELIVERY ADDRESS: ${trimmedAddress}
-💵 GRAND TOTAL: ₱${grandTotal.toFixed(2)}
-
-💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}
-
-${mergedNotes ? `📝 Notes: ${mergedNotes}` : ''}
-
-Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟
-    `.trim();
-
-    // Copy order details to clipboard as backup
-    copyOrderDetails(orderDetails);
-
-    // Try both page ID formats to be safe
-    const pageId = 'RowNelFooDelivery';
-    const encodedMessage = encodeURIComponent(orderDetails);
-    
-    // Try the m.me format first
-    const webLink = `https://m.me/${pageId}?text=${encodedMessage}`;
-    
-    console.log('Attempting redirect to:', webLink);
-    console.log('Order details length:', orderDetails.length);
-
-    // Use a more reliable approach - prevent default form submission and handle redirect
-    const redirectToMessenger = () => {
+    try {
+      // Best-effort client IP fetch (3s timeout)
+      let ipAddress: string | undefined;
       try {
-        // Try the standard m.me link first
-        window.location.replace(webLink);
-      } catch (error) {
-        console.error('Redirect failed, trying alternative methods:', error);
-        // Fallback to opening in new window
-        const newWindow = window.open(webLink, '_blank');
-        if (!newWindow) {
-          // If popup is blocked, try to redirect current window
-          window.location.href = webLink;
-        }
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 3000);
+        const ipRes = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+        clearTimeout(timer);
+        const ipData = await ipRes.json();
+        ipAddress = ipData.ip;
+      } catch {
+        // Ignore – IP is optional
       }
-    };
 
-    // Small delay to ensure all operations complete
-    setTimeout(redirectToMessenger, 100);
+      const mergedNotes = landmark ? `${notes ? notes + ' | ' : ''}Landmark: ${landmark}` : notes;
+      const orderIds: string[] = [];
+
+      for (const [merchantId, items] of Object.entries(itemsByMerchant)) {
+        const quote = deliveryQuotesByMerchant[merchantId];
+        const merchantSubtotal = getMerchantSubtotal(merchantId);
+        const merchantDeliveryFee = quote?.deliverable ? (quote.deliveryFee ?? 0) : 0;
+        const orderTotal = merchantSubtotal + merchantDeliveryFee;
+
+        const orderItems = items.map(item => ({
+          itemId: item.menuItemId ?? item.id,
+          name: item.name,
+          variation: item.selectedVariation
+            ? { name: item.selectedVariation.name, price: item.selectedVariation.price }
+            : item.selectedVariations && Object.keys(item.selectedVariations).length > 0
+              ? Object.fromEntries(
+                  Object.entries(item.selectedVariations).map(([group, v]) => [group, { name: v.name, price: v.price }])
+                )
+              : undefined,
+          addOns: item.selectedAddOns && item.selectedAddOns.length > 0
+            ? item.selectedAddOns.map(a => ({ name: a.name, price: a.price, quantity: a.quantity ?? 1 }))
+            : undefined,
+          unitPrice: item.totalPrice,
+          quantity: item.quantity,
+          subtotal: item.totalPrice * item.quantity,
+        }));
+
+        const stockAdjustments = items.map(item => ({
+          id: item.menuItemId ?? item.id,
+          quantity: item.quantity,
+        }));
+
+        const orderId = await createOrder({
+          merchantId,
+          customerName: trimmedCustomerName,
+          contactNumber: trimmedContactNumber,
+          serviceType: 'delivery',
+          address: trimmedAddress,
+          deliveryLatitude: deliveryLatitude ?? undefined,
+          deliveryLongitude: deliveryLongitude ?? undefined,
+          distanceKm: quote?.distanceKm,
+          deliveryFee: merchantDeliveryFee,
+          paymentMethod,
+          notes: mergedNotes || undefined,
+          total: orderTotal,
+          ipAddress,
+          items: orderItems,
+          stockAdjustments,
+        });
+
+        orderIds.push(orderId as string);
+      }
+
+      clearCart();
+      navigate(`/track/${orderIds[0]}`);
+    } catch (err: any) {
+      console.error('Order submission failed:', err);
+      setOrderError(err?.message || 'Failed to place order. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const hasUndeliverableMerchant = merchantIds.some((merchantId) => !deliveryQuotesByMerchant[merchantId]?.deliverable);
@@ -556,17 +541,21 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
             <button
               type="button"
               onClick={handlePlaceOrder}
-              disabled={!canPlaceOrder}
+              disabled={!canPlaceOrder || submitting}
               className={`w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform ${
-                canPlaceOrder
+                canPlaceOrder && !submitting
                   ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-[1.02]'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              Place Order via Messenger
+              {submitting ? 'Placing Order...' : 'Place Order'}
             </button>
 
-            {!canPlaceOrder && (
+            {orderError && (
+              <p className="text-red-500 text-sm mt-2 text-center">{orderError}</p>
+            )}
+
+            {!canPlaceOrder && !submitting && (
               <p className="text-xs text-red-600 text-center mt-2">
                 {hasUndeliverableMerchant && 'Some merchants are outside delivery coverage. '}
                 {hasMinOrderIssue && 'Some merchants have not met minimum order. '}
@@ -574,9 +563,9 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
                 {!isDetailsValid && 'Please fill in all required fields.'}
               </p>
             )}
-            
+
             <p className="text-xs text-gray-500 text-center mt-3">
-              You'll be redirected to Facebook Messenger to confirm your order. Please attach your payment receipt screenshot.
+              Your order will be submitted directly. You'll be redirected to track its status.
             </p>
           </form>
         </div>
