@@ -8,6 +8,7 @@ interface MenuItemCardProps {
   cartItemId?: string;
   onUpdateQuantity: (id: string, quantity: number) => void;
   onOpenDetails: (itemId: string) => void;
+  disabled?: boolean;
 }
 
 const MenuItemCard: React.FC<MenuItemCardProps> = ({
@@ -16,6 +17,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   cartItemId,
   onUpdateQuantity,
   onOpenDetails,
+  disabled = false,
 }) => {
   const basePrice = item.basePrice;
   const effectivePrice = item.effectivePrice ?? basePrice;
@@ -42,7 +44,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   };
 
   return (
-    <div className={`group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-md transition-all duration-300 hover:shadow-2xl ${!item.available ? 'opacity-60' : ''}`}>
+    <div className={`group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-md transition-all duration-300 hover:shadow-2xl ${!item.available || disabled ? 'opacity-60' : ''}`}>
       <div className="relative h-52 bg-gradient-to-br from-green-50 to-green-100">
         {item.image ? (
           <img
@@ -119,9 +121,9 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
           </div>
 
           <div className="flex-shrink-0">
-            {!item.available ? (
+            {!item.available || disabled ? (
               <button disabled className="cursor-not-allowed rounded-xl bg-gray-200 px-4 py-2.5 text-sm font-medium text-gray-500">
-                Unavailable
+                {disabled ? 'Closed' : 'Unavailable'}
               </button>
             ) : hasCustomizations ? (
               <button
