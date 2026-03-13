@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, LogOut, Clock, CheckCircle, ChefHat, Package, Truck, XCircle, Eye, X, Filter } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConvexOrdersByMerchant, ConvexOrder } from '../hooks/useConvexOrders';
+import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -25,6 +26,7 @@ const StaffOrdersPanel: React.FC = () => {
 
   // Fetch orders for the staff's merchant
   const { orders, loading: ordersLoading, updateOrderStatus } = useConvexOrdersByMerchant(merchantId);
+  const { requestPermission } = useNewOrderNotification(orders);
 
   const isLoadingStaff = staffRecord === undefined;
   const staffNotFound = staffRecord === null;
@@ -150,13 +152,21 @@ const StaffOrdersPanel: React.FC = () => {
                 <p className="text-xs text-gray-500">{staffRecord.name}</p>
               </div>
             </div>
-            <button
-              onClick={signOut}
-              className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="text-sm font-medium">Sign Out</span>
-            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={requestPermission}
+                className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors duration-200"
+              >
+                Enable Notifications
+              </button>
+              <button
+                onClick={signOut}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="text-sm font-medium">Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

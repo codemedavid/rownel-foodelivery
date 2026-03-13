@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, Search, Image as ImageIcon, Download, Calendar, DollarSign } from 'lucide-react';
 import { useConvexOrders, ConvexOrder } from '../hooks/useConvexOrders';
+import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
 import type { Id } from '../../convex/_generated/dataModel';
 
 interface OrdersManagerProps {
@@ -9,6 +10,7 @@ interface OrdersManagerProps {
 
 const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
   const { orders, loading, updateOrderStatus } = useConvexOrders();
+  const { requestPermission } = useNewOrderNotification(orders);
   const [error] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ConvexOrder | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -277,8 +279,16 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
               </button>
               <h1 className="text-2xl font-playfair font-semibold text-black">Orders Management</h1>
             </div>
-            <div className="text-sm text-gray-500">
-              {orders.length} order{orders.length !== 1 ? 's' : ''} total
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={requestPermission}
+                className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors duration-200"
+              >
+                Enable Notifications
+              </button>
+              <div className="text-sm text-gray-500">
+                {orders.length} order{orders.length !== 1 ? 's' : ''} total
+              </div>
             </div>
           </div>
         </div>
