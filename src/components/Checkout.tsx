@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Store } from 'lucide-react';
+import { ArrowLeft, Store, AlertTriangle, Clock } from 'lucide-react';
 import { PaymentMethod } from '../types';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import { useCartContext } from '../contexts/CartContext';
@@ -8,6 +8,7 @@ import AddressAutocompleteInput from './AddressAutocompleteInput';
 import MapLocationPicker from './MapLocationPicker';
 import type { OSMAddressSuggestion } from '../lib/osm';
 import { calculateDeliveryFee, haversineKm } from '../lib/deliveryPricing';
+import { getMinOrderStatus, isMerchantOpen } from '../lib/timeUtils';
 
 interface CheckoutProps {
   onBack: () => void;
@@ -140,6 +141,24 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     const items = itemsByMerchant[merchantId] || [];
     return items.reduce((sum, item) => sum + (item.totalPrice * item.quantity), 0);
   };
+
+  const merchantValidation = useMemo(() => {
+    const validation: Record<string, { minOrder: ReturnType<typeof getMinOrderStatus>; openStatus: ReturnType<typeof isMerchantOpen> }> = {};
+
+    merchantIds.forEach(merchantId => {
+      const merchant = merchants.find(m => m.id === merchantId);
+      const subtotal = getMerchantSubtotal(merchantId);
+      validation[merchantId] = {
+        minOrder: getMinOrderStatus(merchant?.minimumOrder || 0, subtotal),
+        openStatus: isMerchantOpen(merchant?.openingHours),
+      };
+    });
+
+    return validation;
+  }, [merchantIds, merchants, itemsByMerchant]);
+
+  const hasMinOrderIssue = Object.values(merchantValidation).some(v => !v.minOrder.met);
+  const hasClosedMerchant = Object.values(merchantValidation).some(v => !v.openStatus.isOpen);
 
   const copyOrderDetails = async (text: string) => {
     try {
@@ -280,7 +299,7 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
 
   const hasUndeliverableMerchant = merchantIds.some((merchantId) => !deliveryQuotesByMerchant[merchantId]?.deliverable);
   const isDetailsValid = trimmedCustomerName && trimmedContactNumber && isAddressValid;
-  const canPlaceOrder = Boolean(isDetailsValid) && !hasUndeliverableMerchant;
+  const canPlaceOrder = Boolean(isDetailsValid) && !hasUndeliverableMerchant && !hasMinOrderIssue && !hasClosedMerchant;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -363,6 +382,22 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
                         <span className="text-sm text-gray-600 font-medium">Subtotal:</span>
                         <span className="font-semibold text-black">₱{subtotal.toFixed(2)}</span>
                       </div>
+                      {merchantValidation[merchantId] && !merchantValidation[merchantId].minOrder.met && (
+                        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                          <p className="text-xs text-amber-800">
+                            Add ₱{merchantValidation[merchantId].minOrder.remaining.toFixed(2)} more (min. ₱{merchantValidation[merchantId].minOrder.minimum.toFixed(2)})
+                          </p>
+                        </div>
+                      )}
+                      {merchantValidation[merchantId] && !merchantValidation[merchantId].openStatus.isOpen && (
+                        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">
+                          <Clock className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          <p className="text-xs text-red-700">
+                            Currently closed. {merchantValidation[merchantId].openStatus.nextOpenTime}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -531,9 +566,12 @@ Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery
               Place Order via Messenger
             </button>
 
-            {hasUndeliverableMerchant && (
+            {!canPlaceOrder && (
               <p className="text-xs text-red-600 text-center mt-2">
-                Some merchants are outside delivery coverage. Update your address or remove those items.
+                {hasUndeliverableMerchant && 'Some merchants are outside delivery coverage. '}
+                {hasMinOrderIssue && 'Some merchants have not met minimum order. '}
+                {hasClosedMerchant && 'Some merchants are currently closed. '}
+                {!isDetailsValid && 'Please fill in all required fields.'}
               </p>
             )}
             
