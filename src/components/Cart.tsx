@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Trash2, Plus, Minus, ArrowLeft, Store } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowLeft, Store, AlertTriangle, Clock } from 'lucide-react';
+import { getMinOrderStatus, isMerchantOpen } from '../lib/timeUtils';
 import { useCartContext } from '../contexts/CartContext';
 import { useMerchants } from '../hooks/useMerchants';
 
@@ -34,6 +35,25 @@ const Cart: React.FC<CartProps> = ({
     const items = itemsByMerchant[merchantId] || [];
     return items.reduce((sum, item) => sum + (item.totalPrice * item.quantity), 0);
   };
+
+  const merchantStatuses = useMemo(() => {
+    const statuses: Record<string, { minOrder: ReturnType<typeof getMinOrderStatus>; openStatus: ReturnType<typeof isMerchantOpen> }> = {};
+
+    Object.keys(itemsByMerchant).forEach(merchantId => {
+      const merchant = merchants.find(m => m.id === merchantId);
+      const subtotal = getMerchantSubtotal(merchantId);
+      statuses[merchantId] = {
+        minOrder: getMinOrderStatus(merchant?.minimumOrder || 0, subtotal),
+        openStatus: isMerchantOpen(merchant?.openingHours),
+      };
+    });
+
+    return statuses;
+  }, [itemsByMerchant, merchants]);
+
+  const hasMinOrderIssue = Object.values(merchantStatuses).some(s => !s.minOrder.met);
+  const hasClosedMerchant = Object.values(merchantStatuses).some(s => !s.openStatus.isOpen);
+  const canCheckout = !hasMinOrderIssue && !hasClosedMerchant;
 
   if (cartItems.length === 0) {
     return (
@@ -92,6 +112,27 @@ const Cart: React.FC<CartProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Min order warning */}
+            {merchantStatuses[merchantId] && !merchantStatuses[merchantId].minOrder.met && (
+              <div className="flex items-center gap-2 bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-2.5">
+                <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                <p className="text-sm text-amber-800">
+                  Add ₱{merchantStatuses[merchantId].minOrder.remaining.toFixed(2)} more to meet minimum order of ₱{merchantStatuses[merchantId].minOrder.minimum.toFixed(2)}
+                </p>
+              </div>
+            )}
+
+            {/* Closed merchant warning */}
+            {merchantStatuses[merchantId] && !merchantStatuses[merchantId].openStatus.isOpen && (
+              <div className="flex items-center gap-2 bg-red-50 border-b border-red-200 px-4 sm:px-6 py-2.5">
+                <Clock className="h-4 w-4 text-red-600 flex-shrink-0" />
+                <p className="text-sm text-red-700">
+                  {merchant?.name || 'This restaurant'} is currently closed.{' '}
+                  {merchantStatuses[merchantId].openStatus.nextOpenTime}
+                </p>
+              </div>
+            )}
 
             {/* Items for this merchant */}
             {items.map((item, index) => (
@@ -186,10 +227,21 @@ const Cart: React.FC<CartProps> = ({
         
         <button
           onClick={onCheckout}
-          className="w-full bg-red-600 text-white py-3 sm:py-4 rounded-xl hover:bg-red-700 transition-all duration-200 transform hover:scale-[1.02] font-medium text-base sm:text-lg"
+          disabled={!canCheckout}
+          className={`w-full py-3 sm:py-4 rounded-xl transition-all duration-200 transform font-medium text-base sm:text-lg ${
+            canCheckout
+              ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-[1.02]'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
         >
           Proceed to Checkout
         </button>
+        {!canCheckout && (
+          <p className="text-xs text-red-600 text-center mt-2">
+            {hasMinOrderIssue && 'Some merchants have not met minimum order requirements. '}
+            {hasClosedMerchant && 'Some merchants are currently closed.'}
+          </p>
+        )}
       </div>
     </div>
   );
