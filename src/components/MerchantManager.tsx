@@ -1341,6 +1341,70 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
               </div>
             </div>
 
+            {/* Operating Hours */}
+            <div>
+              <h3 className="text-lg font-playfair font-medium text-black mb-4">Operating Hours</h3>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Operating Hours (PHT)</label>
+              <div className="space-y-2">
+                {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
+                  const schedule = (merchantFormData.openingHours as Record<string, string>)?.[day] || '';
+                  const isClosed = schedule.toLowerCase() === 'closed';
+                  const isConfigured = Boolean(schedule) && !isClosed;
+                  const [openTime, closeTime] = isConfigured ? schedule.split('-') : ['09:00', '22:00'];
+
+                  return (
+                    <div key={day} className="flex items-center gap-3 rounded-lg border border-gray-200 p-2">
+                      <span className="w-24 text-sm font-medium capitalize text-gray-700">{day}</span>
+                      <select
+                        value={isClosed ? 'closed' : isConfigured ? 'open' : 'always'}
+                        onChange={(e) => {
+                          const newHours = { ...((merchantFormData.openingHours as Record<string, string>) || {}) };
+                          if (e.target.value === 'closed') {
+                            newHours[day] = 'closed';
+                          } else if (e.target.value === 'open') {
+                            newHours[day] = '09:00-22:00';
+                          } else {
+                            delete newHours[day];
+                          }
+                          setMerchantFormData(prev => ({ ...prev, openingHours: newHours }));
+                        }}
+                        className="rounded border border-gray-300 px-2 py-1 text-sm"
+                      >
+                        <option value="always">Always Open</option>
+                        <option value="open">Set Hours</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                      {isConfigured && (
+                        <>
+                          <input
+                            type="time"
+                            value={openTime}
+                            onChange={(e) => {
+                              const newHours = { ...((merchantFormData.openingHours as Record<string, string>) || {}) };
+                              newHours[day] = `${e.target.value}-${closeTime}`;
+                              setMerchantFormData(prev => ({ ...prev, openingHours: newHours }));
+                            }}
+                            className="rounded border border-gray-300 px-2 py-1 text-sm"
+                          />
+                          <span className="text-gray-500">to</span>
+                          <input
+                            type="time"
+                            value={closeTime}
+                            onChange={(e) => {
+                              const newHours = { ...((merchantFormData.openingHours as Record<string, string>) || {}) };
+                              newHours[day] = `${openTime}-${e.target.value}`;
+                              setMerchantFormData(prev => ({ ...prev, openingHours: newHours }));
+                            }}
+                            className="rounded border border-gray-300 px-2 py-1 text-sm"
+                          />
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Status */}
             <div>
               <h3 className="text-lg font-playfair font-medium text-black mb-4">Status</h3>

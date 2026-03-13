@@ -15,7 +15,9 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onBack }) => {
     name: '',
     icon: '☕',
     sort_order: 0,
-    active: true
+    active: true,
+    start_time: null as string | null,
+    end_time: null as string | null
   });
 
   const handleAddCategory = () => {
@@ -25,7 +27,9 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onBack }) => {
       name: '',
       icon: '☕',
       sort_order: nextSortOrder,
-      active: true
+      active: true,
+      start_time: null,
+      end_time: null
     });
     setCurrentView('add');
   };
@@ -37,7 +41,9 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onBack }) => {
       name: category.name,
       icon: category.icon,
       sort_order: category.sort_order,
-      active: category.active
+      active: category.active,
+      start_time: category.start_time,
+      end_time: category.end_time
     });
     setCurrentView('edit');
   };
@@ -202,6 +208,31 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onBack }) => {
                 <p className="text-xs text-gray-500 mt-1">
                   Lower numbers appear first in the menu
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-black mb-2">Availability Hours</label>
+                <div className="flex gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Available from</label>
+                    <input
+                      type="time"
+                      value={formData.start_time || ''}
+                      onChange={(e) => setFormData({ ...formData, start_time: e.target.value || null })}
+                      className="rounded border border-gray-300 px-2 py-1 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Available until</label>
+                    <input
+                      type="time"
+                      value={formData.end_time || ''}
+                      onChange={(e) => setFormData({ ...formData, end_time: e.target.value || null })}
+                      className="rounded border border-gray-300 px-2 py-1 text-sm"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Leave blank for always available (when store is open)</p>
               </div>
 
               <div className="flex items-center">
