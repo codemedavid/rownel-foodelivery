@@ -53,6 +53,7 @@ export function useConvexOrders() {
     distanceKm?: number;
     deliveryFee?: number;
     deliveryFeeBreakdown?: Record<string, unknown>;
+    deliveryMode?: "priority" | "economy";
     pickupTime?: string;
     partySize?: number;
     dineInTime?: string;
@@ -104,10 +105,43 @@ export function useConvexOrders() {
 /**
  * Staff / merchant view – lists orders for a single merchant.
  */
-export function useConvexOrdersByMerchant(merchantId: string) {
-  const ordersRaw = useQuery(api.orders.listByMerchant, { merchantId });
+export function useConvexOrdersByMerchant(merchantId: string | null) {
+  const ordersRaw = useQuery(
+    api.orders.listByMerchant,
+    merchantId ? { merchantId } : "skip"
+  ) ?? [];
   const updateStatusMutation = useMutation(api.orders.updateStatus);
 
+  const loading = ordersRaw === undefined;
+  const orders: ConvexOrder[] = (ordersRaw as ConvexOrder[] | undefined) ?? [];
+
+  const updateOrderStatus = async (
+    orderId: Id<"orders">,
+    status: "pending" | "confirmed" | "preparing" | "ready" | "completed" | "cancelled"
+  ) => {
+    await updateStatusMutation({ orderId, status });
+  };
+
+  return { orders, loading, updateOrderStatus };
+}
+
+/**
+ * Multi-merchant staff view – lists orders for multiple merchants or all.
+ */
+export function useConvexOrdersByMerchants(merchantIds: string[] | null, allMerchants: boolean) {
+  const allOrders = useQuery(
+    api.orders.listAll,
+    allMerchants ? {} : "skip"
+  );
+  const merchantOrders = useQuery(
+    api.orders.listByMerchants,
+    !allMerchants && merchantIds && merchantIds.length > 0
+      ? { merchantIds }
+      : "skip"
+  );
+  const updateStatusMutation = useMutation(api.orders.updateStatus);
+
+  const ordersRaw = allMerchants ? allOrders : merchantOrders;
   const loading = ordersRaw === undefined;
   const orders: ConvexOrder[] = (ordersRaw as ConvexOrder[] | undefined) ?? [];
 
