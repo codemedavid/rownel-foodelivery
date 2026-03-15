@@ -48,6 +48,7 @@ export const useMerchants = () => {
         minDeliveryFee: merchant.min_delivery_fee,
         maxDeliveryFee: merchant.max_delivery_fee,
         maxDeliveryDistanceKm: merchant.max_delivery_distance_km,
+        fixedDeliveryFee: merchant.fixed_delivery_fee,
         createdAt: merchant.created_at,
         updatedAt: merchant.updated_at,
       }));
@@ -103,6 +104,7 @@ export const useMerchants = () => {
         minDeliveryFee: data.min_delivery_fee,
         maxDeliveryFee: data.max_delivery_fee,
         maxDeliveryDistanceKm: data.max_delivery_distance_km,
+        fixedDeliveryFee: data.fixed_delivery_fee,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };
