@@ -602,7 +602,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
                       <span className="font-semibold text-sm">Economy</span>
                       <span className="font-bold text-red-600 text-sm">₱{economyFeeTotal.toFixed(2)}</span>
                     </div>
-                    <p className="text-xs text-gray-500">Fixed rate delivery</p>
+                    <p className="text-xs text-gray-500">Fixed rate · 40-120 min wait</p>
                   </button>
                 </div>
               </div>
