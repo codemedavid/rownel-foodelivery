@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, LogOut, Clock, CheckCircle, ChefHat, Package, Truck, XCircle, Eye, X, Filter } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useConvexOrdersByMerchant, ConvexOrder } from '../hooks/useConvexOrders';
+import { useConvexOrdersByMerchants, ConvexOrder } from '../hooks/useConvexOrders';
 import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -22,10 +22,13 @@ const StaffOrdersPanel: React.FC = () => {
     user ? { supabaseUserId: user.id } : 'skip'
   );
 
-  const merchantId = staffRecord?.merchantId ?? '';
+  // Resolve merchant IDs with backward compat: old merchantId → [merchantId]
+  const merchantIds = staffRecord?.merchantIds
+    ?? (staffRecord?.merchantId ? [staffRecord.merchantId] : null);
+  const allMerchants = staffRecord?.allMerchants ?? false;
 
-  // Fetch orders for the staff's merchant
-  const { orders, loading: ordersLoading, updateOrderStatus } = useConvexOrdersByMerchant(merchantId);
+  // Fetch orders for the staff's merchants
+  const { orders, loading: ordersLoading, updateOrderStatus } = useConvexOrdersByMerchants(merchantIds, allMerchants);
   const { requestPermission } = useNewOrderNotification(orders);
 
   const isLoadingStaff = staffRecord === undefined;
@@ -135,6 +138,19 @@ const StaffOrdersPanel: React.FC = () => {
     );
   }
 
+  if (staffRecord && !staffRecord.isActive) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <XCircle size={48} className="text-red-400 mx-auto mb-4" />
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">Account Deactivated</h2>
+          <p className="text-gray-500 mb-4">Your staff account has been deactivated. Contact your administrator.</p>
+          <button onClick={signOut} className="px-4 py-2 bg-red-600 text-white rounded-lg">Sign Out</button>
+        </div>
+      </div>
+    );
+  }
+
   // ---------- Main panel ----------
 
   return (
@@ -149,7 +165,14 @@ const StaffOrdersPanel: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-lg font-semibold text-black">Order Management</h1>
-                <p className="text-xs text-gray-500">{staffRecord.name}</p>
+                <p className="text-xs text-gray-500">
+                  {staffRecord.name}
+                  {allMerchants ? (
+                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">All Merchants</span>
+                  ) : merchantIds && merchantIds.length > 1 ? (
+                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{merchantIds.length} merchants</span>
+                  ) : null}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
@@ -316,6 +339,14 @@ const StaffOrdersPanel: React.FC = () => {
                   <p><strong>Name:</strong> {selectedOrder.customerName}</p>
                   <p><strong>Contact:</strong> {selectedOrder.contactNumber}</p>
                   <p><strong>Service:</strong> {formatServiceType(selectedOrder.serviceType)}</p>
+                {selectedOrder.deliveryMode && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Delivery Mode</span>
+                    <span className={`capitalize ${selectedOrder.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
+                      {selectedOrder.deliveryMode === 'economy' ? 'Economy (Fixed)' : 'Priority (Distance)'}
+                    </span>
+                  </div>
+                )}
                   <p><strong>Payment:</strong> {selectedOrder.paymentMethod}</p>
                   {selectedOrder.address && <p><strong>Address:</strong> {selectedOrder.address}</p>}
                   {selectedOrder.pickupTime && <p><strong>Pickup Time:</strong> {selectedOrder.pickupTime}</p>}

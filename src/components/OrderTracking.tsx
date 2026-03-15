@@ -191,6 +191,14 @@ const OrderTracking: React.FC = () => {
                     {order.serviceType.replace('-', ' ')}
                   </span>
                 </div>
+                {order.deliveryMode && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Delivery Mode</span>
+                    <span className={`font-medium capitalize ${order.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
+                      {order.deliveryMode === 'economy' ? 'Economy (Fixed)' : 'Priority (Distance)'}
+                    </span>
+                  </div>
+                )}
                 {order.address && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Address</span>

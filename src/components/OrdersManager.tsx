@@ -600,6 +600,14 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                     <p><strong>Name:</strong> {selectedOrder.customerName}</p>
                     <p><strong>Contact:</strong> {selectedOrder.contactNumber}</p>
                     <p><strong>Service Type:</strong> {formatServiceType(selectedOrder.serviceType)}</p>
+                {selectedOrder.deliveryMode && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Delivery Mode</span>
+                    <span className={`font-medium capitalize ${selectedOrder.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
+                      {selectedOrder.deliveryMode === 'economy' ? 'Economy (Fixed)' : 'Priority (Distance)'}
+                    </span>
+                  </div>
+                )}
                     <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod}</p>
                     <p><strong>Order Date:</strong> {formatDateTime(selectedOrder._creationTime)}</p>
                   </div>
