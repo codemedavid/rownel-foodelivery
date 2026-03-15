@@ -98,6 +98,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
     minDeliveryFee: null,
     maxDeliveryFee: null,
     maxDeliveryDistanceKm: 20,
+    fixedDeliveryFee: 0,
     contactNumber: '',
     email: '',
     openingHours: {},
@@ -156,6 +157,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
       minDeliveryFee: null,
       maxDeliveryFee: null,
       maxDeliveryDistanceKm: 20,
+      fixedDeliveryFee: 0,
       contactNumber: '',
       email: '',
       openingHours: {},
@@ -220,6 +222,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
           min_delivery_fee: merchant.minDeliveryFee ?? null,
           max_delivery_fee: merchant.maxDeliveryFee ?? null,
           max_delivery_distance_km: merchant.maxDeliveryDistanceKm ?? 20,
+          fixed_delivery_fee: merchant.fixedDeliveryFee ?? 0,
           minimum_order: merchant.minimumOrder,
           estimated_delivery_time: merchant.estimatedDeliveryTime || null,
           rating: merchant.rating,
@@ -432,6 +435,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
         min_delivery_fee: minDeliveryFee,
         max_delivery_fee: maxDeliveryFee,
         max_delivery_distance_km: maxDeliveryDistanceKm,
+        fixed_delivery_fee: Number(merchantFormData.fixedDeliveryFee ?? 0),
         minimum_order: merchantFormData.minimumOrder || 0,
         estimated_delivery_time: merchantFormData.estimatedDeliveryTime || null,
         rating: merchantFormData.rating || 0,
@@ -1202,6 +1206,20 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                     placeholder="20"
                   />
                   <p className="mt-1 text-xs text-gray-500">Orders outside this radius will be blocked.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">Fixed Delivery Fee (₱) — Economy Mode</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={merchantFormData.fixedDeliveryFee ?? 0}
+                    onChange={(e) => setMerchantFormData({ ...merchantFormData, fixedDeliveryFee: Number(e.target.value) })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="0"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Set to 0 to disable Economy delivery. Customers choose between this and distance-based pricing.</p>
                 </div>
               </div>
               <div className="mt-4 rounded-xl border border-green-100 bg-green-50 p-4">
