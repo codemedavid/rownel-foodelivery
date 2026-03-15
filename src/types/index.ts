@@ -28,6 +28,7 @@ export interface Merchant {
   minDeliveryFee?: number | null;
   maxDeliveryFee?: number | null;
   maxDeliveryDistanceKm?: number | null;
+  fixedDeliveryFee?: number;
   createdAt: string;
   updatedAt: string;
 }
