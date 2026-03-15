@@ -106,6 +106,7 @@ export interface OrderData {
   distanceKm?: number;
   deliveryFee?: number;
   deliveryFeeBreakdown?: Record<string, unknown>;
+  deliveryMode?: 'priority' | 'economy';
   pickupTime?: string;
   // Dine-in specific fields
   partySize?: number;

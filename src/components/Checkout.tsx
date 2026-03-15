@@ -88,7 +88,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
       const maxDist = merchant.maxDeliveryDistanceKm ?? null;
       if (maxDist !== null && distanceKm > maxDist) return sum;
       if ((merchant.fixedDeliveryFee ?? 0) > 0) {
-        return sum + merchant.fixedDeliveryFee!;
+        return sum + (merchant.fixedDeliveryFee ?? 0);
       }
       const fee = calculateDeliveryFee(distanceKm, {
         baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
@@ -150,7 +150,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
       let deliveryFee: number;
       if (deliveryMode === 'economy' && (merchant.fixedDeliveryFee ?? 0) > 0) {
-        deliveryFee = merchant.fixedDeliveryFee!;
+        deliveryFee = (merchant.fixedDeliveryFee ?? 0);
       } else {
         deliveryFee = calculateDeliveryFee(distanceKm, {
           baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
@@ -313,7 +313,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
           deliveryLongitude: deliveryLongitude ?? undefined,
           distanceKm: quote?.distanceKm,
           deliveryFee: merchantDeliveryFee,
-          deliveryMode,
+          deliveryMode: hasEconomyOption ? deliveryMode : undefined,
           paymentMethod,
           notes: mergedNotes || undefined,
           total: orderTotal,
