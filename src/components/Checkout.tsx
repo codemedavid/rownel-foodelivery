@@ -5,7 +5,8 @@ import { PaymentMethod } from '../types';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import { useCartContext } from '../contexts/CartContext';
 import { useMerchants } from '../hooks/useMerchants';
-import { useConvexOrders } from '../hooks/useConvexOrders';
+import { useMutation, useAction } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
 import MapLocationPicker from './MapLocationPicker';
 import type { OSMAddressSuggestion } from '../lib/osm';
@@ -20,7 +21,8 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const { paymentMethods: allPaymentMethods } = usePaymentMethods();
   const { cartItems, getTotalPrice, clearCart } = useCartContext();
   const { merchants } = useMerchants();
-  const { createOrder } = useConvexOrders();
+  const createOrderMutation = useMutation(api.orders.create);
+  const decrementStock = useAction(api.inventoryActions.decrementStock);
   const navigate = useNavigate();
   const totalPrice = getTotalPrice();
   
@@ -35,6 +37,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<'priority' | 'economy'>('priority');
 
   // Group cart items by merchant
   const itemsByMerchant = useMemo(() => {
@@ -52,6 +55,50 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
   // Get unique merchant IDs from cart
   const merchantIds = useMemo(() => Object.keys(itemsByMerchant), [itemsByMerchant]);
+
+  const hasEconomyOption = useMemo(() => {
+    return merchantIds.some((merchantId) => {
+      const merchant = merchants.find((m) => m.id === merchantId);
+      return merchant && (merchant.fixedDeliveryFee ?? 0) > 0;
+    });
+  }, [merchantIds, merchants]);
+
+  const priorityFeeTotal = useMemo(() => {
+    return merchantIds.reduce((sum, merchantId) => {
+      const merchant = merchants.find((m) => m.id === merchantId);
+      if (!merchant || merchant.latitude == null || merchant.longitude == null || deliveryLatitude === null || deliveryLongitude === null) return sum;
+      const distanceKm = haversineKm(merchant.latitude, merchant.longitude, deliveryLatitude, deliveryLongitude);
+      const maxDist = merchant.maxDeliveryDistanceKm ?? null;
+      if (maxDist !== null && distanceKm > maxDist) return sum;
+      const fee = calculateDeliveryFee(distanceKm, {
+        baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
+        deliveryFeePerKm: merchant.deliveryFeePerKm ?? 4,
+        minDeliveryFee: merchant.minDeliveryFee,
+        maxDeliveryFee: merchant.maxDeliveryFee,
+      });
+      return sum + fee;
+    }, 0);
+  }, [merchantIds, merchants, deliveryLatitude, deliveryLongitude]);
+
+  const economyFeeTotal = useMemo(() => {
+    return merchantIds.reduce((sum, merchantId) => {
+      const merchant = merchants.find((m) => m.id === merchantId);
+      if (!merchant || merchant.latitude == null || merchant.longitude == null || deliveryLatitude === null || deliveryLongitude === null) return sum;
+      const distanceKm = haversineKm(merchant.latitude, merchant.longitude, deliveryLatitude, deliveryLongitude);
+      const maxDist = merchant.maxDeliveryDistanceKm ?? null;
+      if (maxDist !== null && distanceKm > maxDist) return sum;
+      if ((merchant.fixedDeliveryFee ?? 0) > 0) {
+        return sum + merchant.fixedDeliveryFee!;
+      }
+      const fee = calculateDeliveryFee(distanceKm, {
+        baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
+        deliveryFeePerKm: merchant.deliveryFeePerKm ?? 4,
+        minDeliveryFee: merchant.minDeliveryFee,
+        maxDeliveryFee: merchant.maxDeliveryFee,
+      });
+      return sum + fee;
+    }, 0);
+  }, [merchantIds, merchants, deliveryLatitude, deliveryLongitude]);
 
   const deliveryQuotesByMerchant = useMemo(() => {
     const quotes: Record<
@@ -101,12 +148,17 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
         continue;
       }
 
-      const deliveryFee = calculateDeliveryFee(distanceKm, {
-        baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
-        deliveryFeePerKm: merchant.deliveryFeePerKm ?? 4,
-        minDeliveryFee: merchant.minDeliveryFee,
-        maxDeliveryFee: merchant.maxDeliveryFee,
-      });
+      let deliveryFee: number;
+      if (deliveryMode === 'economy' && (merchant.fixedDeliveryFee ?? 0) > 0) {
+        deliveryFee = merchant.fixedDeliveryFee!;
+      } else {
+        deliveryFee = calculateDeliveryFee(distanceKm, {
+          baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
+          deliveryFeePerKm: merchant.deliveryFeePerKm ?? 4,
+          minDeliveryFee: merchant.minDeliveryFee,
+          maxDeliveryFee: merchant.maxDeliveryFee,
+        });
+      }
 
       quotes[merchantId] = {
         deliverable: true,
@@ -116,7 +168,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     }
 
     return quotes;
-  }, [deliveryLatitude, deliveryLongitude, merchantIds, merchants]);
+  }, [deliveryLatitude, deliveryLongitude, merchantIds, merchants, deliveryMode]);
 
   const deliveryFeeTotal = useMemo(() => {
     return merchantIds.reduce((sum, merchantId) => {
@@ -251,7 +303,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
           quantity: item.quantity,
         }));
 
-        const orderId = await createOrder({
+        const orderId = await createOrderMutation({
           merchantId,
           customerName: trimmedCustomerName,
           contactNumber: trimmedContactNumber,
@@ -261,19 +313,70 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
           deliveryLongitude: deliveryLongitude ?? undefined,
           distanceKm: quote?.distanceKm,
           deliveryFee: merchantDeliveryFee,
+          deliveryMode,
           paymentMethod,
           notes: mergedNotes || undefined,
           total: orderTotal,
           ipAddress,
           items: orderItems,
-          stockAdjustments,
         });
+
+        // Best-effort inventory decrement via Supabase bridge
+        if (stockAdjustments.length > 0) {
+          try {
+            await decrementStock({ items: stockAdjustments });
+          } catch (err) {
+            console.error("Failed to decrement stock:", err);
+          }
+        }
 
         orderIds.push(orderId as string);
       }
 
+      // Build order summary for Messenger
+      let orderDetails = `🛒 Row-Nel FooDelivery ORDER\n\n👤 Customer: ${trimmedCustomerName}\n📞 Contact: ${trimmedContactNumber}\n📍 Service: Delivery\n🏠 Address: ${trimmedAddress}${landmark ? `\n🗺️ Landmark: ${landmark}` : ''}\n\n📋 ORDER DETAILS:\n`;
+
+      for (const [merchantId, items] of Object.entries(itemsByMerchant)) {
+        const merchant = merchants.find(m => m.id === merchantId);
+        const merchantSubtotal = getMerchantSubtotal(merchantId);
+
+        orderDetails += `\n🏪 ${merchant?.name || 'Restaurant'}:\n`;
+
+        items.forEach(item => {
+          let itemLine = `  • ${item.name}`;
+          if (item.selectedVariation) {
+            itemLine += ` (${item.selectedVariation.name})`;
+          }
+          if (item.selectedVariations && Object.keys(item.selectedVariations).length > 0) {
+            itemLine += ` [${Object.entries(item.selectedVariations)
+              .map(([groupName, variation]) => `${groupName}: ${variation.name}`)
+              .join(', ')}]`;
+          }
+          if (item.selectedAddOns && item.selectedAddOns.length > 0) {
+            itemLine += ` + ${item.selectedAddOns.map(addOn =>
+              addOn.quantity && addOn.quantity > 1
+                ? `${addOn.name} x${addOn.quantity}`
+                : addOn.name
+            ).join(', ')}`;
+          }
+          itemLine += ` x${item.quantity} - ₱${item.totalPrice * item.quantity}`;
+          orderDetails += itemLine + '\n';
+        });
+
+        orderDetails += `  Subtotal: ₱${merchantSubtotal.toFixed(2)}\n`;
+      }
+
+      orderDetails += `\n💰 FOOD TOTAL: ₱${totalPrice.toFixed(2)}\n🚚 DELIVERY TOTAL: ₱${deliveryFeeTotal.toFixed(2)} (${deliveryMode === 'economy' ? 'Economy' : 'Priority'})\n📍 DELIVERY ADDRESS: ${trimmedAddress}\n💵 GRAND TOTAL: ₱${grandTotal.toFixed(2)}\n\n💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}\n\n${mergedNotes ? `📝 Notes: ${mergedNotes}\n\n` : ''}Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟`;
+
+      // Copy to clipboard as backup
+      try { await navigator.clipboard.writeText(orderDetails); } catch { /* ignore */ }
+
       clearCart();
-      navigate(`/track/${orderIds[0]}`);
+
+      // Redirect to Messenger with prefilled order summary
+      const encodedMessage = encodeURIComponent(orderDetails);
+      const messengerUrl = `https://m.me/RowNelFooDelivery?text=${encodedMessage}`;
+      window.location.replace(messengerUrl);
     } catch (err: any) {
       console.error('Order submission failed:', err);
       setOrderError(err?.message || 'Failed to place order. Please try again.');
@@ -467,6 +570,44 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
               zoom={16}
             />
 
+            {hasEconomyOption && deliveryLatitude !== null && deliveryLongitude !== null && (
+              <div>
+                <label className="block text-sm font-medium text-black mb-3">Delivery Option</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryMode('priority')}
+                    className={`p-4 rounded-lg border-2 transition-all duration-200 text-left ${
+                      deliveryMode === 'priority'
+                        ? 'border-red-600 bg-red-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-sm">Priority</span>
+                      <span className="font-bold text-red-600 text-sm">₱{priorityFeeTotal.toFixed(2)}</span>
+                    </div>
+                    <p className="text-xs text-gray-500">Distance-based pricing</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryMode('economy')}
+                    className={`p-4 rounded-lg border-2 transition-all duration-200 text-left ${
+                      deliveryMode === 'economy'
+                        ? 'border-red-600 bg-red-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-sm">Economy</span>
+                      <span className="font-bold text-red-600 text-sm">₱{economyFeeTotal.toFixed(2)}</span>
+                    </div>
+                    <p className="text-xs text-gray-500">Fixed rate delivery</p>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-black mb-2">Landmark</label>
               <input
@@ -548,7 +689,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {submitting ? 'Placing Order...' : 'Place Order'}
+              {submitting ? 'Placing Order...' : 'Place Order via Messenger'}
             </button>
 
             {orderError && (
@@ -565,7 +706,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
             )}
 
             <p className="text-xs text-gray-500 text-center mt-3">
-              Your order will be submitted directly. You'll be redirected to track its status.
+              Your order will be saved and you'll be redirected to Facebook Messenger to confirm. Please attach your payment receipt screenshot.
             </p>
           </form>
         </div>
