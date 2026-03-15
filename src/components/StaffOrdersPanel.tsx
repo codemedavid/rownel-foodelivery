@@ -347,6 +347,9 @@ const StaffOrdersPanel: React.FC = () => {
                     </span>
                   </div>
                 )}
+                  {selectedOrder.deliveryFee != null && selectedOrder.deliveryFee > 0 && (
+                    <p><strong>Delivery Fee:</strong> &#8369;{selectedOrder.deliveryFee.toFixed(2)}</p>
+                  )}
                   <p><strong>Payment:</strong> {selectedOrder.paymentMethod}</p>
                   {selectedOrder.address && <p><strong>Address:</strong> {selectedOrder.address}</p>}
                   {selectedOrder.pickupTime && <p><strong>Pickup Time:</strong> {selectedOrder.pickupTime}</p>}

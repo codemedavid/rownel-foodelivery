@@ -608,6 +608,9 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                     </span>
                   </div>
                 )}
+                    {selectedOrder.deliveryFee != null && selectedOrder.deliveryFee > 0 && (
+                      <p><strong>Delivery Fee:</strong> &#8369;{selectedOrder.deliveryFee.toFixed(2)}</p>
+                    )}
                     <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod}</p>
                     <p><strong>Order Date:</strong> {formatDateTime(selectedOrder._creationTime)}</p>
                   </div>
