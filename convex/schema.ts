@@ -17,6 +17,7 @@ export default defineSchema({
     distanceKm: v.optional(v.float64()),
     deliveryFee: v.optional(v.float64()),
     deliveryFeeBreakdown: v.optional(v.any()),
+    deliveryMode: v.optional(v.union(v.literal("priority"), v.literal("economy"))),
     pickupTime: v.optional(v.string()),
     partySize: v.optional(v.float64()),
     dineInTime: v.optional(v.string()),
@@ -56,9 +57,11 @@ export default defineSchema({
     supabaseUserId: v.string(),
     email: v.string(),
     name: v.string(),
-    merchantId: v.string(),
+    merchantId: v.optional(v.string()),
+    merchantIds: v.optional(v.array(v.string())),
+    allMerchants: v.optional(v.boolean()),
     isActive: v.boolean(),
+    createdAt: v.optional(v.float64()),
   })
-    .index("by_supabase_user", ["supabaseUserId"])
-    .index("by_merchant", ["merchantId"]),
+    .index("by_supabase_user", ["supabaseUserId"]),
 });
