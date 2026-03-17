@@ -14,21 +14,21 @@ import ProtectedStaffRoute from './components/ProtectedStaffRoute';
 import MerchantsList from './components/MerchantsList';
 import MenuItemDetailsPage from './components/MenuItemDetailsPage';
 import OrderTracking from './components/OrderTracking';
-import { useMenu } from './hooks/useMenu';
 import { AuthProvider } from './contexts/AuthContext';
 import { MerchantProvider, useMerchant } from './contexts/MerchantContext';
 import { CartProvider } from './contexts/CartContext';
+import { MenuProvider, useMenuContext } from './contexts/MenuContext';
 
 function MerchantMenu() {
   const { selectedMerchant } = useMerchant();
-  const { menuItems } = useMenu();
+  const { menuItems } = useMenuContext();
   const [currentView, setCurrentView] = React.useState<'menu' | 'cart' | 'checkout'>('menu');
 
   const handleViewChange = (view: 'menu' | 'cart' | 'checkout') => {
     setCurrentView(view);
   };
 
-  // Filter menu items based on selected merchant
+  // Menu items are already filtered by merchant in the context
   const filteredMenuItems = menuItems
     .filter(item => selectedMerchant ? item.merchantId === selectedMerchant.id : true);
 
@@ -38,32 +38,32 @@ function MerchantMenu() {
 
   return (
     <div className="min-h-screen bg-cream-50 font-inter">
-      <Header 
+      <Header
         onCartClick={() => handleViewChange('cart')}
         onMenuClick={() => handleViewChange('menu')}
       />
-      
+
       {currentView === 'menu' && (
-        <Menu 
+        <Menu
           menuItems={filteredMenuItems}
         />
       )}
-      
+
       {currentView === 'cart' && (
-        <Cart 
+        <Cart
           onContinueShopping={() => handleViewChange('menu')}
           onCheckout={() => handleViewChange('checkout')}
         />
       )}
-      
+
       {currentView === 'checkout' && (
-        <Checkout 
+        <Checkout
           onBack={() => handleViewChange('cart')}
         />
       )}
-      
+
       {currentView === 'menu' && (
-        <FloatingCartButton 
+        <FloatingCartButton
           onCartClick={() => handleViewChange('cart')}
         />
       )}
@@ -76,33 +76,35 @@ function App() {
     <AuthProvider>
       <CartProvider>
         <MerchantProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<MerchantsList />} />
-              <Route path="/merchant/:merchantId" element={<MerchantMenu />} />
-              <Route path="/merchant/:merchantId/item/:itemId" element={<MenuItemDetailsPage />} />
-              <Route path="/track" element={<OrderTracking />} />
-              <Route path="/track/:orderId" element={<OrderTracking />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/staff/login" element={<StaffLogin />} />
-              <Route
-                path="/staff/orders"
-                element={
-                  <ProtectedStaffRoute>
-                    <StaffOrdersPanel />
-                  </ProtectedStaffRoute>
-                }
-              />
-            </Routes>
-          </Router>
+          <MenuProvider>
+            <Router>
+              <Routes>
+                <Route path="/" element={<MerchantsList />} />
+                <Route path="/merchant/:merchantId" element={<MerchantMenu />} />
+                <Route path="/merchant/:merchantId/item/:itemId" element={<MenuItemDetailsPage />} />
+                <Route path="/track" element={<OrderTracking />} />
+                <Route path="/track/:orderId" element={<OrderTracking />} />
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/staff/login" element={<StaffLogin />} />
+                <Route
+                  path="/staff/orders"
+                  element={
+                    <ProtectedStaffRoute>
+                      <StaffOrdersPanel />
+                    </ProtectedStaffRoute>
+                  }
+                />
+              </Routes>
+            </Router>
+          </MenuProvider>
         </MerchantProvider>
       </CartProvider>
     </AuthProvider>

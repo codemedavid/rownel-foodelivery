@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Clock, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { AddOn, MenuItem, Variation } from '../types';
 import { useMerchant } from '../contexts/MerchantContext';
-import { useMenu } from '../hooks/useMenu';
+import { useMenuContext } from '../contexts/MenuContext';
 import { useCartContext } from '../contexts/CartContext';
 import { isMerchantOpen, isCategoryAvailable } from '../lib/timeUtils';
 import { useCategories } from '../hooks/useCategories';
@@ -12,7 +12,7 @@ const MenuItemDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const { merchantId, itemId } = useParams<{ merchantId: string; itemId: string }>();
   const { selectedMerchant, selectMerchantById } = useMerchant();
-  const { menuItems } = useMenu();
+  const { menuItems } = useMenuContext();
   const { addToCart } = useCartContext();
 
   const [quantity, setQuantity] = useState(1);

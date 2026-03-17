@@ -375,7 +375,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
       // Redirect to Messenger with prefilled order summary
       const encodedMessage = encodeURIComponent(orderDetails);
-      const messengerUrl = `https://m.me/RowNelFooDelivery?text=${encodedMessage}`;
+      const messengerUrl = `https://www.messenger.com/t/RowNelFooDelivery?text=${encodedMessage}`;
       window.location.replace(messengerUrl);
     } catch (err: any) {
       console.error('Order submission failed:', err);

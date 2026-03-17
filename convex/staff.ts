@@ -6,24 +6,43 @@ export const create = mutation({
     supabaseUserId: v.string(),
     email: v.string(),
     name: v.string(),
-    merchantId: v.string(),
+    merchantIds: v.array(v.string()),
+    allMerchants: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const { merchantIds, allMerchants, ...rest } = args;
     const staffId = await ctx.db.insert("staff", {
-      ...args,
+      ...rest,
+      merchantIds,
+      allMerchants: allMerchants ?? false,
       isActive: true,
+      createdAt: Date.now(),
     });
     return staffId;
+  },
+});
+
+export const update = mutation({
+  args: {
+    staffId: v.id("staff"),
+    merchantIds: v.optional(v.array(v.string())),
+    allMerchants: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { staffId, ...patch } = args;
+    await ctx.db.patch(staffId, patch);
   },
 });
 
 export const listByMerchant = query({
   args: { merchantId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("staff")
-      .withIndex("by_merchant", (q) => q.eq("merchantId", args.merchantId))
-      .collect();
+    const allStaff = await ctx.db.query("staff").collect();
+    return allStaff.filter((s) => {
+      if (s.allMerchants) return true;
+      const ids = s.merchantIds ?? (s.merchantId ? [s.merchantId] : []);
+      return ids.includes(args.merchantId);
+    });
   },
 });
 
