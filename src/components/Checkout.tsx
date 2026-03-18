@@ -366,7 +366,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
         orderDetails += `  Subtotal: ₱${merchantSubtotal.toFixed(2)}\n`;
       }
 
-      orderDetails += `\n💰 FOOD TOTAL: ₱${totalPrice.toFixed(2)}\n🚚 DELIVERY TOTAL: ₱${deliveryFeeTotal.toFixed(2)} (${deliveryMode === 'economy' ? 'Economy' : 'Priority'})\n📍 DELIVERY ADDRESS: ${trimmedAddress}\n💵 GRAND TOTAL: ₱${grandTotal.toFixed(2)}\n\n💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}\n\n${mergedNotes ? `📝 Notes: ${mergedNotes}\n\n` : ''}Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟`;
+      orderDetails += `\n💰 FOOD TOTAL: ₱${totalPrice.toFixed(2)}\n🚚 DELIVERY TOTAL: ₱${deliveryFeeTotal.toFixed(2)} (${deliveryMode === 'economy' ? 'PASABAY' : 'RUSH ORDER'})\n📍 DELIVERY ADDRESS: ${trimmedAddress}\n💵 GRAND TOTAL: ₱${grandTotal.toFixed(2)}\n\n💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}\n\n${mergedNotes ? `📝 Notes: ${mergedNotes}\n\n` : ''}Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟`;
 
       // Copy to clipboard as backup
       try { await navigator.clipboard.writeText(orderDetails); } catch { /* ignore */ }
@@ -584,10 +584,10 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-sm">Priority</span>
+                      <span className="font-semibold text-sm">RUSH ORDER</span>
                       <span className="font-bold text-red-600 text-sm">₱{priorityFeeTotal.toFixed(2)}</span>
                     </div>
-                    <p className="text-xs text-gray-500">Distance-based pricing</p>
+                    <p className="text-xs text-gray-500">30mins to 45mins waiting</p>
                   </button>
                   <button
                     type="button"
@@ -599,10 +599,10 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-sm">Economy</span>
+                      <span className="font-semibold text-sm">PASABAY</span>
                       <span className="font-bold text-red-600 text-sm">₱{economyFeeTotal.toFixed(2)}</span>
                     </div>
-                    <p className="text-xs text-gray-500">Fixed rate · 40-120 min wait</p>
+                    <p className="text-xs text-gray-500">45mins to 120mins waiting time</p>
                   </button>
                 </div>
               </div>
@@ -689,7 +689,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              {submitting ? 'Placing Order...' : 'Place Order via Messenger'}
+              {submitting ? 'Submitting Order...' : 'Submit Order'}
             </button>
 
             {orderError && (
