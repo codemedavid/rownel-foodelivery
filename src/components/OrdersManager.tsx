@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, Search, Image as ImageIcon, Download, Calendar, DollarSign } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, Search, Image as ImageIcon, Download, Calendar, DollarSign, Store, MapPin, CreditCard, Hash, Ruler } from 'lucide-react';
 import { useConvexOrders, ConvexOrder } from '../hooks/useConvexOrders';
 import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
+import { useMerchants } from '../hooks/useMerchants';
 import type { Id } from '../../convex/_generated/dataModel';
 
 interface OrdersManagerProps {
@@ -11,6 +12,16 @@ interface OrdersManagerProps {
 const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
   const { orders, loading, updateOrderStatus } = useConvexOrders();
   const { requestPermission } = useNewOrderNotification(orders);
+  const { merchants } = useMerchants();
+
+  // Build a merchantId → merchant name lookup
+  const merchantMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of merchants) {
+      map[m.id] = m.name;
+    }
+    return map;
+  }, [merchants]);
   const [error] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ConvexOrder | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -123,7 +134,9 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
           o.customerName.toLowerCase().includes(q) ||
           o.contactNumber.toLowerCase().includes(q) ||
           (o._id as string).toLowerCase().includes(q) ||
-          (o.address || '').toLowerCase().includes(q)
+          (o.address || '').toLowerCase().includes(q) ||
+          (merchantMap[o.merchantId] || '').toLowerCase().includes(q) ||
+          (o.referenceNumber || '').toLowerCase().includes(q)
         );
     const sorted = [...searched].sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1;
@@ -305,7 +318,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search orders by name, phone, ID, address"
+                  placeholder="Search by name, phone, ID, address, merchant, ref#"
                   className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -462,8 +475,10 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                   <thead className="bg-gray-50 text-gray-600 sticky top-0">
                     <tr>
                       <th className="px-5 py-3 text-left font-medium">Order</th>
+                      <th className="px-5 py-3 text-left font-medium">Merchant</th>
                       <th className="px-5 py-3 text-left font-medium">Customer</th>
                       <th className="px-5 py-3 text-left font-medium">Service</th>
+                      <th className="px-5 py-3 text-left font-medium">Payment</th>
                       <th className="px-5 py-3 text-left font-medium">Total</th>
                       <th className="px-5 py-3 text-left font-medium">Status</th>
                       <th className="px-5 py-3 text-left font-medium">Placed</th>
@@ -478,10 +493,26 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                           <div className="text-xs text-gray-500">{order.order_items.length} item(s)</div>
                         </td>
                         <td className="px-5 py-4">
+                          <div className="font-medium text-gray-900">{merchantMap[order.merchantId] || 'Unknown'}</div>
+                        </td>
+                        <td className="px-5 py-4">
                           <div className="font-medium text-gray-900">{order.customerName}</div>
                           <div className="text-xs text-gray-500">{order.contactNumber}</div>
                         </td>
-                        <td className="px-5 py-4 text-gray-700">{formatServiceType(order.serviceType)}</td>
+                        <td className="px-5 py-4">
+                          <div className="text-gray-700">{formatServiceType(order.serviceType)}</div>
+                          {order.serviceType === 'delivery' && order.deliveryMode && (
+                            <div className={`text-xs ${order.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
+                              {order.deliveryMode === 'economy' ? 'Economy' : 'Priority'}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="text-gray-700 capitalize">{order.paymentMethod}</div>
+                          {order.referenceNumber && (
+                            <div className="text-xs text-gray-500">Ref: {order.referenceNumber}</div>
+                          )}
+                        </td>
                         <td className="px-5 py-4 font-semibold text-gray-900">&#8369;{order.total.toFixed(2)}</td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -535,13 +566,28 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                         <span className="ml-1 capitalize">{order.status}</span>
                       </span>
                     </div>
+                    <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
+                      <Store className="h-3 w-3" />
+                      <span>{merchantMap[order.merchantId] || 'Unknown Merchant'}</span>
+                    </div>
                     <div className="text-sm text-gray-700 mb-2">
                       <div className="font-medium">{order.customerName}</div>
                       <div className="text-gray-500">{order.contactNumber}</div>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="text-gray-600">{formatServiceType(order.serviceType)}</div>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <div className="text-gray-600">
+                        {formatServiceType(order.serviceType)}
+                        {order.serviceType === 'delivery' && order.deliveryMode && (
+                          <span className={`ml-1 text-xs ${order.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
+                            ({order.deliveryMode === 'economy' ? 'Economy' : 'Priority'})
+                          </span>
+                        )}
+                      </div>
                       <div className="font-semibold text-gray-900">&#8369;{order.total.toFixed(2)}</div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span className="capitalize">{order.paymentMethod}{order.referenceNumber ? ` (Ref: ${order.referenceNumber})` : ''}</span>
+                      <span>{order.order_items.length} item(s)</span>
                     </div>
                     <div className="text-xs text-gray-500 mt-1">{formatDateTime(order._creationTime)}</div>
                     <div className="flex items-center gap-2 mt-3">
@@ -593,41 +639,103 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
             </div>
 
             <div className="p-6">
+              {/* Merchant Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+                <Store className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold text-blue-900">{merchantMap[selectedOrder.merchantId] || 'Unknown Merchant'}</div>
+                  <div className="text-xs text-blue-600">Merchant ID: {selectedOrder.merchantId}</div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-3">Customer Information</h4>
                   <div className="space-y-2 text-sm">
                     <p><strong>Name:</strong> {selectedOrder.customerName}</p>
                     <p><strong>Contact:</strong> {selectedOrder.contactNumber}</p>
-                    <p><strong>Service Type:</strong> {formatServiceType(selectedOrder.serviceType)}</p>
-                {selectedOrder.deliveryMode && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Delivery Mode</span>
-                    <span className={`font-medium capitalize ${selectedOrder.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
-                      {selectedOrder.deliveryMode === 'economy' ? 'Economy (Fixed)' : 'Priority (Distance)'}
-                    </span>
-                  </div>
-                )}
-                    {selectedOrder.deliveryFee != null && selectedOrder.deliveryFee > 0 && (
-                      <p><strong>Delivery Fee:</strong> &#8369;{selectedOrder.deliveryFee.toFixed(2)}</p>
-                    )}
-                    <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod}</p>
                     <p><strong>Order Date:</strong> {formatDateTime(selectedOrder._creationTime)}</p>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Order Details</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3">Service &amp; Delivery</h4>
                   <div className="space-y-2 text-sm">
-                    {selectedOrder.address && <p><strong>Address:</strong> {selectedOrder.address}</p>}
+                    <p><strong>Service Type:</strong> {formatServiceType(selectedOrder.serviceType)}</p>
+                    {selectedOrder.deliveryMode && (
+                      <p>
+                        <strong>Delivery Mode:</strong>{' '}
+                        <span className={`font-medium ${selectedOrder.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
+                          {selectedOrder.deliveryMode === 'economy' ? 'Economy (Fixed)' : 'Priority (Distance)'}
+                        </span>
+                      </p>
+                    )}
+                    {selectedOrder.address && (
+                      <p className="flex items-start gap-1">
+                        <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <span><strong>Address:</strong> {selectedOrder.address}</span>
+                      </p>
+                    )}
+                    {selectedOrder.distanceKm != null && selectedOrder.distanceKm > 0 && (
+                      <p className="flex items-center gap-1">
+                        <Ruler className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span><strong>Distance:</strong> {selectedOrder.distanceKm.toFixed(2)} km</span>
+                      </p>
+                    )}
+                    {selectedOrder.deliveryFee != null && selectedOrder.deliveryFee > 0 && (
+                      <p><strong>Delivery Fee:</strong> &#8369;{selectedOrder.deliveryFee.toFixed(2)}</p>
+                    )}
+                    {selectedOrder.deliveryFeeBreakdown && (
+                      <div className="bg-gray-50 rounded p-2 text-xs text-gray-600">
+                        <strong>Fee Breakdown:</strong>
+                        <ul className="mt-1 space-y-0.5">
+                          {Object.entries(selectedOrder.deliveryFeeBreakdown as Record<string, unknown>).map(([key, value]) => (
+                            <li key={key} className="flex justify-between">
+                              <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                              <span>{typeof value === 'number' ? `₱${value.toFixed(2)}` : String(value)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     {selectedOrder.pickupTime && <p><strong>Pickup Time:</strong> {selectedOrder.pickupTime}</p>}
-                    {selectedOrder.partySize && <p><strong>Party Size:</strong> {selectedOrder.partySize} person{selectedOrder.partySize !== 1 ? 's' : ''}</p>}
+                    {selectedOrder.partySize != null && selectedOrder.partySize > 0 && (
+                      <p><strong>Party Size:</strong> {selectedOrder.partySize} person{selectedOrder.partySize !== 1 ? 's' : ''}</p>
+                    )}
                     {selectedOrder.dineInTime && <p><strong>Dine-in Time:</strong> {formatDateTime(new Date(selectedOrder.dineInTime).getTime())}</p>}
-                    {selectedOrder.notes && <p><strong>Notes:</strong> {selectedOrder.notes}</p>}
-                    <p><strong>Total:</strong> &#8369;{selectedOrder.total.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
+
+              {/* Payment Info */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payment Information
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  <p><strong>Method:</strong> <span className="capitalize">{selectedOrder.paymentMethod}</span></p>
+                  {selectedOrder.referenceNumber && (
+                    <p className="flex items-center gap-1">
+                      <Hash className="h-3 w-3 text-gray-400" />
+                      <strong>Reference:</strong> {selectedOrder.referenceNumber}
+                    </p>
+                  )}
+                  <p><strong>Subtotal (Items):</strong> &#8369;{selectedOrder.order_items.reduce((sum, item) => sum + item.subtotal, 0).toFixed(2)}</p>
+                  {selectedOrder.deliveryFee != null && selectedOrder.deliveryFee > 0 && (
+                    <p><strong>Delivery Fee:</strong> &#8369;{selectedOrder.deliveryFee.toFixed(2)}</p>
+                  )}
+                  <p className="text-base font-bold col-span-full"><strong>Total:</strong> &#8369;{selectedOrder.total.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedOrder.notes && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                  <h4 className="font-semibold text-gray-900 mb-1">Notes</h4>
+                  <p className="text-sm text-gray-700">{selectedOrder.notes}</p>
+                </div>
+              )}
 
               {/* Payment Receipt */}
               {selectedOrder.receiptUrl && (
@@ -660,7 +768,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
               )}
 
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Order Items</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">Order Items ({selectedOrder.order_items.length})</h4>
                 <div className="space-y-3">
                   {selectedOrder.order_items.map((item) => (
                     <div key={item._id} className="p-4 bg-gray-50 rounded-lg">
@@ -668,12 +776,19 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">{item.name}</div>
                           {item.variation && (
-                            <div className="text-sm text-gray-600 mt-1">Size: {item.variation.name}</div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              {typeof item.variation === 'object' && item.variation.name
+                                ? `Size: ${item.variation.name}${item.variation.price != null ? ` (+₱${Number(item.variation.price).toFixed(2)})` : ''}`
+                                : `Variation: ${String(item.variation)}`
+                              }
+                            </div>
                           )}
                           {item.addOns && item.addOns.length > 0 && (
                             <div className="text-sm text-gray-600 mt-1">
                               Add-ons: {item.addOns.map((addon: any) =>
-                                addon.quantity > 1 ? `${addon.name} x${addon.quantity}` : addon.name
+                                addon.quantity > 1
+                                  ? `${addon.name} x${addon.quantity}${addon.price != null ? ` (+₱${(Number(addon.price) * addon.quantity).toFixed(2)})` : ''}`
+                                  : `${addon.name}${addon.price != null ? ` (+₱${Number(addon.price).toFixed(2)})` : ''}`
                               ).join(', ')}
                             </div>
                           )}
@@ -685,6 +800,24 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Order Total Summary */}
+                <div className="mt-4 border-t border-gray-200 pt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Items Subtotal</span>
+                    <span>&#8369;{selectedOrder.order_items.reduce((sum, item) => sum + item.subtotal, 0).toFixed(2)}</span>
+                  </div>
+                  {selectedOrder.deliveryFee != null && selectedOrder.deliveryFee > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Delivery Fee</span>
+                      <span>&#8369;{selectedOrder.deliveryFee.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>Total</span>
+                    <span>&#8369;{selectedOrder.total.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
             </div>

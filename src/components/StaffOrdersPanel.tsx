@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Search, LogOut, Clock, CheckCircle, ChefHat, Package, Truck, XCircle, Eye, X, Filter } from 'lucide-react';
+import { Search, LogOut, Clock, CheckCircle, ChefHat, Package, Truck, XCircle, Eye, X, Filter, Store, MapPin, CreditCard, Hash, Ruler, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useConvexOrdersByMerchants, ConvexOrder } from '../hooks/useConvexOrders';
 import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
+import { useMerchants } from '../hooks/useMerchants';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -30,6 +31,16 @@ const StaffOrdersPanel: React.FC = () => {
   // Fetch orders for the staff's merchants
   const { orders, loading: ordersLoading, updateOrderStatus } = useConvexOrdersByMerchants(merchantIds, allMerchants);
   const { requestPermission } = useNewOrderNotification(orders);
+  const { merchants } = useMerchants();
+
+  // Build a merchantId → merchant name lookup
+  const merchantMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of merchants) {
+      map[m.id] = m.name;
+    }
+    return map;
+  }, [merchants]);
 
   const isLoadingStaff = staffRecord === undefined;
   const staffNotFound = staffRecord === null;
@@ -99,9 +110,12 @@ const StaffOrdersPanel: React.FC = () => {
       (o) =>
         o.customerName.toLowerCase().includes(q) ||
         o.contactNumber.toLowerCase().includes(q) ||
-        (o._id as string).toLowerCase().includes(q)
+        (o._id as string).toLowerCase().includes(q) ||
+        (o.address || '').toLowerCase().includes(q) ||
+        (merchantMap[o.merchantId] || '').toLowerCase().includes(q) ||
+        (o.referenceNumber || '').toLowerCase().includes(q)
     );
-  }, [orders, query, statusFilter]);
+  }, [orders, query, statusFilter, merchantMap]);
 
   // ---------- Loading / Error states ----------
 
@@ -203,7 +217,7 @@ const StaffOrdersPanel: React.FC = () => {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by name, phone, or order ID"
+                placeholder="Search by name, phone, ID, address, merchant"
                 className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
@@ -248,7 +262,7 @@ const StaffOrdersPanel: React.FC = () => {
                 key={order._id}
                 className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-sm font-semibold text-gray-900">
                       #{(order._id as string).slice(-8).toUpperCase()}
@@ -265,16 +279,42 @@ const StaffOrdersPanel: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                {/* Merchant name */}
+                <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
+                  <Store className="h-3 w-3" />
+                  <span>{merchantMap[order.merchantId] || 'Unknown Merchant'}</span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                   <div>
                     <p className="font-medium text-gray-900">{order.customerName}</p>
                     <p className="text-sm text-gray-500">{order.contactNumber}</p>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    <p>{formatServiceType(order.serviceType)}</p>
+                  <div className="text-sm text-gray-500 text-right">
+                    <p>
+                      {formatServiceType(order.serviceType)}
+                      {order.serviceType === 'delivery' && order.deliveryMode && (
+                        <span className={`ml-1 text-xs ${order.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
+                          ({order.deliveryMode === 'economy' ? 'Economy' : 'Priority'})
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs">{formatDateTime(order._creationTime)}</p>
                   </div>
                 </div>
+
+                {/* Quick info row */}
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                  <span className="capitalize">{order.paymentMethod}{order.referenceNumber ? ` | Ref: ${order.referenceNumber}` : ''}</span>
+                  <span>{order.order_items.length} item(s)</span>
+                </div>
+
+                {order.address && (
+                  <div className="flex items-start gap-1 text-xs text-gray-500 mb-3">
+                    <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                    <span className="truncate">{order.address}</span>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2">
                   <button
@@ -332,47 +372,150 @@ const StaffOrdersPanel: React.FC = () => {
             </div>
 
             <div className="p-5 space-y-5">
+              {/* Merchant Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3">
+                <Store className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                <div>
+                  <div className="font-semibold text-blue-900">{merchantMap[selectedOrder.merchantId] || 'Unknown Merchant'}</div>
+                </div>
+              </div>
+
               {/* Customer info */}
               <div>
                 <h4 className="font-semibold text-gray-900 mb-2">Customer</h4>
                 <div className="text-sm space-y-1">
                   <p><strong>Name:</strong> {selectedOrder.customerName}</p>
                   <p><strong>Contact:</strong> {selectedOrder.contactNumber}</p>
-                  <p><strong>Service:</strong> {formatServiceType(selectedOrder.serviceType)}</p>
-                {selectedOrder.deliveryMode && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Delivery Mode</span>
-                    <span className={`capitalize ${selectedOrder.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
-                      {selectedOrder.deliveryMode === 'economy' ? 'Economy (Fixed)' : 'Priority (Distance)'}
-                    </span>
-                  </div>
-                )}
-                  {selectedOrder.deliveryFee != null && selectedOrder.deliveryFee > 0 && (
-                    <p><strong>Delivery Fee:</strong> &#8369;{selectedOrder.deliveryFee.toFixed(2)}</p>
-                  )}
-                  <p><strong>Payment:</strong> {selectedOrder.paymentMethod}</p>
-                  {selectedOrder.address && <p><strong>Address:</strong> {selectedOrder.address}</p>}
-                  {selectedOrder.pickupTime && <p><strong>Pickup Time:</strong> {selectedOrder.pickupTime}</p>}
-                  {selectedOrder.notes && <p><strong>Notes:</strong> {selectedOrder.notes}</p>}
                   <p><strong>Ordered:</strong> {formatDateTime(selectedOrder._creationTime)}</p>
                 </div>
               </div>
 
+              {/* Service & Delivery */}
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">Service &amp; Delivery</h4>
+                <div className="text-sm space-y-1">
+                  <p><strong>Service:</strong> {formatServiceType(selectedOrder.serviceType)}</p>
+                  {selectedOrder.deliveryMode && (
+                    <p>
+                      <strong>Delivery Mode:</strong>{' '}
+                      <span className={`font-medium ${selectedOrder.deliveryMode === 'economy' ? 'text-green-600' : 'text-blue-600'}`}>
+                        {selectedOrder.deliveryMode === 'economy' ? 'Economy (Fixed)' : 'Priority (Distance)'}
+                      </span>
+                    </p>
+                  )}
+                  {selectedOrder.address && (
+                    <p className="flex items-start gap-1">
+                      <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                      <span><strong>Address:</strong> {selectedOrder.address}</span>
+                    </p>
+                  )}
+                  {selectedOrder.distanceKm != null && selectedOrder.distanceKm > 0 && (
+                    <p className="flex items-center gap-1">
+                      <Ruler className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                      <span><strong>Distance:</strong> {selectedOrder.distanceKm.toFixed(2)} km</span>
+                    </p>
+                  )}
+                  {selectedOrder.deliveryFee != null && selectedOrder.deliveryFee > 0 && (
+                    <p><strong>Delivery Fee:</strong> &#8369;{selectedOrder.deliveryFee.toFixed(2)}</p>
+                  )}
+                  {selectedOrder.deliveryFeeBreakdown && (
+                    <div className="bg-gray-50 rounded p-2 text-xs text-gray-600">
+                      <strong>Fee Breakdown:</strong>
+                      <ul className="mt-1 space-y-0.5">
+                        {Object.entries(selectedOrder.deliveryFeeBreakdown as Record<string, unknown>).map(([key, value]) => (
+                          <li key={key} className="flex justify-between">
+                            <span className="capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                            <span>{typeof value === 'number' ? `₱${value.toFixed(2)}` : String(value)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {selectedOrder.pickupTime && <p><strong>Pickup Time:</strong> {selectedOrder.pickupTime}</p>}
+                  {selectedOrder.partySize != null && selectedOrder.partySize > 0 && (
+                    <p><strong>Party Size:</strong> {selectedOrder.partySize} person{selectedOrder.partySize !== 1 ? 's' : ''}</p>
+                  )}
+                  {selectedOrder.dineInTime && <p><strong>Dine-in Time:</strong> {formatDateTime(new Date(selectedOrder.dineInTime).getTime())}</p>}
+                </div>
+              </div>
+
+              {/* Payment Info */}
+              <div className="bg-gray-50 rounded-lg p-3">
+                <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payment
+                </h4>
+                <div className="text-sm space-y-1">
+                  <p><strong>Method:</strong> <span className="capitalize">{selectedOrder.paymentMethod}</span></p>
+                  {selectedOrder.referenceNumber && (
+                    <p className="flex items-center gap-1">
+                      <Hash className="h-3 w-3 text-gray-400" />
+                      <strong>Reference:</strong> {selectedOrder.referenceNumber}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedOrder.notes && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <h4 className="font-semibold text-gray-900 mb-1">Notes</h4>
+                  <p className="text-sm text-gray-700">{selectedOrder.notes}</p>
+                </div>
+              )}
+
+              {/* Payment Receipt */}
+              {selectedOrder.receiptUrl && (
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Payment Receipt
+                  </h4>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <a
+                      href={selectedOrder.receiptUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block group"
+                    >
+                      <img
+                        src={selectedOrder.receiptUrl}
+                        alt="Payment Receipt"
+                        className="w-full max-w-sm mx-auto rounded-lg border-2 border-gray-300 group-hover:border-blue-500 transition-colors cursor-pointer"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23f3f4f6" width="400" height="300"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EImage not available%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                      <p className="text-center text-sm text-blue-600 group-hover:text-blue-700 mt-2">
+                        Click to view full size
+                      </p>
+                    </a>
+                  </div>
+                </div>
+              )}
+
               {/* Items */}
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Items</h4>
+                <h4 className="font-semibold text-gray-900 mb-2">Items ({selectedOrder.order_items.length})</h4>
                 <div className="space-y-2">
                   {selectedOrder.order_items.map((item) => (
                     <div key={item._id} className="p-3 bg-gray-50 rounded-lg flex justify-between">
                       <div>
                         <p className="font-medium text-gray-900">{item.name}</p>
                         {item.variation && (
-                          <p className="text-xs text-gray-600">Size: {item.variation.name}</p>
+                          <p className="text-xs text-gray-600">
+                            {typeof item.variation === 'object' && item.variation.name
+                              ? `Size: ${item.variation.name}${item.variation.price != null ? ` (+₱${Number(item.variation.price).toFixed(2)})` : ''}`
+                              : `Variation: ${String(item.variation)}`
+                            }
+                          </p>
                         )}
                         {item.addOns && item.addOns.length > 0 && (
                           <p className="text-xs text-gray-600">
                             Add-ons: {item.addOns.map((a: any) =>
-                              a.quantity > 1 ? `${a.name} x${a.quantity}` : a.name
+                              a.quantity > 1
+                                ? `${a.name} x${a.quantity}${a.price != null ? ` (+₱${(Number(a.price) * a.quantity).toFixed(2)})` : ''}`
+                                : `${a.name}${a.price != null ? ` (+₱${Number(a.price).toFixed(2)})` : ''}`
                             ).join(', ')}
                           </p>
                         )}
@@ -386,12 +529,24 @@ const StaffOrdersPanel: React.FC = () => {
                 </div>
               </div>
 
-              {/* Total */}
-              <div className="border-t pt-3 flex justify-between items-center">
-                <span className="font-semibold text-gray-900">Total</span>
-                <span className="text-xl font-bold text-red-600">
-                  &#8369;{selectedOrder.total.toFixed(2)}
-                </span>
+              {/* Total Summary */}
+              <div className="border-t pt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Items Subtotal</span>
+                  <span>&#8369;{selectedOrder.order_items.reduce((sum, item) => sum + item.subtotal, 0).toFixed(2)}</span>
+                </div>
+                {selectedOrder.deliveryFee != null && selectedOrder.deliveryFee > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Delivery Fee</span>
+                    <span>&#8369;{selectedOrder.deliveryFee.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center border-t pt-2">
+                  <span className="font-semibold text-gray-900">Total</span>
+                  <span className="text-xl font-bold text-red-600">
+                    &#8369;{selectedOrder.total.toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
