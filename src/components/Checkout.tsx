@@ -63,41 +63,50 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     });
   }, [merchantIds, merchants]);
 
+  // For multi-merchant orders: use only the HIGHEST fee (furthest merchant for
+  // priority, or highest fixed fee for economy) instead of summing all fees.
+
   const priorityFeeTotal = useMemo(() => {
-    return merchantIds.reduce((sum, merchantId) => {
+    let maxFee = 0;
+    for (const merchantId of merchantIds) {
       const merchant = merchants.find((m) => m.id === merchantId);
-      if (!merchant || merchant.latitude == null || merchant.longitude == null || deliveryLatitude === null || deliveryLongitude === null) return sum;
+      if (!merchant || merchant.latitude == null || merchant.longitude == null || deliveryLatitude === null || deliveryLongitude === null) continue;
       const distanceKm = haversineKm(merchant.latitude, merchant.longitude, deliveryLatitude, deliveryLongitude);
       const maxDist = merchant.maxDeliveryDistanceKm ?? null;
-      if (maxDist !== null && distanceKm > maxDist) return sum;
+      if (maxDist !== null && distanceKm > maxDist) continue;
       const fee = calculateDeliveryFee(distanceKm, {
         baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
         deliveryFeePerKm: merchant.deliveryFeePerKm ?? 4,
         minDeliveryFee: merchant.minDeliveryFee,
         maxDeliveryFee: merchant.maxDeliveryFee,
       });
-      return sum + fee;
-    }, 0);
+      if (fee > maxFee) maxFee = fee;
+    }
+    return maxFee;
   }, [merchantIds, merchants, deliveryLatitude, deliveryLongitude]);
 
   const economyFeeTotal = useMemo(() => {
-    return merchantIds.reduce((sum, merchantId) => {
+    let maxFee = 0;
+    for (const merchantId of merchantIds) {
       const merchant = merchants.find((m) => m.id === merchantId);
-      if (!merchant || merchant.latitude == null || merchant.longitude == null || deliveryLatitude === null || deliveryLongitude === null) return sum;
+      if (!merchant || merchant.latitude == null || merchant.longitude == null || deliveryLatitude === null || deliveryLongitude === null) continue;
       const distanceKm = haversineKm(merchant.latitude, merchant.longitude, deliveryLatitude, deliveryLongitude);
       const maxDist = merchant.maxDeliveryDistanceKm ?? null;
-      if (maxDist !== null && distanceKm > maxDist) return sum;
+      if (maxDist !== null && distanceKm > maxDist) continue;
+      let fee: number;
       if ((merchant.fixedDeliveryFee ?? 0) > 0) {
-        return sum + (merchant.fixedDeliveryFee ?? 0);
+        fee = merchant.fixedDeliveryFee ?? 0;
+      } else {
+        fee = calculateDeliveryFee(distanceKm, {
+          baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
+          deliveryFeePerKm: merchant.deliveryFeePerKm ?? 4,
+          minDeliveryFee: merchant.minDeliveryFee,
+          maxDeliveryFee: merchant.maxDeliveryFee,
+        });
       }
-      const fee = calculateDeliveryFee(distanceKm, {
-        baseDeliveryFee: merchant.baseDeliveryFee ?? merchant.deliveryFee ?? 0,
-        deliveryFeePerKm: merchant.deliveryFeePerKm ?? 4,
-        minDeliveryFee: merchant.minDeliveryFee,
-        maxDeliveryFee: merchant.maxDeliveryFee,
-      });
-      return sum + fee;
-    }, 0);
+      if (fee > maxFee) maxFee = fee;
+    }
+    return maxFee;
   }, [merchantIds, merchants, deliveryLatitude, deliveryLongitude]);
 
   const deliveryQuotesByMerchant = useMemo(() => {
@@ -170,12 +179,26 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     return quotes;
   }, [deliveryLatitude, deliveryLongitude, merchantIds, merchants, deliveryMode]);
 
-  const deliveryFeeTotal = useMemo(() => {
-    return merchantIds.reduce((sum, merchantId) => {
+  // Identify the "primary" merchant (highest fee / furthest) — only this order
+  // carries the delivery fee; the other merchant orders get 0.
+  const primaryDeliveryMerchantId = useMemo(() => {
+    let bestId: string | null = null;
+    let bestFee = 0;
+    for (const merchantId of merchantIds) {
       const quote = deliveryQuotesByMerchant[merchantId];
-      return sum + (quote?.deliverable ? quote.deliveryFee ?? 0 : 0);
-    }, 0);
+      if (quote?.deliverable && (quote.deliveryFee ?? 0) > bestFee) {
+        bestFee = quote.deliveryFee ?? 0;
+        bestId = merchantId;
+      }
+    }
+    return bestId;
   }, [merchantIds, deliveryQuotesByMerchant]);
+
+  const deliveryFeeTotal = useMemo(() => {
+    if (!primaryDeliveryMerchantId) return 0;
+    const quote = deliveryQuotesByMerchant[primaryDeliveryMerchantId];
+    return quote?.deliverable ? (quote.deliveryFee ?? 0) : 0;
+  }, [primaryDeliveryMerchantId, deliveryQuotesByMerchant]);
 
   const grandTotal = totalPrice + deliveryFeeTotal;
 
@@ -277,7 +300,10 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
       for (const [merchantId, items] of Object.entries(itemsByMerchant)) {
         const quote = deliveryQuotesByMerchant[merchantId];
         const merchantSubtotal = getMerchantSubtotal(merchantId);
-        const merchantDeliveryFee = quote?.deliverable ? (quote.deliveryFee ?? 0) : 0;
+        // Only the primary (furthest) merchant carries the delivery fee
+        const merchantDeliveryFee = merchantId === primaryDeliveryMerchantId
+          ? deliveryFeeTotal
+          : 0;
         const orderTotal = merchantSubtotal + merchantDeliveryFee;
 
         const orderItems = items.map(item => ({
@@ -339,8 +365,13 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
       for (const [merchantId, items] of Object.entries(itemsByMerchant)) {
         const merchant = merchants.find(m => m.id === merchantId);
         const merchantSubtotal = getMerchantSubtotal(merchantId);
+        const quote = deliveryQuotesByMerchant[merchantId];
 
-        orderDetails += `\n🏪 ${merchant?.name || 'Restaurant'}:\n`;
+        orderDetails += `\n🏪 ${merchant?.name || 'Restaurant'}`;
+        if (quote?.distanceKm !== undefined) {
+          orderDetails += ` (${quote.distanceKm.toFixed(2)} km)`;
+        }
+        orderDetails += `:\n`;
 
         items.forEach(item => {
           let itemLine = `  • ${item.name}`;
@@ -366,7 +397,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
         orderDetails += `  Subtotal: ₱${merchantSubtotal.toFixed(2)}\n`;
       }
 
-      orderDetails += `\n💰 FOOD TOTAL: ₱${totalPrice.toFixed(2)}\n🚚 DELIVERY TOTAL: ₱${deliveryFeeTotal.toFixed(2)} (${deliveryMode === 'economy' ? 'PASABAY' : 'RUSH ORDER'})\n📍 DELIVERY ADDRESS: ${trimmedAddress}\n💵 GRAND TOTAL: ₱${grandTotal.toFixed(2)}\n\n💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}\n\n${mergedNotes ? `📝 Notes: ${mergedNotes}\n\n` : ''}Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟`;
+      orderDetails += `\n💰 FOOD TOTAL: ₱${totalPrice.toFixed(2)}\n🚚 DELIVERY FEE: ₱${deliveryFeeTotal.toFixed(2)} (${deliveryMode === 'economy' ? 'PASABAY' : 'RUSH ORDER'}${merchantIds.length > 1 ? ' - based on furthest merchant' : ''})\n📍 DELIVERY ADDRESS: ${trimmedAddress}\n💵 GRAND TOTAL: ₱${grandTotal.toFixed(2)}\n\n💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}\n\n${mergedNotes ? `📝 Notes: ${mergedNotes}\n\n` : ''}Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟`;
 
       // Copy to clipboard as backup
       try { await navigator.clipboard.writeText(orderDetails); } catch { /* ignore */ }
@@ -453,16 +484,8 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
                             : 'Not available'}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-gray-600 font-medium">Delivery fee:</span>
-                        <span className="text-sm text-gray-700">
-                          {deliveryQuotesByMerchant[merchantId]?.deliverable
-                            ? `₱${(deliveryQuotesByMerchant[merchantId].deliveryFee ?? 0).toFixed(2)}`
-                            : 'Not available'}
-                        </span>
-                      </div>
                       {!deliveryQuotesByMerchant[merchantId]?.deliverable && (
-                        <p className="text-xs text-red-600 mb-2">
+                        <p className="text-xs text-red-600 mb-1">
                           {deliveryQuotesByMerchant[merchantId]?.reason}
                         </p>
                       )}
@@ -499,7 +522,15 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
               <span>₱{totalPrice.toFixed(2)}</span>
             </div>
             <div className="flex items-center justify-between text-sm text-gray-700">
-              <span>Delivery fee:</span>
+              <span>
+                Delivery fee
+                {merchantIds.length > 1 && primaryDeliveryMerchantId && (
+                  <span className="text-xs text-gray-500 ml-1">
+                    (based on furthest merchant)
+                  </span>
+                )}
+                :
+              </span>
               <span>₱{deliveryFeeTotal.toFixed(2)}</span>
             </div>
             <div className="flex items-center justify-between text-2xl font-noto font-semibold text-black">
