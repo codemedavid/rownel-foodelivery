@@ -11,6 +11,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import StaffLogin from './components/StaffLogin';
 import StaffOrdersPanel from './components/StaffOrdersPanel';
 import ProtectedStaffRoute from './components/ProtectedStaffRoute';
+import RiderLogin from './components/RiderLogin';
+import RiderSignup from './components/RiderSignup';
+import RiderDashboard from './components/RiderDashboard';
+import RiderOrderDetail from './components/RiderOrderDetail';
+import RiderProfilePage from './components/RiderProfilePage';
+import ProtectedRiderRoute from './components/ProtectedRiderRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import MerchantsList from './components/MerchantsList';
 import MenuItemDetailsPage from './components/MenuItemDetailsPage';
 import OrderTracking from './components/OrderTracking';
@@ -78,6 +85,7 @@ function App() {
         <MerchantProvider>
           <MenuProvider>
             <Router>
+              <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<MerchantsList />} />
                 <Route path="/merchant/:merchantId" element={<MerchantMenu />} />
@@ -88,7 +96,7 @@ function App() {
                 <Route
                   path="/admin"
                   element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requireAdmin={true}>
                       <AdminDashboard />
                     </ProtectedRoute>
                   }
@@ -102,7 +110,34 @@ function App() {
                     </ProtectedStaffRoute>
                   }
                 />
+                <Route path="/rider/login" element={<RiderLogin />} />
+                <Route path="/rider/signup" element={<RiderSignup />} />
+                <Route
+                  path="/rider/dashboard"
+                  element={
+                    <ProtectedRiderRoute>
+                      <RiderDashboard />
+                    </ProtectedRiderRoute>
+                  }
+                />
+                <Route
+                  path="/rider/order/:orderId"
+                  element={
+                    <ProtectedRiderRoute>
+                      <RiderOrderDetail />
+                    </ProtectedRiderRoute>
+                  }
+                />
+                <Route
+                  path="/rider/profile"
+                  element={
+                    <ProtectedRiderRoute>
+                      <RiderProfilePage />
+                    </ProtectedRiderRoute>
+                  }
+                />
               </Routes>
+              </ErrorBoundary>
             </Router>
           </MenuProvider>
         </MerchantProvider>

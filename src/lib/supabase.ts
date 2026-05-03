@@ -7,7 +7,26 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Persist the session so users stay logged in across reloads/tabs.
+    persistSession: true,
+    // Refresh the access token automatically before it expires.
+    autoRefreshToken: true,
+    // Handle OAuth/magic-link callbacks in the URL hash.
+    detectSessionInUrl: true,
+    // PKCE is the recommended (and more secure) flow for SPAs.
+    flowType: 'pkce',
+    // Stable, app-scoped storage key so updates don't orphan sessions.
+    storageKey: 'rownel-foodelivery-auth',
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  },
+  global: {
+    headers: {
+      'x-application-name': 'rownel-foodelivery',
+    },
+  },
+});
 
 export type Database = {
   public: {

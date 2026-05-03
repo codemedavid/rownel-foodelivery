@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { useConvexAuth } from 'convex/react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface ProtectedStaffRouteProps {
@@ -8,8 +9,9 @@ interface ProtectedStaffRouteProps {
 
 const ProtectedStaffRoute: React.FC<ProtectedStaffRouteProps> = ({ children }) => {
   const { user, loading, isStaff } = useAuth();
+  const { isLoading: convexAuthLoading } = useConvexAuth();
 
-  if (loading) {
+  if (loading || (user && convexAuthLoading)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, Search, Image as ImageIcon, Download, Calendar, DollarSign, Store, MapPin, CreditCard, Hash, Ruler } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { ArrowLeft, CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, Search, Image as ImageIcon, Download, Calendar, DollarSign, Store, MapPin, CreditCard, Hash, Ruler, Bike } from 'lucide-react';
 import { useConvexOrders, ConvexOrder } from '../hooks/useConvexOrders';
 import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
 import { useMerchants } from '../hooks/useMerchants';
+import { supabase } from '../lib/supabase';
 import type { Id } from '../../convex/_generated/dataModel';
 
 interface OrdersManagerProps {
@@ -22,6 +23,18 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
     }
     return map;
   }, [merchants]);
+
+  // Build a riderId → rider name lookup from Supabase
+  const [riderMap, setRiderMap] = useState<Record<string, string>>({});
+  useEffect(() => {
+    supabase.from('riders').select('id, name').then(({ data }) => {
+      if (!data) return;
+      const map: Record<string, string> = {};
+      for (const r of data) map[r.id] = r.name;
+      setRiderMap(map);
+    });
+  }, []);
+
   const [error] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<ConvexOrder | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -480,6 +493,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                       <th className="px-5 py-3 text-left font-medium">Service</th>
                       <th className="px-5 py-3 text-left font-medium">Payment</th>
                       <th className="px-5 py-3 text-left font-medium">Total</th>
+                      <th className="px-5 py-3 text-left font-medium">Rider</th>
                       <th className="px-5 py-3 text-left font-medium">Status</th>
                       <th className="px-5 py-3 text-left font-medium">Placed</th>
                       <th className="px-5 py-3 text-left font-medium">Actions</th>
@@ -514,6 +528,22 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                           )}
                         </td>
                         <td className="px-5 py-4 font-semibold text-gray-900">&#8369;{order.total.toFixed(2)}</td>
+                        <td className="px-5 py-4">
+                          {(order as any).assignedRiderId ? (
+                            <div>
+                              <div className="font-medium text-gray-900 text-sm">
+                                {riderMap[(order as any).assignedRiderId] ?? 'Rider'}
+                              </div>
+                              {(order as any).riderEarning != null && (
+                                <div className="text-xs text-green-600 font-medium">
+                                  &#8369;{((order as any).riderEarning as number).toFixed(2)}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
                         <td className="px-5 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                             {getStatusIcon(order.status)}
@@ -589,6 +619,17 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                       <span className="capitalize">{order.paymentMethod}{order.referenceNumber ? ` (Ref: ${order.referenceNumber})` : ''}</span>
                       <span>{order.order_items.length} item(s)</span>
                     </div>
+                    {(order as any).assignedRiderId && (
+                      <div className="flex items-center gap-1 text-xs text-gray-600 mt-1">
+                        <Bike className="h-3 w-3" />
+                        <span>{riderMap[(order as any).assignedRiderId] ?? 'Rider'}</span>
+                        {(order as any).riderEarning != null && (
+                          <span className="text-green-600 font-medium ml-1">
+                            &#8369;{((order as any).riderEarning as number).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <div className="text-xs text-gray-500 mt-1">{formatDateTime(order._creationTime)}</div>
                     <div className="flex items-center gap-2 mt-3">
                       <button
@@ -640,13 +681,47 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
 
             <div className="p-6">
               {/* Merchant Info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center gap-3">
                 <Store className="h-5 w-5 text-blue-600 flex-shrink-0" />
                 <div>
                   <div className="font-semibold text-blue-900">{merchantMap[selectedOrder.merchantId] || 'Unknown Merchant'}</div>
                   <div className="text-xs text-blue-600">Merchant ID: {selectedOrder.merchantId}</div>
                 </div>
               </div>
+
+              {/* Rider Info */}
+              {(selectedOrder as any).assignedRiderId && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Bike className="h-5 w-5 text-orange-600 flex-shrink-0" />
+                    <div className="font-semibold text-orange-900">
+                      {riderMap[(selectedOrder as any).assignedRiderId] ?? 'Assigned Rider'}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-orange-800">
+                    {(selectedOrder as any).riderAssignedAt && (
+                      <div>
+                        <span className="font-medium">Assigned:</span>{' '}
+                        {formatDateTime((selectedOrder as any).riderAssignedAt)}
+                      </div>
+                    )}
+                    {(selectedOrder as any).deliveredAt && (
+                      <div>
+                        <span className="font-medium">Delivered:</span>{' '}
+                        {formatDateTime((selectedOrder as any).deliveredAt)}
+                      </div>
+                    )}
+                    {(selectedOrder as any).riderEarning != null && (
+                      <div>
+                        <span className="font-medium">Rider Earnings:</span>{' '}
+                        <span className="text-green-700 font-bold">
+                          &#8369;{((selectedOrder as any).riderEarning as number).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>

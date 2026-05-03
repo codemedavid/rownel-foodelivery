@@ -156,6 +156,21 @@ export function useConvexOrdersByMerchants(merchantIds: string[] | null, allMerc
 }
 
 /**
+ * Customer self-lookup – fetches all orders for a given contact number.
+ */
+export function useConvexOrdersByPhone(contactNumber: string | null) {
+  const ordersRaw = useQuery(
+    api.orders.listByContactNumber,
+    contactNumber && contactNumber.trim() ? { contactNumber: contactNumber.trim() } : "skip"
+  );
+
+  const loading = ordersRaw === undefined;
+  const orders: ConvexOrder[] = (ordersRaw as ConvexOrder[] | undefined) ?? [];
+
+  return { orders, loading };
+}
+
+/**
  * Customer tracking – fetches a single order by its Convex ID.
  */
 export function useConvexOrderById(orderId: string | null) {

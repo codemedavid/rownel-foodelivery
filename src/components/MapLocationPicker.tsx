@@ -157,23 +157,38 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Search and GPS button rendered independently */}
-      {(showSearch || showGpsButton) && (
-        <div className="flex gap-2 items-end">
-          {showSearch && (
-            <div className="flex-1">
-              <AddressAutocompleteInput
-                label=""
-                value={searchValue}
-                onChange={setSearchValue}
-                onSelect={handleSearchSelect}
-                placeholder={searchPlaceholder}
-                rows={1}
-                countryCodes={countryCodes}
-                className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
-              />
-            </div>
+      {/* Prominent full-width GPS button when no search bar */}
+      {showGpsButton && !showSearch && (
+        <button
+          type="button"
+          onClick={handleUseGps}
+          disabled={isLocating}
+          className="w-full flex items-center justify-center gap-2 rounded-lg border-2 border-blue-500 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 active:bg-blue-200 disabled:opacity-50 transition-colors"
+        >
+          {isLocating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Navigation className="h-4 w-4" />
           )}
+          {isLocating ? 'Getting your location…' : 'Use My Current Location'}
+        </button>
+      )}
+
+      {/* Search + compact GPS button when search is visible */}
+      {showSearch && (
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <AddressAutocompleteInput
+              label=""
+              value={searchValue}
+              onChange={setSearchValue}
+              onSelect={handleSearchSelect}
+              placeholder={searchPlaceholder}
+              rows={1}
+              countryCodes={countryCodes}
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+            />
+          </div>
           {showGpsButton && (
             <button
               type="button"

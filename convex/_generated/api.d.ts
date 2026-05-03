@@ -8,8 +8,18 @@
  * @module
  */
 
+import type * as authz from "../authz.js";
+import type * as batching from "../batching.js";
+import type * as bootstrap from "../bootstrap.js";
+import type * as dispatchSettings from "../dispatchSettings.js";
+import type * as earnings from "../earnings.js";
 import type * as inventoryActions from "../inventoryActions.js";
+import type * as messages from "../messages.js";
+import type * as offers from "../offers.js";
 import type * as orders from "../orders.js";
+import type * as ratings from "../ratings.js";
+import type * as riderActions from "../riderActions.js";
+import type * as riders from "../riders.js";
 import type * as staff from "../staff.js";
 
 import type {
@@ -19,8 +29,18 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  authz: typeof authz;
+  batching: typeof batching;
+  bootstrap: typeof bootstrap;
+  dispatchSettings: typeof dispatchSettings;
+  earnings: typeof earnings;
   inventoryActions: typeof inventoryActions;
+  messages: typeof messages;
+  offers: typeof offers;
   orders: typeof orders;
+  ratings: typeof ratings;
+  riderActions: typeof riderActions;
+  riders: typeof riders;
   staff: typeof staff;
 }>;
 

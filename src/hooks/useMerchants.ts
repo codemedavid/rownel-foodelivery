@@ -49,6 +49,7 @@ export const useMerchants = () => {
         maxDeliveryFee: merchant.max_delivery_fee,
         maxDeliveryDistanceKm: merchant.max_delivery_distance_km,
         fixedDeliveryFee: merchant.fixed_delivery_fee,
+        pasabuyMaxDistanceKm: merchant.pasabuy_max_distance_km ?? null,
         createdAt: merchant.created_at,
         updatedAt: merchant.updated_at,
       }));
@@ -105,6 +106,7 @@ export const useMerchants = () => {
         maxDeliveryFee: data.max_delivery_fee,
         maxDeliveryDistanceKm: data.max_delivery_distance_km,
         fixedDeliveryFee: data.fixed_delivery_fee,
+        pasabuyMaxDistanceKm: data.pasabuy_max_distance_km ?? null,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       };

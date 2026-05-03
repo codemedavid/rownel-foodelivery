@@ -15,12 +15,15 @@ import CustomersManager from './CustomersManager';
 import MerchantManager from './MerchantManager';
 import PromotionManager from './PromotionManager';
 import StaffManager from './StaffManager';
+import RiderManager from './RiderManager';
+import DispatchSettingsManager from './DispatchSettingsManager';
+import EarningsManager from './EarningsManager';
 
 const AdminDashboard: React.FC = () => {
   const { user, signOut } = useAuth();
   const { menuItems, loading, addMenuItem, updateMenuItem, deleteMenuItem } = useMenu();
   const { categories } = useCategories();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments' | 'settings' | 'orders' | 'inventory' | 'customers' | 'merchants' | 'promotions' | 'staff'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'items' | 'add' | 'edit' | 'categories' | 'payments' | 'settings' | 'orders' | 'inventory' | 'customers' | 'merchants' | 'promotions' | 'staff' | 'riders' | 'dispatch' | 'earnings'>('dashboard');
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1107,6 +1110,18 @@ const AdminDashboard: React.FC = () => {
     return <StaffManager onBack={() => setCurrentView('dashboard')} />;
   }
 
+  if (currentView === 'riders') {
+    return <RiderManager onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'dispatch') {
+    return <DispatchSettingsManager onBack={() => setCurrentView('dashboard')} />;
+  }
+
+  if (currentView === 'earnings') {
+    return <EarningsManager onBack={() => setCurrentView('dashboard')} />;
+  }
+
   // Dashboard View
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1209,6 +1224,27 @@ const AdminDashboard: React.FC = () => {
               >
                 <Users className="h-5 w-5 text-indigo-600" />
                 <span className="font-medium text-gray-900">Staff Management</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('riders')}
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+              >
+                <Users className="h-5 w-5 text-red-600" />
+                <span className="font-medium text-gray-900">Rider Management</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('dispatch')}
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+              >
+                <Settings className="h-5 w-5 text-red-600" />
+                <span className="font-medium text-gray-900">Dispatch Settings</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('earnings')}
+                className="w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors duration-200"
+              >
+                <CreditCard className="h-5 w-5 text-green-600" />
+                <span className="font-medium text-gray-900">Rider Earnings</span>
               </button>
               <button
                 onClick={handleAddItem}

@@ -1,6 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
+import { useQuery } from 'convex/react';
 import { supabase } from '../lib/supabase';
+import { api } from '../../convex/_generated/api';
+import { isAdminUser, isRiderUser, isStaffUser } from '../lib/authRoles';
 
 interface AuthContextType {
   user: User | null;
@@ -11,6 +14,7 @@ interface AuthContextType {
   changePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
   isAdmin: boolean;
   isStaff: boolean;
+  isRider: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,69 +37,74 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error getting session:', error);
-      } else {
-        setSession(session);
-        setUser(session?.user ?? null);
-      }
+    let mounted = true;
+
+    const applySession = (next: Session | null) => {
+      if (!mounted) return;
+      setSession(next);
+      setUser(next?.user ?? null);
       setLoading(false);
     };
 
-    getInitialSession();
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (error) console.error('Error getting session:', error);
+        applySession(data.session ?? null);
+      })
+      .catch((err) => {
+        console.error('Error getting session:', err);
+        applySession(null);
+      });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
+      (_event, next) => applySession(next)
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-  };
+  }, []);
 
-  const changePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
+  const changePassword = useCallback(async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     return { error };
-  };
+  }, []);
 
-  // Check if user is admin (you can customize this logic based on your needs)
-  const isAdmin = user?.email === 'admin@clickeats.com' || user?.user_metadata?.role === 'admin';
-  const isStaff = user?.user_metadata?.role === 'staff';
-
-  const value = {
-    user,
-    session,
-    loading,
-    signIn,
-    signOut,
-    changePassword,
-    isAdmin,
-    isStaff,
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  const staffRecord = useQuery(
+    api.staff.getBySupabaseUser,
+    user ? { supabaseUserId: user.id } : 'skip',
   );
+
+  const value = useMemo<AuthContextType>(() => {
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL as string | undefined;
+    const staffIsAdmin = !!(staffRecord?.isActive && staffRecord?.allMerchants);
+    const isAdmin = staffIsAdmin || isAdminUser(user, adminEmail);
+    const isStaff = staffIsAdmin || !!staffRecord?.isActive || isStaffUser(user);
+    const isRider = isRiderUser(user);
+
+    return {
+      user,
+      session,
+      loading,
+      signIn,
+      signOut,
+      changePassword,
+      isAdmin,
+      isStaff,
+      isRider,
+    };
+  }, [user, session, loading, signIn, signOut, changePassword, staffRecord]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

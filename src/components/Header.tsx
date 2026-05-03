@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Search, Heart } from 'lucide-react';
+import { ShoppingCart, PackageSearch } from 'lucide-react';
 import { useSiteSettings } from '../hooks/useSiteSettings';
 import { useNavigate } from 'react-router-dom';
 import { useCartContext } from '../contexts/CartContext';
@@ -53,19 +53,15 @@ const Header: React.FC<HeaderProps> = ({ onCartClick }) => {
           
           {/* Actions */}
           <div className="flex items-center space-x-2">
-            {/* Search Button (Mobile) */}
-            <button className="md:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors">
-              <Search className="h-5 w-5" />
+            {/* Track Order Button */}
+            <button
+              onClick={() => navigate('/track')}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+            >
+              <PackageSearch className="h-5 w-5" />
+              <span className="hidden sm:inline">Track Order</span>
             </button>
-            
-            {/* Favorites Button */}
-            <button className="hidden sm:block relative p-2 text-gray-700 hover:text-red-500 hover:bg-red-50 rounded-full transition-all">
-              <Heart className="h-6 w-6" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                3
-              </span>
-            </button>
-            
+
             {/* Cart Button */}
             <button 
               onClick={onCartClick}

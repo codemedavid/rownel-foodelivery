@@ -10,6 +10,7 @@ import { api } from '../../convex/_generated/api';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
 import MapLocationPicker from './MapLocationPicker';
 import type { OSMAddressSuggestion } from '../lib/osm';
+import { reverseGeocode, isWithinPhilippines } from '../lib/osm';
 import { calculateDeliveryFee, haversineKm } from '../lib/deliveryPricing';
 import { getMinOrderStatus, isMerchantOpen } from '../lib/timeUtils';
 
@@ -38,6 +39,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [deliveryMode, setDeliveryMode] = useState<'priority' | 'economy'>('priority');
+  const [addressOutsidePH, setAddressOutsidePH] = useState(false);
 
   // Group cart items by merchant
   const itemsByMerchant = useMemo(() => {
@@ -91,7 +93,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
       const merchant = merchants.find((m) => m.id === merchantId);
       if (!merchant || merchant.latitude == null || merchant.longitude == null || deliveryLatitude === null || deliveryLongitude === null) continue;
       const distanceKm = haversineKm(merchant.latitude, merchant.longitude, deliveryLatitude, deliveryLongitude);
-      const maxDist = merchant.maxDeliveryDistanceKm ?? null;
+      const maxDist = merchant.pasabuyMaxDistanceKm ?? merchant.maxDeliveryDistanceKm ?? null;
       if (maxDist !== null && distanceKm > maxDist) continue;
       let fee: number;
       if ((merchant.fixedDeliveryFee ?? 0) > 0) {
@@ -145,14 +147,16 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
       }
 
       const distanceKm = haversineKm(merchant.latitude, merchant.longitude, deliveryLatitude, deliveryLongitude);
-      const maxDistanceKm = merchant.maxDeliveryDistanceKm ?? null;
+      const maxDistanceKm = deliveryMode === 'economy'
+        ? (merchant.pasabuyMaxDistanceKm ?? merchant.maxDeliveryDistanceKm ?? null)
+        : (merchant.maxDeliveryDistanceKm ?? null);
       const isDeliverable = maxDistanceKm === null || distanceKm <= maxDistanceKm;
 
       if (!isDeliverable) {
         quotes[merchantId] = {
           deliverable: false,
           distanceKm,
-          reason: `Outside delivery radius (${maxDistanceKm} km max).`,
+          reason: `Outside Pasabuy radius (${maxDistanceKm} km max).`,
         };
         continue;
       }
@@ -241,6 +245,26 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const hasMinOrderIssue = Object.values(merchantValidation).some(v => !v.minOrder.met);
   const hasClosedMerchant = Object.values(merchantValidation).some(v => !v.openStatus.isOpen);
 
+  // Auto-fill delivery location from localStorage (set on home page)
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('userDeliveryLocation');
+      if (!stored) return;
+      const loc = JSON.parse(stored);
+      if (!loc.latitude || !loc.longitude) return;
+      if (!isWithinPhilippines(loc.latitude, loc.longitude)) return;
+      reverseGeocode(loc.latitude, loc.longitude).then(result => {
+        if (result.countryCode && result.countryCode !== 'ph') return;
+        setDeliveryLatitude(result.latitude);
+        setDeliveryLongitude(result.longitude);
+        setAddress(result.displayName);
+        setDeliveryOsmPlaceId(result.placeId);
+      }).catch(() => {});
+    } catch {
+      // ignore malformed storage
+    }
+  }, []);
+
   // Set default payment method when payment methods are loaded
   React.useEffect(() => {
     if (paymentMethods.length > 0 && !paymentMethod) {
@@ -251,6 +275,19 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const selectedPaymentMethod = paymentMethods.find(method => method.id === paymentMethod);
 
   const handleAddressSelected = (suggestion: OSMAddressSuggestion) => {
+    const isPhilippines =
+      suggestion.countryCode === 'ph' ||
+      isWithinPhilippines(suggestion.latitude, suggestion.longitude);
+
+    if (!isPhilippines) {
+      setAddressOutsidePH(true);
+      setDeliveryLatitude(null);
+      setDeliveryLongitude(null);
+      setDeliveryOsmPlaceId(null);
+      return;
+    }
+
+    setAddressOutsidePH(false);
     setDeliveryLatitude(suggestion.latitude);
     setDeliveryLongitude(suggestion.longitude);
     setDeliveryOsmPlaceId(suggestion.placeId);
@@ -260,6 +297,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
     setDeliveryLatitude(null);
     setDeliveryLongitude(null);
     setDeliveryOsmPlaceId(null);
+    setAddressOutsidePH(false);
   };
 
   const trimmedCustomerName = customerName.trim();
@@ -300,6 +338,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
       for (const [merchantId, items] of Object.entries(itemsByMerchant)) {
         const quote = deliveryQuotesByMerchant[merchantId];
         const merchantSubtotal = getMerchantSubtotal(merchantId);
+        const merchantForOrder = merchants.find(m => m.id === merchantId);
         // Only the primary (furthest) merchant carries the delivery fee
         const merchantDeliveryFee = merchantId === primaryDeliveryMerchantId
           ? deliveryFeeTotal
@@ -337,6 +376,8 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
           address: trimmedAddress,
           deliveryLatitude: deliveryLatitude ?? undefined,
           deliveryLongitude: deliveryLongitude ?? undefined,
+          merchantLatitude: merchantForOrder?.latitude ?? undefined,
+          merchantLongitude: merchantForOrder?.longitude ?? undefined,
           distanceKm: quote?.distanceKm,
           deliveryFee: merchantDeliveryFee,
           deliveryMode: hasEconomyOption ? deliveryMode : undefined,
@@ -356,58 +397,37 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
           }
         }
 
+        // Save to local order history
+        try {
+          const merchant = merchants.find(m => m.id === merchantId);
+          const historyRecord = {
+            orderId: orderId as string,
+            merchantId,
+            merchantName: merchant?.name ?? 'Restaurant',
+            customerName: trimmedCustomerName,
+            total: orderTotal,
+            deliveryFee: merchantDeliveryFee,
+            paymentMethod,
+            placedAt: Date.now(),
+            items: items.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              subtotal: item.totalPrice * item.quantity,
+            })),
+          };
+          const existing = JSON.parse(localStorage.getItem('orderHistory') ?? '[]');
+          const updated = [historyRecord, ...existing].slice(0, 30);
+          localStorage.setItem('orderHistory', JSON.stringify(updated));
+        } catch {
+          // ignore storage errors
+        }
+
         orderIds.push(orderId as string);
       }
 
-      // Build order summary for Messenger
-      let orderDetails = `🛒 Row-Nel FooDelivery ORDER\n\n👤 Customer: ${trimmedCustomerName}\n📞 Contact: ${trimmedContactNumber}\n📍 Service: Delivery\n🏠 Address: ${trimmedAddress}${landmark ? `\n🗺️ Landmark: ${landmark}` : ''}\n\n📋 ORDER DETAILS:\n`;
-
-      for (const [merchantId, items] of Object.entries(itemsByMerchant)) {
-        const merchant = merchants.find(m => m.id === merchantId);
-        const merchantSubtotal = getMerchantSubtotal(merchantId);
-        const quote = deliveryQuotesByMerchant[merchantId];
-
-        orderDetails += `\n🏪 ${merchant?.name || 'Restaurant'}`;
-        if (quote?.distanceKm !== undefined) {
-          orderDetails += ` (${quote.distanceKm.toFixed(2)} km)`;
-        }
-        orderDetails += `:\n`;
-
-        items.forEach(item => {
-          let itemLine = `  • ${item.name}`;
-          if (item.selectedVariation) {
-            itemLine += ` (${item.selectedVariation.name})`;
-          }
-          if (item.selectedVariations && Object.keys(item.selectedVariations).length > 0) {
-            itemLine += ` [${Object.entries(item.selectedVariations)
-              .map(([groupName, variation]) => `${groupName}: ${variation.name}`)
-              .join(', ')}]`;
-          }
-          if (item.selectedAddOns && item.selectedAddOns.length > 0) {
-            itemLine += ` + ${item.selectedAddOns.map(addOn =>
-              addOn.quantity && addOn.quantity > 1
-                ? `${addOn.name} x${addOn.quantity}`
-                : addOn.name
-            ).join(', ')}`;
-          }
-          itemLine += ` x${item.quantity} - ₱${item.totalPrice * item.quantity}`;
-          orderDetails += itemLine + '\n';
-        });
-
-        orderDetails += `  Subtotal: ₱${merchantSubtotal.toFixed(2)}\n`;
-      }
-
-      orderDetails += `\n💰 FOOD TOTAL: ₱${totalPrice.toFixed(2)}\n🚚 DELIVERY FEE: ₱${deliveryFeeTotal.toFixed(2)} (${deliveryMode === 'economy' ? 'PASABAY' : 'RUSH ORDER'}${merchantIds.length > 1 ? ' - based on furthest merchant' : ''})\n📍 DELIVERY ADDRESS: ${trimmedAddress}\n💵 GRAND TOTAL: ₱${grandTotal.toFixed(2)}\n\n💳 Payment: ${selectedPaymentMethod?.name || paymentMethod}\n\n${mergedNotes ? `📝 Notes: ${mergedNotes}\n\n` : ''}Please confirm this order to proceed. Thank you for choosing Row-Nel FooDelivery! 🥟`;
-
-      // Copy to clipboard as backup
-      try { await navigator.clipboard.writeText(orderDetails); } catch { /* ignore */ }
-
       clearCart();
 
-      // Redirect to Messenger with prefilled order summary
-      const encodedMessage = encodeURIComponent(orderDetails);
-      const messengerUrl = `https://www.messenger.com/t/RowNelFooDelivery?text=${encodedMessage}`;
-      window.location.replace(messengerUrl);
+      navigate(`/track/${orderIds[0]}`);
     } catch (err: any) {
       console.error('Order submission failed:', err);
       setOrderError(err?.message || 'Failed to place order. Please try again.');
@@ -418,328 +438,387 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
   const hasUndeliverableMerchant = merchantIds.some((merchantId) => !deliveryQuotesByMerchant[merchantId]?.deliverable);
   const isDetailsValid = trimmedCustomerName && trimmedContactNumber && isAddressValid;
-  const canPlaceOrder = Boolean(isDetailsValid) && !hasUndeliverableMerchant && !hasMinOrderIssue && !hasClosedMerchant;
+  const canPlaceOrder = Boolean(isDetailsValid) && !hasUndeliverableMerchant && !hasMinOrderIssue && !hasClosedMerchant && !addressOutsidePH;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center mb-8">
-        <button
-          onClick={onBack}
-          className="flex items-center space-x-2 text-gray-600 hover:text-black transition-colors duration-200"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          <span>Back to Cart</span>
-        </button>
-        <h1 className="text-3xl font-noto font-semibold text-black ml-8">Delivery Details</h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Sticky page header */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-gray-500 hover:text-black transition-colors duration-200 text-sm font-medium"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
+          </button>
+          <div className="h-5 w-px bg-gray-200" />
+          <h1 className="text-xl font-noto font-semibold text-black">Checkout</h1>
+        </div>
       </div>
 
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 items-start">
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Order Summary */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-2xl font-noto font-medium text-black mb-6">Order Summary</h2>
-          
-          <div className="space-y-6 mb-6">
-            {Object.entries(itemsByMerchant).map(([merchantId, items]) => {
-              const merchant = merchants.find(m => m.id === merchantId);
-              const subtotal = getMerchantSubtotal(merchantId);
-              
-              return (
-                <div key={merchantId} className="border border-gray-200 rounded-lg overflow-hidden">
-                  {/* Merchant Header */}
-                  <div className="bg-gradient-to-r from-green-50 to-green-100 px-4 py-3 border-b border-green-200">
-                    <div className="flex items-center space-x-2">
-                      <Store className="h-4 w-4 text-green-600" />
-                      <h3 className="font-semibold text-gray-900">{merchant?.name || 'Restaurant'}</h3>
-                    </div>
-                  </div>
-                  
-                  {/* Items */}
-                  <div className="p-4 space-y-3">
-                    {items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between py-2">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-black text-sm">{item.name}</h4>
-                          {item.selectedVariation && (
-                            <p className="text-xs text-gray-600">Size: {item.selectedVariation.name}</p>
-                          )}
-                          {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                            <p className="text-xs text-gray-600">
-                              Add-ons: {item.selectedAddOns.map(addOn => addOn.name).join(', ')}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-600">₱{item.totalPrice} x {item.quantity}</p>
-                        </div>
-                        <span className="font-semibold text-black text-sm">₱{item.totalPrice * item.quantity}</span>
-                      </div>
-                    ))}
-                    
-                    {/* Merchant Subtotal */}
-                    <div className="border-t border-gray-200 pt-3 mt-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-gray-600 font-medium">Distance:</span>
-                        <span className="text-sm text-gray-700">
-                          {deliveryQuotesByMerchant[merchantId]?.distanceKm !== undefined
-                            ? `${deliveryQuotesByMerchant[merchantId].distanceKm?.toFixed(2)} km`
-                            : 'Not available'}
-                        </span>
-                      </div>
-                      {!deliveryQuotesByMerchant[merchantId]?.deliverable && (
-                        <p className="text-xs text-red-600 mb-1">
-                          {deliveryQuotesByMerchant[merchantId]?.reason}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600 font-medium">Subtotal:</span>
-                        <span className="font-semibold text-black">₱{subtotal.toFixed(2)}</span>
-                      </div>
-                      {merchantValidation[merchantId] && !merchantValidation[merchantId].minOrder.met && (
-                        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
-                          <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                          <p className="text-xs text-amber-800">
-                            Add ₱{merchantValidation[merchantId].minOrder.remaining.toFixed(2)} more (min. ₱{merchantValidation[merchantId].minOrder.minimum.toFixed(2)})
-                          </p>
-                        </div>
-                      )}
-                      {merchantValidation[merchantId] && !merchantValidation[merchantId].openStatus.isOpen && (
-                        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">
-                          <Clock className="h-4 w-4 text-red-600 flex-shrink-0" />
-                          <p className="text-xs text-red-700">
-                            Currently closed. {merchantValidation[merchantId].openStatus.nextOpenTime}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+          {/* ── Left: Form ── */}
+          <div className="space-y-4">
+
+            {/* Contact Information */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Contact Information</h2>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Full Name <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder-gray-400"
+                    placeholder="Enter your full name"
+                    required
+                  />
                 </div>
-              );
-            })}
-          </div>
-          
-          <div className="border-t border-red-200 pt-4 space-y-2">
-            <div className="flex items-center justify-between text-sm text-gray-700">
-              <span>Food subtotal:</span>
-              <span>₱{totalPrice.toFixed(2)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm text-gray-700">
-              <span>
-                Delivery fee
-                {merchantIds.length > 1 && primaryDeliveryMerchantId && (
-                  <span className="text-xs text-gray-500 ml-1">
-                    (based on furthest merchant)
-                  </span>
-                )}
-                :
-              </span>
-              <span>₱{deliveryFeeTotal.toFixed(2)}</span>
-            </div>
-            <div className="flex items-center justify-between text-2xl font-noto font-semibold text-black">
-              <span>Grand total:</span>
-              <span>₱{grandTotal.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Customer Details Form */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-2xl font-noto font-medium text-black mb-6">Delivery Information</h2>
-          
-          <form className="space-y-6">
-            {/* Customer Information */}
-            <div>
-              <label className="block text-sm font-medium text-black mb-2">Full Name *</label>
-              <input
-                type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-                placeholder="Enter your full name"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-black mb-2">Contact Number *</label>
-              <input
-                type="tel"
-                value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
-                className="w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-                placeholder="09XX XXX XXXX"
-                required
-              />
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Contact Number <span className="text-red-500">*</span></label>
+                  <input
+                    type="tel"
+                    value={contactNumber}
+                    onChange={(e) => setContactNumber(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder-gray-400"
+                    placeholder="09XX XXX XXXX"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Delivery Address */}
-            <AddressAutocompleteInput
-              label="Delivery Address"
-              required
-              value={address}
-              onChange={setAddress}
-              onSelect={handleAddressSelected}
-              onClearSelection={clearAddressSelection}
-              placeholder="Enter your complete delivery address"
-              countryCodes={['ph']}
-            />
-            {trimmedAddress && !isAddressValid && (
-              <p className="text-xs text-red-600 -mt-4">
-                Select a suggested address so checkout can calculate delivery and proceed.
-              </p>
-            )}
-            <MapLocationPicker
-              latitude={deliveryLatitude}
-              longitude={deliveryLongitude}
-              onLocationSelect={(lat, lng, address, placeId) => {
-                setDeliveryLatitude(lat);
-                setDeliveryLongitude(lng);
-                setDeliveryOsmPlaceId(placeId);
-                setAddress(address);
-              }}
-              showSearch={false}
-              showGpsButton
-              height="250px"
-              zoom={16}
-            />
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Delivery Address</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Street Address <span className="text-red-500">*</span></label>
+                  <AddressAutocompleteInput
+                    label=""
+                    required
+                    value={address}
+                    onChange={setAddress}
+                    onSelect={handleAddressSelected}
+                    onClearSelection={clearAddressSelection}
+                    placeholder="Enter your complete delivery address"
+                    countryCodes={['ph']}
+                  />
+                  {addressOutsidePH && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                      Sorry, we only deliver within the Philippines. Please enter a Philippine address.
+                    </p>
+                  )}
+                  {!addressOutsidePH && trimmedAddress && !isAddressValid && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                      Select a suggested address to calculate your delivery fee.
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Pin Your Location</label>
+                  <div className="rounded-xl overflow-hidden border border-gray-200">
+                    <MapLocationPicker
+                      latitude={deliveryLatitude}
+                      longitude={deliveryLongitude}
+                      onLocationSelect={(lat, lng, addr, placeId) => {
+                        if (!isWithinPhilippines(lat, lng)) {
+                          setAddressOutsidePH(true);
+                          setDeliveryLatitude(null);
+                          setDeliveryLongitude(null);
+                          setDeliveryOsmPlaceId(null);
+                          return;
+                        }
+                        setAddressOutsidePH(false);
+                        setDeliveryLatitude(lat);
+                        setDeliveryLongitude(lng);
+                        setDeliveryOsmPlaceId(placeId);
+                        setAddress(addr);
+                      }}
+                      showSearch={false}
+                      showGpsButton
+                      height="240px"
+                      zoom={16}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1.5">Drag the pin or use GPS to set your exact drop-off point.</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                    Landmark <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={landmark}
+                    onChange={(e) => setLandmark(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder-gray-400"
+                    placeholder="e.g., Near McDonald's, Beside 7-Eleven"
+                  />
+                </div>
+              </div>
+            </div>
 
+            {/* Delivery Option */}
             {hasEconomyOption && deliveryLatitude !== null && deliveryLongitude !== null && (
-              <div>
-                <label className="block text-sm font-medium text-black mb-3">Delivery Option</label>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Delivery Option</h2>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setDeliveryMode('priority')}
-                    className={`p-4 rounded-lg border-2 transition-all duration-200 text-left ${
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                       deliveryMode === 'priority'
-                        ? 'border-red-600 bg-red-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        ? 'border-red-500 bg-red-50 shadow-sm'
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-sm">RUSH ORDER</span>
-                      <span className="font-bold text-red-600 text-sm">₱{priorityFeeTotal.toFixed(2)}</span>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <span className={`font-bold text-xs tracking-wide ${deliveryMode === 'priority' ? 'text-red-600' : 'text-gray-700'}`}>RUSH ORDER</span>
+                      <span className="font-bold text-red-600 text-sm whitespace-nowrap">₱{priorityFeeTotal.toFixed(2)}</span>
                     </div>
-                    <p className="text-xs text-gray-500">30mins to 45mins waiting</p>
+                    <p className="text-xs text-gray-400">30 – 45 mins</p>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDeliveryMode('economy')}
-                    className={`p-4 rounded-lg border-2 transition-all duration-200 text-left ${
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                       deliveryMode === 'economy'
-                        ? 'border-red-600 bg-red-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        ? 'border-red-500 bg-red-50 shadow-sm'
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-sm">PASABAY</span>
-                      <span className="font-bold text-red-600 text-sm">₱{economyFeeTotal.toFixed(2)}</span>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <span className={`font-bold text-xs tracking-wide ${deliveryMode === 'economy' ? 'text-red-600' : 'text-gray-700'}`}>PASABAY</span>
+                      <span className="font-bold text-red-600 text-sm whitespace-nowrap">₱{economyFeeTotal.toFixed(2)}</span>
                     </div>
-                    <p className="text-xs text-gray-500">45mins to 120mins waiting time</p>
+                    <p className="text-xs text-gray-400">45 – 120 mins</p>
                   </button>
                 </div>
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-black mb-2">Landmark</label>
-              <input
-                type="text"
-                value={landmark}
-                onChange={(e) => setLandmark(e.target.value)}
-                className="w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-                placeholder="e.g., Near McDonald's, Beside 7-Eleven, In front of school"
-              />
-            </div>
-
-            {/* Payment Method Selection */}
-            <div>
-              <label className="block text-sm font-medium text-black mb-3">Payment Method *</label>
-              <div className="grid grid-cols-1 gap-3">
+            {/* Payment Method */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Payment Method <span className="text-red-500">*</span></h2>
+              <div className="space-y-2 mb-4">
                 {paymentMethods.map((method) => (
                   <button
                     key={method.id}
                     type="button"
                     onClick={() => setPaymentMethod(method.id as PaymentMethod)}
-                    className={`p-4 rounded-lg border-2 transition-all duration-200 flex items-center space-x-3 ${
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 flex items-center gap-3 text-left ${
                       paymentMethod === method.id
-                        ? 'border-red-600 bg-red-600 text-white'
-                        : 'border-red-300 bg-white text-gray-700 hover:border-red-400'
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
                     }`}
                   >
-                    <span className="text-2xl">💳</span>
-                    <span className="font-medium">{method.name}</span>
+                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                      paymentMethod === method.id ? 'border-red-500 bg-red-500' : 'border-gray-300 bg-white'
+                    }`}>
+                      {paymentMethod === method.id && (
+                        <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                      )}
+                    </div>
+                    <span className={`font-medium text-sm ${paymentMethod === method.id ? 'text-red-700' : 'text-gray-700'}`}>
+                      {method.name}
+                    </span>
                   </button>
                 ))}
               </div>
-            </div>
 
-            {/* Payment Details with QR Code */}
-            {selectedPaymentMethod && (
-              <div className="bg-red-50 rounded-lg p-4">
-                <h3 className="font-medium text-black mb-3">Payment Details</h3>
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-600 mb-1">{selectedPaymentMethod.name}</p>
-                    <p className="font-mono text-black font-medium">{selectedPaymentMethod.account_number}</p>
-                    <p className="text-sm text-gray-600 mb-3">Account Name: {selectedPaymentMethod.account_name}</p>
-                    <p className="text-xl font-semibold text-black">Amount: ₱{grandTotal.toFixed(2)}</p>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <img 
-                      src={selectedPaymentMethod.qr_code_url} 
-                      alt={`${selectedPaymentMethod.name} QR Code`}
-                      className="w-32 h-32 rounded-lg border-2 border-red-300 shadow-sm"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://images.pexels.com/photos/8867482/pexels-photo-8867482.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop';
-                      }}
-                    />
-                    <p className="text-xs text-gray-500 text-center mt-2">Scan to pay</p>
+              {/* Payment Details */}
+              {selectedPaymentMethod && (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-400 mb-0.5">Account Number</p>
+                      <p className="font-mono font-semibold text-gray-900 text-sm mb-2 break-all">{selectedPaymentMethod.account_number}</p>
+                      <p className="text-xs text-gray-400 mb-0.5">Account Name</p>
+                      <p className="text-sm text-gray-700 mb-3">{selectedPaymentMethod.account_name}</p>
+                      <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 inline-block">
+                        <p className="text-xs text-gray-400">Amount to pay</p>
+                        <p className="text-lg font-bold text-red-600">₱{grandTotal.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0 text-center">
+                      <img
+                        src={selectedPaymentMethod.qr_code_url}
+                        alt={`${selectedPaymentMethod.name} QR Code`}
+                        className="w-28 h-28 rounded-xl border border-gray-200 shadow-sm object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.pexels.com/photos/8867482/pexels-photo-8867482.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop';
+                        }}
+                      />
+                      <p className="text-xs text-gray-400 mt-1.5">Scan to pay</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Special Notes */}
-            <div>
-              <label className="block text-sm font-medium text-black mb-2">Special Instructions</label>
+            {/* Special Instructions */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">
+                Special Instructions <span className="text-gray-400 font-normal normal-case">(optional)</span>
+              </h2>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
-                placeholder="Any special requests or notes..."
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder-gray-400 resize-none"
+                placeholder="Any special requests or notes for your order…"
                 rows={3}
               />
             </div>
+          </div>
 
-            <button
-              type="button"
-              onClick={handlePlaceOrder}
-              disabled={!canPlaceOrder || submitting}
-              className={`w-full py-4 rounded-xl font-medium text-lg transition-all duration-200 transform ${
-                canPlaceOrder && !submitting
-                  ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-[1.02]'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              {submitting ? 'Submitting Order...' : 'Submit Order'}
-            </button>
+          {/* ── Right: Order Summary + CTA ── */}
+          <div className="space-y-4 lg:sticky lg:top-[65px]">
 
-            {orderError && (
-              <p className="text-red-500 text-sm mt-2 text-center">{orderError}</p>
-            )}
+            {/* Order Summary */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Order Summary</h2>
 
-            {!canPlaceOrder && !submitting && (
-              <p className="text-xs text-red-600 text-center mt-2">
-                {hasUndeliverableMerchant && 'Some merchants are outside delivery coverage. '}
-                {hasMinOrderIssue && 'Some merchants have not met minimum order. '}
-                {hasClosedMerchant && 'Some merchants are currently closed. '}
-                {!isDetailsValid && 'Please fill in all required fields.'}
+              <div className="space-y-5">
+                {Object.entries(itemsByMerchant).map(([merchantId, items]) => {
+                  const merchant = merchants.find(m => m.id === merchantId);
+                  const subtotal = getMerchantSubtotal(merchantId);
+
+                  return (
+                    <div key={merchantId}>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Store className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{merchant?.name || 'Restaurant'}</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        {items.map((item) => (
+                          <div key={item.id} className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 leading-snug">{item.name}</p>
+                              {item.selectedVariation && (
+                                <p className="text-xs text-gray-400">{item.selectedVariation.name}</p>
+                              )}
+                              {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                                <p className="text-xs text-gray-400">{item.selectedAddOns.map(a => a.name).join(', ')}</p>
+                              )}
+                              <p className="text-xs text-gray-400">₱{item.totalPrice} × {item.quantity}</p>
+                            </div>
+                            <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">₱{(item.totalPrice * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t border-dashed border-gray-200 space-y-1">
+                        {deliveryQuotesByMerchant[merchantId]?.distanceKm !== undefined && (
+                          <div className="flex items-center justify-between text-xs text-gray-400">
+                            <span>Distance</span>
+                            <span>{deliveryQuotesByMerchant[merchantId].distanceKm?.toFixed(2)} km</span>
+                          </div>
+                        )}
+                        {!deliveryQuotesByMerchant[merchantId]?.deliverable && (
+                          <p className="text-xs text-red-500">{deliveryQuotesByMerchant[merchantId]?.reason}</p>
+                        )}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500">Subtotal</span>
+                          <span className="font-semibold text-gray-800">₱{subtotal.toFixed(2)}</span>
+                        </div>
+
+                        {merchantValidation[merchantId] && !merchantValidation[merchantId].minOrder.met && (
+                          <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                            <p className="text-xs text-amber-700">
+                              Add ₱{merchantValidation[merchantId].minOrder.remaining.toFixed(2)} more (min. ₱{merchantValidation[merchantId].minOrder.minimum.toFixed(2)})
+                            </p>
+                          </div>
+                        )}
+                        {merchantValidation[merchantId] && !merchantValidation[merchantId].openStatus.isOpen && (
+                          <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 mt-1.5">
+                            <Clock className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                            <p className="text-xs text-red-600">
+                              Closed — {merchantValidation[merchantId].openStatus.nextOpenTime}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Totals */}
+              <div className="border-t border-gray-200 mt-4 pt-4 space-y-2">
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span>Food subtotal</span>
+                  <span>₱{totalPrice.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span className="flex items-center gap-1">
+                    Delivery fee
+                    {merchantIds.length > 1 && primaryDeliveryMerchantId && (
+                      <span className="text-xs text-gray-400">(furthest)</span>
+                    )}
+                  </span>
+                  <span>₱{deliveryFeeTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                  <span className="font-bold text-gray-900">Total</span>
+                  <span className="text-2xl font-bold text-red-600">₱{grandTotal.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Place Order */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
+              <button
+                type="button"
+                onClick={handlePlaceOrder}
+                disabled={!canPlaceOrder || submitting}
+                className={`w-full py-4 rounded-xl font-semibold text-base transition-all duration-200 ${
+                  canPlaceOrder && !submitting
+                    ? 'bg-red-600 text-white hover:bg-red-700 active:scale-[0.98] shadow-sm'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {submitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Placing Order…
+                  </span>
+                ) : 'Place Order'}
+              </button>
+
+              {orderError && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                  <p className="text-xs text-red-600">{orderError}</p>
+                </div>
+              )}
+
+              {!canPlaceOrder && !submitting && (
+                <p className="text-xs text-gray-400 text-center">
+                  {addressOutsidePH && 'Delivery address must be within the Philippines. '}
+                  {hasUndeliverableMerchant && 'Some merchants are outside delivery coverage. '}
+                  {hasMinOrderIssue && 'Minimum order not met. '}
+                  {hasClosedMerchant && 'Some merchants are currently closed. '}
+                  {!isDetailsValid && !addressOutsidePH && 'Please fill in all required fields.'}
+                </p>
+              )}
+
+              <p className="text-xs text-gray-400 text-center">
+                You'll be redirected to order tracking once placed.
               </p>
-            )}
+            </div>
 
-            <p className="text-xs text-gray-500 text-center mt-3">
-              Your order will be saved and you'll be redirected to Facebook Messenger to confirm. Please attach your payment receipt screenshot.
-            </p>
-          </form>
+          </div>
         </div>
       </div>
     </div>

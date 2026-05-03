@@ -3,13 +3,18 @@ export interface OSMAddressSuggestion {
   displayName: string;
   latitude: number;
   longitude: number;
+  countryCode?: string;
 }
+
+export const isWithinPhilippines = (lat: number, lng: number): boolean =>
+  lat >= 4.5 && lat <= 21.5 && lng >= 116.9 && lng <= 126.7;
 
 interface NominatimResult {
   place_id: number;
   display_name: string;
   lat: string;
   lon: string;
+  address?: { country_code?: string };
 }
 
 interface NominatimReverseResult {
@@ -33,6 +38,7 @@ interface NominatimReverseResult {
     state?: string;
     postcode?: string;
     country?: string;
+    country_code?: string;
   };
 }
 
@@ -42,6 +48,7 @@ export interface ReverseGeocodeResult {
   street: string;
   latitude: number;
   longitude: number;
+  countryCode?: string;
 }
 
 interface NominatimDetailedResult {
@@ -66,6 +73,7 @@ interface NominatimDetailedResult {
     state?: string;
     postcode?: string;
     country?: string;
+    country_code?: string;
   };
 }
 
@@ -112,7 +120,7 @@ export const searchAddresses = async (
 
     if (options.countryCodes.map((c) => c.toLowerCase()).includes('ph')) {
       params.set('viewbox', '116.9283,4.5873,126.6042,21.3218');
-      params.set('bounded', '0');
+      params.set('bounded', '1');
     }
   }
 
@@ -134,6 +142,7 @@ export const searchAddresses = async (
       displayName: formatDisplayName(item),
       latitude: Number(item.lat),
       longitude: Number(item.lon),
+      countryCode: item.address?.country_code?.toLowerCase(),
     }))
     .filter(
       (item) =>
@@ -188,5 +197,6 @@ export const reverseGeocode = async (
     street,
     latitude: parsedLatitude,
     longitude: parsedLongitude,
+    countryCode: data.address?.country_code?.toLowerCase(),
   };
 };

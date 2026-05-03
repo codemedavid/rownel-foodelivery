@@ -11,6 +11,11 @@ export const decrementStock = action({
     ),
   },
   handler: async (ctx, args) => {
+    // Require an authenticated session — prevents anonymous callers from
+    // zeroing out inventory via direct Convex API calls.
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
 

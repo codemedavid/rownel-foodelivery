@@ -57,11 +57,11 @@ interface SourceMenuItem {
 
 const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
   const { merchants, loading: merchantsLoading, refetch: refetchMerchants } = useMerchants();
-  const { menuItems, loading: menuLoading, addMenuItem, updateMenuItem, deleteMenuItem, refetch: refetchMenu } = useMenu();
-  const { categories } = useCategories();
-  
-  const [currentView, setCurrentView] = useState<'list' | 'merchant-detail' | 'add-merchant' | 'edit-merchant'>('list');
   const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(null);
+  const { menuItems, loading: menuLoading, addMenuItem, updateMenuItem, deleteMenuItem, refetch: refetchMenu } = useMenu(selectedMerchant?.id);
+  const { categories } = useCategories();
+
+  const [currentView, setCurrentView] = useState<'list' | 'merchant-detail' | 'add-merchant' | 'edit-merchant'>('list');
   const [showAddItemForm, setShowAddItemForm] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [editingMerchant, setEditingMerchant] = useState<Merchant | null>(null);
@@ -99,6 +99,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
     maxDeliveryFee: null,
     maxDeliveryDistanceKm: 20,
     fixedDeliveryFee: 0,
+    pasabuyMaxDistanceKm: 3,
     contactNumber: '',
     email: '',
     openingHours: {},
@@ -158,6 +159,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
       maxDeliveryFee: null,
       maxDeliveryDistanceKm: 20,
       fixedDeliveryFee: 0,
+      pasabuyMaxDistanceKm: 3,
       contactNumber: '',
       email: '',
       openingHours: {},
@@ -223,6 +225,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
           max_delivery_fee: merchant.maxDeliveryFee ?? null,
           max_delivery_distance_km: merchant.maxDeliveryDistanceKm ?? 20,
           fixed_delivery_fee: merchant.fixedDeliveryFee ?? 0,
+          pasabuy_max_distance_km: merchant.pasabuyMaxDistanceKm ?? null,
           minimum_order: merchant.minimumOrder,
           estimated_delivery_time: merchant.estimatedDeliveryTime || null,
           rating: merchant.rating,
@@ -436,6 +439,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
         max_delivery_fee: maxDeliveryFee,
         max_delivery_distance_km: maxDeliveryDistanceKm,
         fixed_delivery_fee: Number(merchantFormData.fixedDeliveryFee ?? 0),
+        pasabuy_max_distance_km: merchantFormData.pasabuyMaxDistanceKm != null ? Number(merchantFormData.pasabuyMaxDistanceKm) : null,
         minimum_order: merchantFormData.minimumOrder || 0,
         estimated_delivery_time: merchantFormData.estimatedDeliveryTime || null,
         rating: merchantFormData.rating || 0,
@@ -1220,6 +1224,21 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                     placeholder="0"
                   />
                   <p className="mt-1 text-xs text-gray-500">Set to 0 to disable Economy delivery. Customers choose between this and distance-based pricing.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">Pasabuy Max Radius (km) — Economy Mode</label>
+                  <input
+                    type="number"
+                    min={0.1}
+                    max={10}
+                    step="0.1"
+                    value={merchantFormData.pasabuyMaxDistanceKm ?? 3}
+                    onChange={(e) => setMerchantFormData({ ...merchantFormData, pasabuyMaxDistanceKm: e.target.value === '' ? null : Number(e.target.value) })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder="3"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Max delivery radius for Pasabuy (Economy) orders. Recommended: 2–3 km. Falls back to general radius if left at 0.</p>
                 </div>
               </div>
               <div className="mt-4 rounded-xl border border-green-100 bg-green-50 p-4">

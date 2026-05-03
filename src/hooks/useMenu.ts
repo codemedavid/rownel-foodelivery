@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { MenuItem } from '../types';
 
-export const useMenu = () => {
+export const useMenu = (merchantId?: string) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -10,9 +10,8 @@ export const useMenu = () => {
   const fetchMenuItems = async () => {
     try {
       setLoading(true);
-      
-      // Fetch menu items with their variations, variation_groups, and add-ons
-      const { data: items, error: itemsError } = await supabase
+
+      let query = supabase
         .from('menu_items')
         .select(`
           *,
@@ -21,6 +20,12 @@ export const useMenu = () => {
           add_ons (*)
         `)
         .order('created_at', { ascending: true });
+
+      if (merchantId) {
+        query = query.eq('merchant_id', merchantId);
+      }
+
+      const { data: items, error: itemsError } = await query;
 
       if (itemsError) throw itemsError;
 
@@ -346,7 +351,7 @@ export const useMenu = () => {
 
   useEffect(() => {
     fetchMenuItems();
-  }, []);
+  }, [merchantId]);
 
   return {
     menuItems,

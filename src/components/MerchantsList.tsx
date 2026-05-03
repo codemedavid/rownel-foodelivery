@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, MapPin, Bell, Search, ChevronRight, ChevronDown, ChevronLeft, Navigation, X } from 'lucide-react';
+import { Star, MapPin, PackageSearch, Search, ChevronRight, ChevronDown, ChevronLeft, Navigation, X } from 'lucide-react';
 import { useMerchant } from '../contexts/MerchantContext';
 import { calculateDistance } from '../utils/geolocation';
 import { MenuItem, Merchant } from '../types';
@@ -490,9 +490,12 @@ const MerchantsList: React.FC = () => {
             )}
           </button>
 
-          <button className="p-2 bg-white border border-gray-100 rounded-full shadow-sm hover:bg-gray-50 relative">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+          <button
+            onClick={() => navigate('/track')}
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-100 rounded-full shadow-sm hover:bg-gray-50 text-sm font-medium text-gray-700"
+          >
+            <PackageSearch className="w-5 h-5" />
+            <span className="hidden sm:inline">Track Order</span>
           </button>
         </div>
       </header>

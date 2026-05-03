@@ -29,6 +29,7 @@ export interface Merchant {
   maxDeliveryFee?: number | null;
   maxDeliveryDistanceKm?: number | null;
   fixedDeliveryFee?: number;
+  pasabuyMaxDistanceKm?: number | null;
   createdAt: string;
   updatedAt: string;
 }
