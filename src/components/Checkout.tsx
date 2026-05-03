@@ -565,7 +565,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
             </div>
 
             {/* Delivery Option */}
-            {hasEconomyOption && deliveryLatitude !== null && deliveryLongitude !== null && (
+            {deliveryLatitude !== null && deliveryLongitude !== null && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
                 <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Delivery Option</h2>
                 <div className="grid grid-cols-2 gap-3">
