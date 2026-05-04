@@ -12,7 +12,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   requireAdmin = false 
 }) => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, signOut } = useAuth();
   const { isLoading: convexAuthLoading } = useConvexAuth();
 
   // Wait until Convex has attempted its auth handshake before mounting
@@ -43,6 +43,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           </div>
           <h1 className="text-2xl font-playfair font-semibold text-black mb-2">Access Denied</h1>
           <p className="text-gray-600 mb-6">You don't have permission to access this page.</p>
+          <button
+            onClick={async () => {
+              await signOut();
+              window.location.href = '/admin/login';
+            }}
+            className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium mb-3"
+          >
+            Logout
+          </button>
           <button
             onClick={() => window.location.href = '/'}
             className="w-full bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium"
