@@ -21,6 +21,7 @@ import type * as ratings from "../ratings.js";
 import type * as riderActions from "../riderActions.js";
 import type * as riders from "../riders.js";
 import type * as staff from "../staff.js";
+import type * as staffActions from "../staffActions.js";
 
 import type {
   ApiFromModules,
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   riderActions: typeof riderActions;
   riders: typeof riders;
   staff: typeof staff;
+  staffActions: typeof staffActions;
 }>;
 
 /**

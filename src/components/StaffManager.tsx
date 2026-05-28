@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Plus, UserCheck, UserX, Users, X, Pencil, Globe } from 'lucide-react';
-import { useMutation, useQuery } from 'convex/react';
+import { useMutation, useQuery, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { supabase } from '../lib/supabase';
 import { useMerchants } from '../hooks/useMerchants';
 
 interface StaffManagerProps {
@@ -11,7 +10,7 @@ interface StaffManagerProps {
 
 const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
   const staffList = useQuery(api.staff.listAll);
-  const createStaff = useMutation(api.staff.create);
+  const adminCreateStaff = useAction(api.staffActions.adminCreateStaff);
   const updateStaff = useMutation(api.staff.update);
   const deactivateStaff = useMutation(api.staff.deactivate);
   const activateStaff = useMutation(api.staff.activate);
@@ -59,47 +58,13 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
     setIsSubmitting(true);
 
     try {
-      const { data: currentSession } = await supabase.auth.getSession();
-
-      let supabaseUserId: string | undefined;
-
-      try {
-        const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
-          email: formData.email,
-          password: formData.password,
-          user_metadata: { role: 'staff', name: formData.name },
-          email_confirm: true,
-        });
-        if (adminError) throw adminError;
-        supabaseUserId = adminData.user?.id;
-      } catch {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: { data: { role: 'staff', name: formData.name } },
-        });
-        if (signUpError) throw signUpError;
-        supabaseUserId = signUpData.user?.id;
-      }
-
-      if (!supabaseUserId) {
-        throw new Error('Failed to create Supabase user — no user ID returned.');
-      }
-
-      await createStaff({
-        supabaseUserId,
+      await adminCreateStaff({
         email: formData.email,
+        password: formData.password,
         name: formData.name,
         merchantIds: formData.merchantIds,
         allMerchants: formData.allMerchants,
       });
-
-      if (currentSession?.session) {
-        await supabase.auth.setSession({
-          access_token: currentSession.session.access_token,
-          refresh_token: currentSession.session.refresh_token,
-        });
-      }
 
       setSuccess(`Staff account created for ${formData.name} (${formData.email})`);
       resetForm();

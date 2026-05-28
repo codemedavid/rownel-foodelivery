@@ -24,9 +24,9 @@ export function isAdminUser(user: UserLike | null | undefined, adminEmail?: stri
 }
 
 export function isStaffUser(user: UserLike | null | undefined) {
-  return user?.app_metadata?.role === "staff" || user?.user_metadata?.role === "staff";
+  return user?.app_metadata?.role === "staff";
 }
 
 export function isRiderUser(user: UserLike | null | undefined) {
-  return user?.app_metadata?.role === "rider" || user?.user_metadata?.role === "rider";
+  return user?.app_metadata?.role === "rider";
 }
