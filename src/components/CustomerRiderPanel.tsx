@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
 import { Bike, Phone, MessageCircle, Star, MapPin } from 'lucide-react';
-import type { Id } from '../../convex/_generated/dataModel';
+import { messagesApi, ratingsApi, ridersApi } from '../lib/deliveryApi';
+import { useLiveQuery } from '../hooks/useLiveQuery';
 import { fetchRiderById, type RiderProfile } from '../hooks/useRiderProfile';
 import { supabase } from '../lib/supabase';
 import { showNotification, requestNotificationPermission, notificationPermission } from '../lib/notificationUtils';
@@ -10,7 +9,7 @@ import OrderChat from './OrderChat';
 import RiderTrackingMap from './RiderTrackingMap';
 
 interface Props {
-  orderId: Id<'orders'>;
+  orderId: string;
   assignedRiderId: string | undefined;
   orderStatus: string;
   contactNumber: string;
@@ -33,10 +32,11 @@ const CustomerRiderPanel: React.FC<Props> = ({
   const [chatOpen, setChatOpen] = useState(false);
   const [notifDismissed, setNotifDismissed] = useState(false);
 
-  // Track messages to detect new rider messages
-  const messages = useQuery(
-    api.messages.listByOrder,
-    assignedRiderId ? { orderId, contactNumber } : 'skip'
+  // Track messages to detect new rider messages (poll only while chat is open)
+  const { data: messages } = useLiveQuery(
+    () => messagesApi.listByOrder(orderId, contactNumber),
+    [orderId, contactNumber],
+    { enabled: !!assignedRiderId, pollMs: chatOpen ? 6_000 : undefined }
   );
   const riderMsgCount = (messages ?? []).filter((m) => m.senderType === 'rider').length;
 
@@ -68,15 +68,22 @@ const CustomerRiderPanel: React.FC<Props> = ({
     prevMsgCountRef.current = riderMsgCount;
   }, [riderMsgCount, chatOpen]);
 
-  const presence = useQuery(
-    api.riders.getPresenceById,
-    assignedRiderId ? { supabaseUserId: assignedRiderId } : 'skip'
+  const { data: presence } = useLiveQuery(
+    () => ridersApi.getPresenceById(assignedRiderId!),
+    [assignedRiderId],
+    { enabled: !!assignedRiderId, pollMs: 12_000 }
   );
-  const availableRiders = useQuery(
-    api.riders.listAvailableLocations,
-    !assignedRiderId && PRE_ASSIGN_STATUSES.has(orderStatus) ? {} : 'skip'
+  const showFindingRider = !assignedRiderId && PRE_ASSIGN_STATUSES.has(orderStatus);
+  const { data: availableRiders } = useLiveQuery(
+    () => ridersApi.listAvailableLocations(),
+    [],
+    { enabled: showFindingRider, pollMs: 20_000 }
   );
-  const existingRating = useQuery(api.ratings.getForOrder, { orderId });
+  const {
+    data: existingRating,
+    loading: ratingLoading,
+    refetch: refetchRating,
+  } = useLiveQuery(() => ratingsApi.getForOrder(orderId), [orderId]);
 
   useEffect(() => {
     if (!assignedRiderId) return;
@@ -84,7 +91,7 @@ const CustomerRiderPanel: React.FC<Props> = ({
   }, [assignedRiderId]);
 
   // ── State 1: Searching for a rider ────────────────────────────────────────
-  if (!assignedRiderId && PRE_ASSIGN_STATUSES.has(orderStatus)) {
+  if (showFindingRider) {
     const riderList = availableRiders ?? [];
     return (
       <div className="space-y-3">
@@ -273,8 +280,13 @@ const CustomerRiderPanel: React.FC<Props> = ({
         />
       )}
 
-      {orderStatus === 'completed' && !existingRating && (
-        <RatingPrompt orderId={orderId} contactNumber={contactNumber} riderId={assignedRiderId!} />
+      {orderStatus === 'completed' && !ratingLoading && !existingRating && (
+        <RatingPrompt
+          orderId={orderId}
+          contactNumber={contactNumber}
+          riderId={assignedRiderId!}
+          onSubmitted={refetchRating}
+        />
       )}
     </div>
   );
@@ -282,12 +294,12 @@ const CustomerRiderPanel: React.FC<Props> = ({
 
 // ── Rating prompt ────────────────────────────────────────────────────────────
 
-const RatingPrompt: React.FC<{ orderId: Id<'orders'>; contactNumber: string; riderId: string }> = ({
-  orderId,
-  contactNumber,
-  riderId,
-}) => {
-  const submit = useMutation(api.ratings.submit);
+const RatingPrompt: React.FC<{
+  orderId: string;
+  contactNumber: string;
+  riderId: string;
+  onSubmitted?: () => void;
+}> = ({ orderId, contactNumber, riderId, onSubmitted }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -299,7 +311,7 @@ const RatingPrompt: React.FC<{ orderId: Id<'orders'>; contactNumber: string; rid
     setSubmitting(true);
     setError('');
     try {
-      await submit({ orderId, contactNumber, rating, comment: comment.trim() || undefined });
+      await ratingsApi.submit({ orderId, contactNumber, rating, comment: comment.trim() || undefined });
       await supabase
         .rpc('increment_rider_rating', { p_rider_id: riderId, p_rating: rating })
         .catch(async () => {
@@ -319,6 +331,7 @@ const RatingPrompt: React.FC<{ orderId: Id<'orders'>; contactNumber: string; rid
           }
         });
       setDone(true);
+      onSubmitted?.();
     } catch (e: any) {
       setError(e?.message ?? 'Could not submit rating');
     } finally {

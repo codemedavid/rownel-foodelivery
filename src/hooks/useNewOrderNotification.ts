@@ -1,12 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { ConvexOrder } from './useConvexOrders';
+import type { Order } from '../lib/deliveryTypes';
 
 /**
  * Plays a notification sound and shows a browser notification when new orders
  * arrive. Tries `/sounds/new-order.mp3` first; falls back to a Web Audio API
  * generated beep if the file is missing or the browser blocks playback.
  */
-export const useNewOrderNotification = (orders: ConvexOrder[]) => {
+export const useNewOrderNotification = (orders: Order[]) => {
   const prevCountRef = useRef<number>(orders.length);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const initialLoadRef = useRef(true);

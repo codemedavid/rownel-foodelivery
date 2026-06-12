@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
 import { ArrowLeft, Save, Bike } from 'lucide-react';
-import { api } from '../../convex/_generated/api';
+import { dispatchSettingsApi } from '../lib/deliveryApi';
+import { useLiveQuery } from '../hooks/useLiveQuery';
 
 interface Props {
   onBack: () => void;
 }
 
 const DispatchSettingsManager: React.FC<Props> = ({ onBack }) => {
-  const settings = useQuery(api.dispatchSettings.get, {});
-  const update = useMutation(api.dispatchSettings.update);
+  const { data: settings, refetch } = useLiveQuery(() => dispatchSettingsApi.get(), []);
 
   const [radiusKm, setRadiusKm] = useState(5);
   const [expirySec, setExpirySec] = useState(30);
@@ -39,7 +38,7 @@ const DispatchSettingsManager: React.FC<Props> = ({ onBack }) => {
     setSaving(true);
     setError(null);
     try {
-      await update({
+      await dispatchSettingsApi.update({
         offerRadiusKm: Number(radiusKm),
         offerExpiryMs: Math.round(Number(expirySec) * 1000),
         maxConcurrentOffers: Math.round(Number(maxConcurrent)),
@@ -50,6 +49,7 @@ const DispatchSettingsManager: React.FC<Props> = ({ onBack }) => {
         batchProximityKm: Number(batchProximityKm),
       });
       setSavedAt(Date.now());
+      await refetch();
     } catch (e: any) {
       setError(e?.message ?? 'Failed to save');
     } finally {

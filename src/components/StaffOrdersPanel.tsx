@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Search, LogOut, Clock, CheckCircle, ChefHat, Package, Truck, XCircle, Eye, X, Filter, Store, MapPin, CreditCard, Hash, Ruler, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useConvexOrdersByMerchants, ConvexOrder } from '../hooks/useConvexOrders';
+import { useOrdersByMerchants } from '../hooks/useOrdersData';
 import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
 import { useMerchants } from '../hooks/useMerchants';
-import { useQuery } from 'convex/react';
-import { api } from '../../convex/_generated/api';
-import type { Id } from '../../convex/_generated/dataModel';
+import { useLiveQuery } from '../hooks/useLiveQuery';
+import { staffApi } from '../lib/deliveryApi';
+import type { Order } from '../lib/deliveryTypes';
 
 type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
@@ -14,22 +14,21 @@ const StaffOrdersPanel: React.FC = () => {
   const { user, signOut } = useAuth();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
-  const [selectedOrder, setSelectedOrder] = useState<ConvexOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
 
-  // Fetch staff record from Convex using Supabase user ID
-  const staffRecord = useQuery(
-    api.staff.getBySupabaseUser,
-    user ? { supabaseUserId: user.id } : 'skip'
+  // Fetch staff record from Supabase using the auth user ID
+  const { data: staffRecord, loading: staffLoading } = useLiveQuery(
+    () => staffApi.getBySupabaseUser(user!.id),
+    [user?.id],
+    { enabled: !!user }
   );
 
-  // Resolve merchant IDs with backward compat: old merchantId → [merchantId]
-  const merchantIds = staffRecord?.merchantIds
-    ?? (staffRecord?.merchantId ? [staffRecord.merchantId] : null);
+  const merchantIds = staffRecord?.merchantIds ?? null;
   const allMerchants = staffRecord?.allMerchants ?? false;
 
   // Fetch orders for the staff's merchants
-  const { orders, loading: ordersLoading, updateOrderStatus } = useConvexOrdersByMerchants(merchantIds, allMerchants);
+  const { orders, loading: ordersLoading, updateOrderStatus } = useOrdersByMerchants(merchantIds, allMerchants);
   const { requestPermission } = useNewOrderNotification(orders);
   const { merchants } = useMerchants();
 
@@ -42,8 +41,8 @@ const StaffOrdersPanel: React.FC = () => {
     return map;
   }, [merchants]);
 
-  const isLoadingStaff = staffRecord === undefined;
-  const staffNotFound = staffRecord === null;
+  const isLoadingStaff = staffLoading;
+  const staffNotFound = !staffLoading && staffRecord === null;
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -72,10 +71,7 @@ const StaffOrdersPanel: React.FC = () => {
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
       setUpdating(orderId);
-      await updateOrderStatus(
-        orderId as Id<"orders">,
-        newStatus as OrderStatus
-      );
+      await updateOrderStatus(orderId, newStatus as OrderStatus);
     } catch {
       alert('Failed to update order status');
     } finally {
@@ -110,7 +106,7 @@ const StaffOrdersPanel: React.FC = () => {
       (o) =>
         o.customerName.toLowerCase().includes(q) ||
         o.contactNumber.toLowerCase().includes(q) ||
-        (o._id as string).toLowerCase().includes(q) ||
+        o.id.toLowerCase().includes(q) ||
         (o.address || '').toLowerCase().includes(q) ||
         (merchantMap[o.merchantId] || '').toLowerCase().includes(q) ||
         (o.referenceNumber || '').toLowerCase().includes(q)
@@ -259,13 +255,13 @@ const StaffOrdersPanel: React.FC = () => {
           <div className="space-y-4">
             {filtered.map((order) => (
               <div
-                key={order._id}
+                key={order.id}
                 className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-sm font-semibold text-gray-900">
-                      #{(order._id as string).slice(-8).toUpperCase()}
+                      #{order.id.slice(-8).toUpperCase()}
                     </span>
                     <span
                       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
@@ -299,7 +295,7 @@ const StaffOrdersPanel: React.FC = () => {
                         </span>
                       )}
                     </p>
-                    <p className="text-xs">{formatDateTime(order._creationTime)}</p>
+                    <p className="text-xs">{formatDateTime(order.createdAt)}</p>
                   </div>
                 </div>
 
@@ -326,8 +322,8 @@ const StaffOrdersPanel: React.FC = () => {
                   </button>
                   <select
                     value={order.status}
-                    onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
-                    disabled={updating === order._id}
+                    onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                    disabled={updating === order.id}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
                   >
                     <option value="pending">Pending</option>
@@ -337,7 +333,7 @@ const StaffOrdersPanel: React.FC = () => {
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
-                  {updating === order._id && (
+                  {updating === order.id && (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
                   )}
                 </div>
@@ -354,7 +350,7 @@ const StaffOrdersPanel: React.FC = () => {
             <div className="sticky top-0 bg-white border-b border-gray-200 p-5 flex items-center justify-between rounded-t-2xl">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Order #{(selectedOrder._id as string).slice(-8).toUpperCase()}
+                  Order #{selectedOrder.id.slice(-8).toUpperCase()}
                 </h3>
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${getStatusColor(selectedOrder.status)}`}
@@ -386,7 +382,7 @@ const StaffOrdersPanel: React.FC = () => {
                 <div className="text-sm space-y-1">
                   <p><strong>Name:</strong> {selectedOrder.customerName}</p>
                   <p><strong>Contact:</strong> {selectedOrder.contactNumber}</p>
-                  <p><strong>Ordered:</strong> {formatDateTime(selectedOrder._creationTime)}</p>
+                  <p><strong>Ordered:</strong> {formatDateTime(selectedOrder.createdAt)}</p>
                 </div>
               </div>
 
@@ -499,18 +495,18 @@ const StaffOrdersPanel: React.FC = () => {
                 <h4 className="font-semibold text-gray-900 mb-2">Items ({selectedOrder.order_items.length})</h4>
                 <div className="space-y-2">
                   {selectedOrder.order_items.map((item) => (
-                    <div key={item._id} className="p-3 bg-gray-50 rounded-lg flex justify-between">
+                    <div key={item.id} className="p-3 bg-gray-50 rounded-lg flex justify-between">
                       <div>
                         <p className="font-medium text-gray-900">{item.name}</p>
                         {item.variation && (
                           <p className="text-xs text-gray-600">
-                            {typeof item.variation === 'object' && item.variation.name
-                              ? `Size: ${item.variation.name}${item.variation.price != null ? ` (+₱${Number(item.variation.price).toFixed(2)})` : ''}`
+                            {typeof item.variation === 'object' && (item.variation as any).name
+                              ? `Size: ${(item.variation as any).name}${(item.variation as any).price != null ? ` (+₱${Number((item.variation as any).price).toFixed(2)})` : ''}`
                               : `Variation: ${String(item.variation)}`
                             }
                           </p>
                         )}
-                        {item.addOns && item.addOns.length > 0 && (
+                        {Array.isArray(item.addOns) && item.addOns.length > 0 && (
                           <p className="text-xs text-gray-600">
                             Add-ons: {item.addOns.map((a: any) =>
                               a.quantity > 1

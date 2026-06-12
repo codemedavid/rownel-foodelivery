@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
-import type { Id } from '../../convex/_generated/dataModel';
 import {
   ArrowLeft, Wallet, TrendingUp, Clock, CheckCircle2,
   XCircle, ChevronDown, ChevronUp, Plus, DollarSign,
   Calendar, Package, Loader2, AlertTriangle,
 } from 'lucide-react';
+import { earningsApi } from '../lib/deliveryApi';
+import { useLiveQuery } from '../hooks/useLiveQuery';
 import { supabase } from '../lib/supabase';
 import type { RiderProfile, RiderSettings } from '../hooks/useRiderProfile';
 
@@ -57,43 +56,53 @@ const EarningsManager: React.FC<Props> = ({ onBack }) => {
 
   const selectedRider = riders.find((r) => r.id === selectedRiderId) ?? null;
 
-  const orders = useQuery(
-    api.earnings.adminRiderOrders,
-    selectedRiderId ? { riderId: selectedRiderId } : 'skip'
-  ) ?? [];
+  const { data: ordersData, refetch: refetchOrders } = useLiveQuery(
+    () => earningsApi.adminRiderOrders({ riderId: selectedRiderId }),
+    [selectedRiderId],
+    { enabled: !!selectedRiderId }
+  );
+  const orders = ordersData ?? [];
 
-  const payouts = useQuery(
-    api.earnings.adminListPayouts,
-    selectedRiderId ? { riderId: selectedRiderId } : 'skip'
-  ) ?? [];
+  const { data: payoutsData, refetch: refetchPayouts } = useLiveQuery(
+    () => earningsApi.adminListPayouts(selectedRiderId),
+    [selectedRiderId],
+    { enabled: !!selectedRiderId }
+  );
+  const payouts = payoutsData ?? [];
 
-  const markPaid = useMutation(api.earnings.adminMarkPaid);
-  const cancelPayout = useMutation(api.earnings.adminCancelPayout);
+  const markPaid = async (payoutId: string) => {
+    await earningsApi.adminMarkPaid(payoutId);
+    await refetchPayouts();
+  };
+  const cancelPayout = async (payoutId: string) => {
+    await earningsApi.adminCancelPayout(payoutId);
+    await Promise.all([refetchPayouts(), refetchOrders()]);
+  };
 
   const unpaidOrders = useMemo(
-    () => orders.filter((o: any) => !o.payoutId),
+    () => orders.filter((o) => !o.payoutId),
     [orders]
   );
 
   const totalEarned = useMemo(
-    () => orders.reduce((sum: number, o: any) => sum + (o.riderEarning ?? 0), 0),
+    () => orders.reduce((sum, o) => sum + (o.riderEarning ?? 0), 0),
     [orders]
   );
 
   const totalPaid = useMemo(
-    () => (payouts as any[]).filter((p) => p.status === 'paid').reduce((sum: number, p: any) => sum + p.amount, 0),
+    () => payouts.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0),
     [payouts]
   );
 
   const pendingAmount = useMemo(
-    () => (payouts as any[]).filter((p) => p.status === 'pending').reduce((sum: number, p: any) => sum + p.amount, 0),
+    () => payouts.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
     [payouts]
   );
 
   const unpaidEarnings = useMemo(() => {
     if (!selectedRider) return 0;
     return unpaidOrders.reduce(
-      (sum: number, o: any) => sum + calcOrderEarning(o.deliveryFee ?? 0, selectedRider, settings),
+      (sum, o) => sum + calcOrderEarning(o.deliveryFee ?? 0, selectedRider, settings),
       0
     );
   }, [unpaidOrders, selectedRider, settings]);
@@ -180,11 +189,11 @@ const EarningsManager: React.FC<Props> = ({ onBack }) => {
                   {(unpaidOrders as any[]).map((order) => {
                     const earning = calcOrderEarning(order.deliveryFee ?? 0, selectedRider, settings);
                     return (
-                      <div key={order._id} className="px-5 py-3 flex items-center justify-between gap-4">
+                      <div key={order.id} className="px-5 py-3 flex items-center justify-between gap-4">
                         <div className="min-w-0">
                           <p className="font-medium text-sm text-black truncate">{order.customerName}</p>
                           <p className="text-xs text-gray-500 truncate">{order.address ?? '—'}</p>
-                          <p className="text-xs text-gray-400">{fmtDate(order.deliveredAt ?? order._creationTime)}</p>
+                          <p className="text-xs text-gray-400">{fmtDate(order.deliveredAt ?? order.createdAt)}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-xs text-gray-500">Delivery fee: {fmt(order.deliveryFee ?? 0)}</p>
@@ -212,15 +221,15 @@ const EarningsManager: React.FC<Props> = ({ onBack }) => {
                 <div className="divide-y">
                   {(payouts as any[]).map((payout) => (
                     <PayoutRow
-                      key={payout._id}
+                      key={payout.id}
                       payout={payout}
                       orders={orders as any[]}
                       rider={selectedRider}
                       settings={settings}
-                      expanded={expandedPayout === payout._id}
-                      onToggle={() => setExpandedPayout(expandedPayout === payout._id ? null : payout._id)}
-                      onMarkPaid={() => markPaid({ payoutId: payout._id })}
-                      onCancel={() => cancelPayout({ payoutId: payout._id })}
+                      expanded={expandedPayout === payout.id}
+                      onToggle={() => setExpandedPayout(expandedPayout === payout.id ? null : payout.id)}
+                      onMarkPaid={() => markPaid(payout.id)}
+                      onCancel={() => cancelPayout(payout.id)}
                     />
                   ))}
                 </div>
@@ -236,6 +245,10 @@ const EarningsManager: React.FC<Props> = ({ onBack }) => {
           settings={settings}
           orders={unpaidOrders as any[]}
           onClose={() => setShowCreatePayout(false)}
+          onCreated={() => {
+            setShowCreatePayout(false);
+            void Promise.all([refetchOrders(), refetchPayouts()]);
+          }}
         />
       )}
     </div>
@@ -276,8 +289,8 @@ const PayoutRow: React.FC<{
   settings: RiderSettings | null;
   expanded: boolean;
   onToggle: () => void;
-  onMarkPaid: () => void;
-  onCancel: () => void;
+  onMarkPaid: () => Promise<void>;
+  onCancel: () => Promise<void>;
 }> = ({ payout, orders, expanded, onToggle, onMarkPaid, onCancel }) => {
   const [busy, setBusy] = useState(false);
 
@@ -288,7 +301,7 @@ const PayoutRow: React.FC<{
         ? 'bg-gray-100 text-gray-500'
         : 'bg-amber-100 text-amber-700';
 
-  const payoutOrders = orders.filter((o) => payout.orderIds?.includes(o._id));
+  const payoutOrders = orders.filter((o) => o.payoutId === payout.id);
 
   const handle = async (fn: () => Promise<any>) => {
     setBusy(true);
@@ -315,7 +328,7 @@ const PayoutRow: React.FC<{
           <p className="text-xs text-gray-400 mt-0.5">
             Created {fmtDate(payout.createdAt)}
             {payout.paidAt ? ` · Paid ${fmtDate(payout.paidAt)}` : ''}
-            {' · '}{payout.orderIds?.length ?? 0} orders
+            {' · '}{payoutOrders.length} orders
           </p>
         </div>
         {expanded ? <ChevronUp className="h-4 w-4 text-gray-400 shrink-0" /> : <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />}
@@ -326,7 +339,7 @@ const PayoutRow: React.FC<{
           {payoutOrders.length > 0 && (
             <div className="pt-3 space-y-1">
               {payoutOrders.map((o) => (
-                <div key={o._id} className="flex items-center justify-between text-sm">
+                <div key={o.id} className="flex items-center justify-between text-sm">
                   <span className="text-gray-700 truncate">{o.customerName}</span>
                   <span className="font-medium text-gray-900 shrink-0 ml-4">{fmt(o.riderEarning ?? 0)}</span>
                 </div>
@@ -365,11 +378,10 @@ const CreatePayoutModal: React.FC<{
   settings: RiderSettings | null;
   orders: any[];
   onClose: () => void;
-}> = ({ rider, settings, orders, onClose }) => {
-  const createPayout = useMutation(api.earnings.adminCreatePayout);
-
+  onCreated: () => void;
+}> = ({ rider, settings, orders, onClose, onCreated }) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    new Set(orders.map((o) => o._id))
+    new Set(orders.map((o) => o.id))
   );
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -383,7 +395,7 @@ const CreatePayoutModal: React.FC<{
     });
   };
 
-  const selectedOrders = orders.filter((o) => selectedIds.has(o._id));
+  const selectedOrders = orders.filter((o) => selectedIds.has(o.id));
   const totalAmount = selectedOrders.reduce(
     (sum, o) => sum + calcOrderEarning(o.deliveryFee ?? 0, rider, settings),
     0
@@ -393,19 +405,18 @@ const CreatePayoutModal: React.FC<{
     if (selectedIds.size === 0) { setError('Select at least one order.'); return; }
     setSubmitting(true); setError('');
     try {
-      await createPayout({
+      await earningsApi.adminCreatePayout({
         riderId: rider.id,
         amount: Math.round(totalAmount * 100) / 100,
         notes: notes.trim() || undefined,
-        periodFrom: Math.min(...selectedOrders.map((o) => o.deliveredAt ?? o._creationTime)),
-        periodTo: Math.max(...selectedOrders.map((o) => o.deliveredAt ?? o._creationTime)),
-        orderIds: selectedOrders.map((o) => o._id as Id<'orders'>),
+        periodFrom: Math.min(...selectedOrders.map((o) => o.deliveredAt ?? o.createdAt)),
+        periodTo: Math.max(...selectedOrders.map((o) => o.deliveredAt ?? o.createdAt)),
         orderEarnings: selectedOrders.map((o) => ({
-          orderId: o._id as Id<'orders'>,
+          orderId: o.id,
           earning: calcOrderEarning(o.deliveryFee ?? 0, rider, settings),
         })),
       });
-      onClose();
+      onCreated();
     } catch (e: any) {
       setError(e?.message ?? 'Failed to create payout');
     } finally {
@@ -432,7 +443,7 @@ const CreatePayoutModal: React.FC<{
                   setSelectedIds(
                     selectedIds.size === orders.length
                       ? new Set()
-                      : new Set(orders.map((o) => o._id))
+                      : new Set(orders.map((o) => o.id))
                   )
                 }
                 className="text-xs text-red-600 hover:underline"
@@ -443,10 +454,10 @@ const CreatePayoutModal: React.FC<{
             <div className="space-y-1.5 max-h-64 overflow-y-auto">
               {orders.map((order) => {
                 const earning = calcOrderEarning(order.deliveryFee ?? 0, rider, settings);
-                const checked = selectedIds.has(order._id);
+                const checked = selectedIds.has(order.id);
                 return (
                   <label
-                    key={order._id}
+                    key={order.id}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer border transition-colors ${
                       checked ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                     }`}
@@ -454,14 +465,14 @@ const CreatePayoutModal: React.FC<{
                     <input
                       type="checkbox"
                       checked={checked}
-                      onChange={() => toggle(order._id)}
+                      onChange={() => toggle(order.id)}
                       className="accent-red-600"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-black truncate">{order.customerName}</p>
                       <p className="text-xs text-gray-400 flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {fmtDate(order.deliveredAt ?? order._creationTime)}
+                        {fmtDate(order.deliveredAt ?? order.createdAt)}
                         {' · '}fee: {fmt(order.deliveryFee ?? 0)}
                       </p>
                     </div>
@@ -492,7 +503,7 @@ const CreatePayoutModal: React.FC<{
               <p className="text-xs text-gray-500">{selectedIds.size} orders</p>
               <p className="text-xs text-gray-500">
                 {selectedOrders.length > 0
-                  ? `${fmtDate(Math.min(...selectedOrders.map((o) => o.deliveredAt ?? o._creationTime)))} – ${fmtDate(Math.max(...selectedOrders.map((o) => o.deliveredAt ?? o._creationTime)))}`
+                  ? `${fmtDate(Math.min(...selectedOrders.map((o) => o.deliveredAt ?? o.createdAt)))} – ${fmtDate(Math.max(...selectedOrders.map((o) => o.deliveredAt ?? o.createdAt)))}`
                   : ''}
               </p>
             </div>

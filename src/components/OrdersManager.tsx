@@ -1,17 +1,17 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, Search, Image as ImageIcon, Download, Calendar, DollarSign, Store, MapPin, CreditCard, Hash, Ruler, Bike } from 'lucide-react';
-import { useConvexOrders, ConvexOrder } from '../hooks/useConvexOrders';
+import { useAdminOrders } from '../hooks/useOrdersData';
 import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
 import { useMerchants } from '../hooks/useMerchants';
 import { supabase } from '../lib/supabase';
-import type { Id } from '../../convex/_generated/dataModel';
+import type { Order } from '../lib/deliveryTypes';
 
 interface OrdersManagerProps {
   onBack: () => void;
 }
 
 const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
-  const { orders, loading, updateOrderStatus } = useConvexOrders();
+  const { orders, loading, updateOrderStatus } = useAdminOrders();
   const { requestPermission } = useNewOrderNotification(orders);
   const { merchants } = useMerchants();
 
@@ -36,11 +36,11 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
   }, []);
 
   const [error] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<ConvexOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'>('all');
-  const [sortKey, setSortKey] = useState<'_creationTime' | 'total' | 'customerName' | 'status'>('_creationTime');
+  const [sortKey, setSortKey] = useState<'createdAt' | 'total' | 'customerName' | 'status'>('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -88,7 +88,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
     try {
       setUpdating(orderId);
       await updateOrderStatus(
-        orderId as Id<"orders">,
+        orderId,
         newStatus as "pending" | "confirmed" | "preparing" | "ready" | "completed" | "cancelled"
       );
     } catch (err) {
@@ -133,12 +133,12 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
     if (dateFrom) {
       const fromDate = new Date(dateFrom);
       fromDate.setHours(0, 0, 0, 0);
-      dateFiltered = dateFiltered.filter(o => o._creationTime >= fromDate.getTime());
+      dateFiltered = dateFiltered.filter(o => o.createdAt >= fromDate.getTime());
     }
     if (dateTo) {
       const toDate = new Date(dateTo);
       toDate.setHours(23, 59, 59, 999);
-      dateFiltered = dateFiltered.filter(o => o._creationTime <= toDate.getTime());
+      dateFiltered = dateFiltered.filter(o => o.createdAt <= toDate.getTime());
     }
 
     const searched = q.length === 0
@@ -146,7 +146,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
       : dateFiltered.filter(o =>
           o.customerName.toLowerCase().includes(q) ||
           o.contactNumber.toLowerCase().includes(q) ||
-          (o._id as string).toLowerCase().includes(q) ||
+          o.id.toLowerCase().includes(q) ||
           (o.address || '').toLowerCase().includes(q) ||
           (merchantMap[o.merchantId] || '').toLowerCase().includes(q) ||
           (o.referenceNumber || '').toLowerCase().includes(q)
@@ -160,9 +160,9 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
           return a.customerName.localeCompare(b.customerName) * dir;
         case 'status':
           return a.status.localeCompare(b.status) * dir;
-        case '_creationTime':
+        case 'createdAt':
         default:
-          return (a._creationTime - b._creationTime) * dir;
+          return (a.createdAt - b.createdAt) * dir;
       }
     });
     return sorted;
@@ -173,7 +173,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
       setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     } else {
       setSortKey(key);
-      setSortDir(key === '_creationTime' ? 'desc' : 'asc');
+      setSortDir(key === 'createdAt' ? 'desc' : 'asc');
     }
   };
 
@@ -204,12 +204,12 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
       // CSV Rows - Exact order as specified
       const rows = completedOrders.map(order => {
         return [
-          (order._id as string).slice(-8).toUpperCase(),
+          order.id.slice(-8).toUpperCase(),
           order.customerName,
           order.contactNumber,
           'N/A', // Email field not in database
           order.total.toFixed(2),
-          formatDateTimeForCSV(order._creationTime),
+          formatDateTimeForCSV(order.createdAt),
           formatServiceType(order.serviceType),
           order.notes || 'N/A'
         ];
@@ -351,11 +351,11 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                 </select>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => toggleSort('_creationTime')}
-                    className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 ${sortKey==='_creationTime' ? 'border-blue-500 text-blue-700 bg-blue-50' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                    onClick={() => toggleSort('createdAt')}
+                    className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 ${sortKey==='createdAt' ? 'border-blue-500 text-blue-700 bg-blue-50' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
                   >
                     Date
-                    <ChevronDown className={`h-4 w-4 transition-transform ${sortKey==='_creationTime' && sortDir==='asc' ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`h-4 w-4 transition-transform ${sortKey==='createdAt' && sortDir==='asc' ? 'rotate-180' : ''}`} />
                   </button>
                   <button
                     onClick={() => toggleSort('total')}
@@ -501,9 +501,9 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {filtered.map((order) => (
-                      <tr key={order._id} className="hover:bg-gray-50">
+                      <tr key={order.id} className="hover:bg-gray-50">
                         <td className="px-5 py-4">
-                          <div className="font-medium text-gray-900">#{(order._id as string).slice(-8).toUpperCase()}</div>
+                          <div className="font-medium text-gray-900">#{order.id.slice(-8).toUpperCase()}</div>
                           <div className="text-xs text-gray-500">{order.order_items.length} item(s)</div>
                         </td>
                         <td className="px-5 py-4">
@@ -550,7 +550,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                             <span className="ml-1 capitalize">{order.status}</span>
                           </span>
                         </td>
-                        <td className="px-5 py-4 text-gray-700">{formatDateTime(order._creationTime)}</td>
+                        <td className="px-5 py-4 text-gray-700">{formatDateTime(order.createdAt)}</td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
                             <button
@@ -561,8 +561,8 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                             </button>
                             <select
                               value={order.status}
-                              onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
-                              disabled={updating === order._id}
+                              onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                              disabled={updating === order.id}
                               className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
                             >
                               <option value="pending">Pending</option>
@@ -572,7 +572,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                               <option value="completed">Completed</option>
                               <option value="cancelled">Cancelled</option>
                             </select>
-                            {updating === order._id && (
+                            {updating === order.id && (
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                             )}
                           </div>
@@ -587,10 +587,10 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
             {/* Mobile Cards */}
             <div className="md:hidden space-y-4">
               {filtered.map((order) => (
-                <div key={order._id} className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="font-semibold text-gray-900">#{(order._id as string).slice(-8).toUpperCase()}</div>
+                      <div className="font-semibold text-gray-900">#{order.id.slice(-8).toUpperCase()}</div>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                         {getStatusIcon(order.status)}
                         <span className="ml-1 capitalize">{order.status}</span>
@@ -630,7 +630,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                         )}
                       </div>
                     )}
-                    <div className="text-xs text-gray-500 mt-1">{formatDateTime(order._creationTime)}</div>
+                    <div className="text-xs text-gray-500 mt-1">{formatDateTime(order.createdAt)}</div>
                     <div className="flex items-center gap-2 mt-3">
                       <button
                         onClick={() => setSelectedOrder(order)}
@@ -640,8 +640,8 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                       </button>
                       <select
                         value={order.status}
-                        onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
-                        disabled={updating === order._id}
+                        onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                        disabled={updating === order.id}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1"
                       >
                         <option value="pending">Pending</option>
@@ -667,7 +667,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
               <div>
                 <h3 className="text-xl font-semibold text-gray-900">
-                  Order #{(selectedOrder._id as string).slice(-8).toUpperCase()}
+                  Order #{selectedOrder.id.slice(-8).toUpperCase()}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">Complete order details</p>
               </div>
@@ -729,7 +729,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                   <div className="space-y-2 text-sm">
                     <p><strong>Name:</strong> {selectedOrder.customerName}</p>
                     <p><strong>Contact:</strong> {selectedOrder.contactNumber}</p>
-                    <p><strong>Order Date:</strong> {formatDateTime(selectedOrder._creationTime)}</p>
+                    <p><strong>Order Date:</strong> {formatDateTime(selectedOrder.createdAt)}</p>
                   </div>
                 </div>
 
@@ -846,19 +846,19 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                 <h4 className="font-semibold text-gray-900 mb-3">Order Items ({selectedOrder.order_items.length})</h4>
                 <div className="space-y-3">
                   {selectedOrder.order_items.map((item) => (
-                    <div key={item._id} className="p-4 bg-gray-50 rounded-lg">
+                    <div key={item.id} className="p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">{item.name}</div>
                           {item.variation && (
                             <div className="text-sm text-gray-600 mt-1">
-                              {typeof item.variation === 'object' && item.variation.name
-                                ? `Size: ${item.variation.name}${item.variation.price != null ? ` (+₱${Number(item.variation.price).toFixed(2)})` : ''}`
+                              {typeof item.variation === 'object' && (item.variation as any).name
+                                ? `Size: ${(item.variation as any).name}${(item.variation as any).price != null ? ` (+₱${Number((item.variation as any).price).toFixed(2)})` : ''}`
                                 : `Variation: ${String(item.variation)}`
                               }
                             </div>
                           )}
-                          {item.addOns && item.addOns.length > 0 && (
+                          {Array.isArray(item.addOns) && item.addOns.length > 0 && (
                             <div className="text-sm text-gray-600 mt-1">
                               Add-ons: {item.addOns.map((addon: any) =>
                                 addon.quantity > 1

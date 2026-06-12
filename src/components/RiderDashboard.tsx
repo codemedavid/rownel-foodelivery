@@ -1,8 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useConvexAuth } from 'convex/react';
-import { api } from '../../convex/_generated/api';
-import type { Id } from '../../convex/_generated/dataModel';
 import {
   Bike, MapPin, Phone, LogOut, AlertTriangle, CheckCircle, XCircle,
   MessageCircle, Map, User, Home, Package, Navigation, Star,
@@ -10,6 +7,9 @@ import {
   TrendingUp, DollarSign, CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLiveQuery } from '../hooks/useLiveQuery';
+import { ridersApi, offersApi, ordersApi, messagesApi, earningsApi } from '../lib/deliveryApi';
+import type { OfferWithOrder, Order } from '../lib/deliveryTypes';
 import { useRiderProfile, ratingAverage } from '../hooks/useRiderProfile';
 import { useRiderLocation } from '../hooks/useRiderLocation';
 import { useRiderNotifications } from '../hooks/useRiderNotifications';
@@ -23,26 +23,59 @@ type Tab = 'home' | 'chats' | 'map' | 'earnings' | 'profile';
 // ─── Root ────────────────────────────────────────────────────────────────────
 const RiderDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { user, session, loading: authLoading, signOut } = useAuth();
   const { profile } = useRiderProfile();
-  const { isAuthenticated: convexReady } = useConvexAuth();
+  const authReady = !authLoading && !!session;
 
-  const presence = useQuery(api.riders.myPresence);
-  const offers = useQuery(api.offers.listMyOffers) ?? [];
-  const activeOrders = useQuery(api.riders.myActiveOrders) ?? [];
-  const totalUnread = (useQuery(api.messages.unreadCountForRider) ?? 0) as number;
+  const { data: presence, refetch: refetchPresence } = useLiveQuery(
+    () => ridersApi.myPresence(user!.id),
+    [user?.id],
+    { enabled: !!user, pollMs: 30_000 }
+  );
+  const isOnline = presence?.status === 'available' || presence?.status === 'busy';
 
-  const setOnline = useMutation(api.riders.setOnline);
-  const setPermission = useMutation(api.riders.setLocationPermission);
-  const updateLocation = useMutation(api.riders.updateLocation);
-  const acceptOffer = useMutation(api.offers.acceptOffer);
-  const rejectOffer = useMutation(api.offers.rejectOffer);
-  const markPickedUp = useMutation(api.orders.markPickedUp);
-  const markDelivered = useMutation(api.orders.markDelivered);
+  const { data: offersData, refetch: refetchOffers } = useLiveQuery(
+    () => offersApi.listMyOffers(user!.id),
+    [user?.id],
+    {
+      enabled: !!user && isOnline,
+      realtime: user ? [{ table: 'order_offers', filter: `rider_id=eq.${user.id}` }] : undefined,
+      pollMs: 15_000,
+    }
+  );
+
+  const { data: activeOrdersData, refetch: refetchOrders } = useLiveQuery(
+    () => ridersApi.myActiveOrders(user!.id),
+    [user?.id],
+    {
+      enabled: !!user,
+      realtime: user ? [{ table: 'orders', filter: `assigned_rider_id=eq.${user.id}` }] : undefined,
+      pollMs: 30_000,
+    }
+  );
+  const activeOrders = activeOrdersData ?? [];
+
+  const { data: unreadCount } = useLiveQuery(
+    () => messagesApi.unreadCountForRider(),
+    [user?.id],
+    { enabled: !!user && activeOrders.length > 0, pollMs: 20_000 }
+  );
+  const totalUnread = unreadCount ?? 0;
+
+  // Offers expire in ~30s — tick locally so expired ones vanish between polls.
+  const [nowTs, setNowTs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!offersData?.length) return;
+    const id = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [offersData?.length]);
+  const offers = useMemo(
+    () => (offersData ?? []).filter(({ offer }) => offer.expiresAt > nowTs),
+    [offersData, nowTs]
+  );
 
   useRiderNotifications(offers, totalUnread);
 
-  const isOnline = presence?.status === 'available' || presence?.status === 'busy';
   const [enableTracking, setEnableTracking] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [error, setError] = useState('');
@@ -62,34 +95,45 @@ const RiderDashboard: React.FC = () => {
 
   const goOnline = async () => {
     setError('');
-    if (!convexReady) { setError('Still connecting — try again.'); return; }
+    if (!authReady) { setError('Still connecting — try again.'); return; }
     try {
       if (!location.coords) { setError('Waiting for GPS fix — try again in a moment.'); return; }
-      await updateLocation({ latitude: location.coords.latitude, longitude: location.coords.longitude });
-      await setOnline({ online: true });
+      await ridersApi.updateLocation(location.coords.latitude, location.coords.longitude);
+      await ridersApi.setOnline(true);
+      await refetchPresence();
     } catch (e: any) { setError(e?.message ?? 'Could not go online'); }
   };
 
   const goOffline = async () => {
-    await setOnline({ online: false });
+    await ridersApi.setOnline(false);
+    await refetchPresence();
     setEnableTracking(false);
   };
 
-  const handleAccept = async (offerId: any) => {
-    try { await acceptOffer({ offerId }); setActiveTab('home'); }
+  const handleAccept = async (offerId: string) => {
+    try {
+      await offersApi.accept(offerId);
+      await Promise.all([refetchOffers(), refetchOrders()]);
+      setActiveTab('home');
+    }
     catch (e: any) { setError(e?.message ?? 'Could not accept offer'); }
   };
 
-  const handlePickup = async (orderId: Id<'orders'>) => {
+  const handleReject = async (offerId: string) => {
+    try { await offersApi.reject(offerId); await refetchOffers(); }
+    catch (e: any) { setError(e?.message ?? 'Could not skip offer'); }
+  };
+
+  const handlePickup = async (orderId: string) => {
     setBusyOrderId(orderId); setError('');
-    try { await markPickedUp({ orderId }); }
+    try { await ordersApi.markPickedUp(orderId); await refetchOrders(); }
     catch (e: any) { setError(e?.message ?? 'Failed'); }
     finally { setBusyOrderId(null); }
   };
 
-  const handleDeliver = async (orderId: Id<'orders'>) => {
+  const handleDeliver = async (orderId: string) => {
     setBusyOrderId(orderId); setError('');
-    try { await markDelivered({ orderId }); }
+    try { await ordersApi.markDelivered(orderId); await refetchOrders(); }
     catch (e: any) { setError(e?.message ?? 'Failed'); }
     finally { setBusyOrderId(null); }
   };
@@ -122,9 +166,9 @@ const RiderDashboard: React.FC = () => {
 
           <button
             onClick={locationReady ? (isOnline ? goOffline : goOnline) : () => setEnableTracking(true)}
-            disabled={!convexReady && locationReady}
+            disabled={!authReady && locationReady}
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
-              !convexReady && locationReady
+              !authReady && locationReady
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : isOnline
                   ? 'bg-green-50 text-green-700 border border-green-200'
@@ -132,7 +176,7 @@ const RiderDashboard: React.FC = () => {
             }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-white opacity-80'}`} />
-            {!convexReady && locationReady ? 'Connecting…' : isOnline ? 'Online' : 'Go Online'}
+            {!authReady && locationReady ? 'Connecting…' : isOnline ? 'Online' : 'Go Online'}
           </button>
         </div>
 
@@ -170,16 +214,16 @@ const RiderDashboard: React.FC = () => {
             location={location}
             locationStale={locationStale}
             isOnline={isOnline}
-            convexReady={convexReady}
+            authReady={authReady}
             offers={offers}
             sortedOrders={sortedOrders}
             busyOrderId={busyOrderId}
             onRequestLocation={() => setEnableTracking(true)}
             onGoOnline={goOnline}
             onGoOffline={goOffline}
-            onSetDenied={() => setPermission({ permission: 'denied' })}
+            onSetDenied={() => ridersApi.setLocationPermission('denied').catch(() => {})}
             onAcceptOffer={handleAccept}
-            onRejectOffer={(offerId) => rejectOffer({ offerId })}
+            onRejectOffer={handleReject}
             onPickup={handlePickup}
             onDeliver={handleDeliver}
             onViewDetail={(orderId) => navigate(`/rider/order/${orderId}`)}
@@ -193,7 +237,7 @@ const RiderDashboard: React.FC = () => {
             profile={profile}
             avg={avg}
             isOnline={isOnline}
-            convexReady={convexReady}
+            authReady={authReady}
             location={location}
             locationStale={locationStale}
             onRequestLocation={() => setEnableTracking(true)}
@@ -250,23 +294,23 @@ interface HomeTabProps {
   location: ReturnType<typeof useRiderLocation>;
   locationStale: boolean;
   isOnline: boolean;
-  convexReady: boolean;
-  offers: any[];
-  sortedOrders: any[];
+  authReady: boolean;
+  offers: OfferWithOrder[];
+  sortedOrders: Order[];
   busyOrderId: string | null;
   onRequestLocation: () => void;
   onGoOnline: () => void;
   onGoOffline: () => void;
   onSetDenied: () => void;
-  onAcceptOffer: (offerId: any) => void;
-  onRejectOffer: (offerId: any) => void;
-  onPickup: (orderId: Id<'orders'>) => void;
-  onDeliver: (orderId: Id<'orders'>) => void;
+  onAcceptOffer: (offerId: string) => void;
+  onRejectOffer: (offerId: string) => void;
+  onPickup: (orderId: string) => void;
+  onDeliver: (orderId: string) => void;
   onViewDetail: (orderId: string) => void;
 }
 
 const HomeTab: React.FC<HomeTabProps> = ({
-  location, locationStale, isOnline, convexReady,
+  location, locationStale, isOnline, authReady,
   offers, sortedOrders, busyOrderId,
   onRequestLocation, onGoOnline, onGoOffline, onSetDenied,
   onAcceptOffer, onRejectOffer, onPickup, onDeliver, onViewDetail,
@@ -277,7 +321,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
       coords={location.coords}
       stale={locationStale}
       isOnline={isOnline}
-      convexReady={convexReady}
+      authReady={authReady}
       onRequest={onRequestLocation}
       onGoOnline={onGoOnline}
       onGoOffline={onGoOffline}
@@ -296,11 +340,11 @@ const HomeTab: React.FC<HomeTabProps> = ({
           {offers.map(({ offer, order }) =>
             order ? (
               <OfferCard
-                key={offer._id}
+                key={offer.id}
                 offer={offer}
                 order={order}
-                onAccept={() => onAcceptOffer(offer._id)}
-                onReject={() => onRejectOffer(offer._id)}
+                onAccept={() => onAcceptOffer(offer.id)}
+                onReject={() => onRejectOffer(offer.id)}
               />
             ) : null
           )}
@@ -334,13 +378,13 @@ const HomeTab: React.FC<HomeTabProps> = ({
         <div className="space-y-3">
           {sortedOrders.map((order, idx) => (
             <ActiveOrderCard
-              key={order._id}
+              key={order.id}
               order={order}
               index={sortedOrders.length > 1 ? idx + 1 : undefined}
-              busy={busyOrderId === order._id}
-              onPickup={() => onPickup(order._id)}
-              onDeliver={() => onDeliver(order._id)}
-              onViewDetail={() => onViewDetail(order._id)}
+              busy={busyOrderId === order.id}
+              onPickup={() => onPickup(order.id)}
+              onDeliver={() => onDeliver(order.id)}
+              onViewDetail={() => onViewDetail(order.id)}
             />
           ))}
         </div>
@@ -497,7 +541,7 @@ const ActiveOrderCard: React.FC<{
           <Phone className="h-3.5 w-3.5" /> Call
         </a>
 
-        {!isDone && <OrderChatBadge orderId={order._id} />}
+        {!isDone && <OrderChatBadge orderId={order.id} />}
 
         {mapsHref && (
           <a
@@ -556,9 +600,10 @@ const ActiveOrderCard: React.FC<{
   );
 };
 
-const OrderChatBadge: React.FC<{ orderId: Id<'orders'> }> = ({ orderId }) => {
-  const messages = useQuery(api.messages.listByOrder, { orderId }) ?? [];
-  const unread = (messages as any[]).filter((m) => m.senderType === 'customer' && !m.readAt).length;
+const OrderChatBadge: React.FC<{ orderId: string }> = ({ orderId }) => {
+  const { data } = useLiveQuery(() => messagesApi.listByOrder(orderId), [orderId], { pollMs: 20_000 });
+  const messages = data ?? [];
+  const unread = messages.filter((m) => m.senderType === 'customer' && !m.readAt).length;
   return (
     <span className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium ${
       unread > 0 ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -575,7 +620,7 @@ const OrderChatBadge: React.FC<{ orderId: Id<'orders'> }> = ({ orderId }) => {
 };
 
 // ─── Chats Tab ───────────────────────────────────────────────────────────────
-const ChatsTab: React.FC<{ orders: any[] }> = ({ orders }) => {
+const ChatsTab: React.FC<{ orders: Order[] }> = ({ orders }) => {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   if (orders.length === 0) {
@@ -595,10 +640,10 @@ const ChatsTab: React.FC<{ orders: any[] }> = ({ orders }) => {
       <div className="space-y-px">
         {orders.map((order) => (
           <ChatOrderRow
-            key={order._id}
+            key={order.id}
             order={order}
-            expanded={expanded === order._id}
-            onToggle={() => setExpanded(expanded === order._id ? null : order._id)}
+            expanded={expanded === order.id}
+            onToggle={() => setExpanded(expanded === order.id ? null : order.id)}
           />
         ))}
       </div>
@@ -607,17 +652,18 @@ const ChatsTab: React.FC<{ orders: any[] }> = ({ orders }) => {
 };
 
 const ChatOrderRow: React.FC<{
-  order: any;
+  order: Order;
   expanded: boolean;
   onToggle: () => void;
 }> = ({ order, expanded, onToggle }) => {
-  const messages = useQuery(api.messages.listByOrder, { orderId: order._id }) ?? [];
-  const unread = (messages as any[]).filter((m) => m.senderType === 'customer' && !m.readAt).length;
-  const lastMsg = (messages as any[])[messages.length - 1];
+  const { data } = useLiveQuery(() => messagesApi.listByOrder(order.id), [order.id], { pollMs: 15_000 });
+  const messages = data ?? [];
+  const unread = messages.filter((m) => m.senderType === 'customer' && !m.readAt).length;
+  const lastMsg = messages[messages.length - 1];
 
   const timeLabel = lastMsg
     ? (() => {
-        const diff = Date.now() - lastMsg._creationTime;
+        const diff = Date.now() - lastMsg.createdAt;
         if (diff < 60_000) return 'Now';
         if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m`;
         return `${Math.floor(diff / 3_600_000)}h`;
@@ -669,7 +715,7 @@ const ChatOrderRow: React.FC<{
               </span>
               <div className="flex-1 h-px bg-gray-200" />
             </div>
-            <OrderChat orderId={order._id} senderType="rider" isCompleted={order.status === 'completed'} />
+            <OrderChat orderId={order.id} senderType="rider" isCompleted={order.status === 'completed'} />
           </div>
         </div>
       )}
@@ -680,7 +726,7 @@ const ChatOrderRow: React.FC<{
 // ─── Map Tab ─────────────────────────────────────────────────────────────────
 const MapTab: React.FC<{
   location: ReturnType<typeof useRiderLocation>;
-  orders: any[];
+  orders: Order[];
 }> = ({ location, orders }) => {
   if (!location.coords) {
     return (
@@ -714,14 +760,14 @@ const ProfileTab: React.FC<{
   profile: any;
   avg: number | null;
   isOnline: boolean;
-  convexReady: boolean;
+  authReady: boolean;
   location: ReturnType<typeof useRiderLocation>;
   locationStale: boolean;
   onRequestLocation: () => void;
   onGoOnline: () => void;
   onGoOffline: () => void;
   onSignOut: () => void;
-}> = ({ profile, avg, isOnline, convexReady, location, locationStale, onRequestLocation, onGoOnline, onGoOffline, onSignOut }) => {
+}> = ({ profile, avg, isOnline, authReady, location, locationStale, onRequestLocation, onGoOnline, onGoOffline, onSignOut }) => {
   const { user } = useAuth();
   const { updateProfile } = useRiderProfile();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -871,7 +917,7 @@ const ProfileTab: React.FC<{
           coords={location.coords}
           stale={locationStale}
           isOnline={isOnline}
-          convexReady={convexReady}
+          authReady={authReady}
           onRequest={onRequestLocation}
           onGoOnline={onGoOnline}
           onGoOffline={onGoOffline}
@@ -896,7 +942,7 @@ interface LocationBannerProps {
   coords: { latitude: number; longitude: number } | null;
   stale: boolean;
   isOnline: boolean;
-  convexReady: boolean;
+  authReady: boolean;
   onRequest: () => void;
   onGoOnline: () => void;
   onGoOffline: () => void;
@@ -904,7 +950,7 @@ interface LocationBannerProps {
 }
 
 const LocationBanner: React.FC<LocationBannerProps> = ({
-  permission, coords, stale, isOnline, convexReady,
+  permission, coords, stale, isOnline, authReady,
   onRequest, onGoOnline, onGoOffline,
 }) => {
   if (permission === 'denied') {
@@ -956,16 +1002,16 @@ const LocationBanner: React.FC<LocationBannerProps> = ({
       </div>
       <button
         onClick={isOnline ? onGoOffline : onGoOnline}
-        disabled={!convexReady}
+        disabled={!authReady}
         className={`w-full py-3 rounded-xl font-semibold transition-all active:scale-[0.98] ${
-          !convexReady
+          !authReady
             ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
             : isOnline
               ? 'bg-gray-800 text-white hover:bg-gray-900'
               : 'bg-red-600 text-white hover:bg-red-700'
         }`}
       >
-        {!convexReady ? 'Connecting…' : isOnline ? 'Go Offline' : 'Go Online'}
+        {!authReady ? 'Connecting…' : isOnline ? 'Go Offline' : 'Go Online'}
       </button>
     </div>
   );
@@ -1017,9 +1063,25 @@ const NavTab: React.FC<{
 
 // ─── Earnings Tab ────────────────────────────────────────────────────────────
 const EarningsTab: React.FC = () => {
-  const summary = useQuery(api.earnings.myEarningsSummary);
-  const payouts = (useQuery(api.earnings.myPayouts) ?? []) as any[];
-  const recentDeliveries = (useQuery(api.earnings.myRecentDeliveries) ?? []) as any[];
+  const { user } = useAuth();
+  // Only mounted while the Earnings tab is visible — slow polls keep egress low.
+  const { data: summary } = useLiveQuery(
+    () => earningsApi.myEarningsSummary(),
+    [user?.id],
+    { enabled: !!user, pollMs: 60_000 }
+  );
+  const { data: payoutsData } = useLiveQuery(
+    () => earningsApi.myPayouts(user!.id),
+    [user?.id],
+    { enabled: !!user }
+  );
+  const payouts = payoutsData ?? [];
+  const { data: recentData } = useLiveQuery(
+    () => earningsApi.myRecentDeliveries(user!.id),
+    [user?.id],
+    { enabled: !!user }
+  );
+  const recentDeliveries = recentData ?? [];
 
   const fmt = (n: number) =>
     `₱${n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -1088,7 +1150,7 @@ const EarningsTab: React.FC = () => {
           </div>
           <div className="divide-y">
             {payouts.slice(0, 10).map((p) => (
-              <div key={p._id} className="px-4 py-3 flex items-center justify-between gap-3">
+              <div key={p.id} className="px-4 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-sm text-black">{fmt(p.amount)}</p>
                   <p className="text-xs text-gray-400">
@@ -1118,11 +1180,11 @@ const EarningsTab: React.FC = () => {
             <h3 className="font-semibold text-sm text-black uppercase tracking-wide">Recent Deliveries</h3>
           </div>
           <div className="divide-y">
-            {recentDeliveries.slice(0, 15).map((order: any) => (
-              <div key={order._id} className="px-4 py-3 flex items-center justify-between gap-3">
+            {recentDeliveries.slice(0, 15).map((order) => (
+              <div key={order.id} className="px-4 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-black truncate">{order.customerName}</p>
-                  <p className="text-xs text-gray-400">{fmtDate(order.deliveredAt ?? order._creationTime)}</p>
+                  <p className="text-xs text-gray-400">{fmtDate(order.deliveredAt ?? order.createdAt)}</p>
                 </div>
                 <div className="text-right shrink-0">
                   {order.riderEarning != null ? (

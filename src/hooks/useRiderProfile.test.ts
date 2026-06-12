@@ -5,13 +5,6 @@
  *  - ratingAverage() pure function
  *  - useRiderProfile hook (renderHook)
  *  - fetchRiderById / fetchRiderSettings direct calls
- *
- * NOTE on convex/riders.ts & convex/riderActions.ts:
- *  These files export only Convex query/mutation/action wrappers that import
- *  from `convex/_generated/server` and `convex/_generated/api`. Running them
- *  outside a Convex runtime requires `convex-test` (not in this project's
- *  package.json) or a full Convex emulator. Direct handler tests are therefore
- *  SKIPPED — see the bottom of this file for skipped stubs with explanations.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -84,7 +77,7 @@ import {
   fetchRiderSettings,
   type RiderSettings,
 } from './useRiderProfile';
-import { createMockSupabase, makeRiderProfile, makeAuthUser } from '../test/mocks';
+import { makeRiderProfile, makeAuthUser } from '../test/mocks';
 
 // ─── ratingAverage ────────────────────────────────────────────────────────────
 

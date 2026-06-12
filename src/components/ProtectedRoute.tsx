@@ -1,6 +1,5 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useConvexAuth } from 'convex/react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -13,11 +12,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAdmin = false 
 }) => {
   const { user, loading, isAdmin, signOut } = useAuth();
-  const { isLoading: convexAuthLoading } = useConvexAuth();
 
-  // Wait until Convex has attempted its auth handshake before mounting
-  // children, so their useQuery subscriptions don't throw mid-render.
-  if (loading || (user && convexAuthLoading)) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

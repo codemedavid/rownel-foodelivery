@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -6,25 +5,71 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import RiderDashboard from './RiderDashboard';
 import { makeRiderProfile } from '../test/mocks';
 
-// ── convex/react ──────────────────────────────────────────────────────────────
-const mockUseQuery = vi.fn();
+// ── lib/deliveryApi ───────────────────────────────────────────────────────────
+// Query functions return plain (non-promise) values so the useLiveQuery mock
+// below can surface them synchronously. Mutations resolve like the real RPCs.
+const mockMyPresence = vi.fn();
+const mockListMyOffers = vi.fn();
+const mockMyActiveOrders = vi.fn();
+const mockUnreadCount = vi.fn();
+const mockListByOrder = vi.fn();
 const mockSetOnline = vi.fn();
 const mockSetPermission = vi.fn();
 const mockUpdateLocation = vi.fn();
 const mockAcceptOffer = vi.fn();
 const mockRejectOffer = vi.fn();
+const mockMarkPickedUp = vi.fn();
+const mockMarkDelivered = vi.fn();
+const mockEarningsSummary = vi.fn();
+const mockMyPayouts = vi.fn();
+const mockRecentDeliveries = vi.fn();
 
-vi.mock('convex/react', () => ({
-  useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
-  useQuery: (...args: any[]) => mockUseQuery(...args),
-  useMutation: (ref: any) => {
-    // Return a different mock fn per mutation reference string inspection.
-    // We identify by checking the ref's field name if possible, otherwise
-    // return a stable no-op. The component binds each to a const name.
-    return vi.fn().mockImplementation((...a: any[]) => {
-      // Just return a resolved promise for all mutations by default.
-      return Promise.resolve();
-    });
+vi.mock('../lib/deliveryApi', () => ({
+  ridersApi: {
+    myPresence: (...a: any[]) => mockMyPresence(...a),
+    myActiveOrders: (...a: any[]) => mockMyActiveOrders(...a),
+    setOnline: (...a: any[]) => mockSetOnline(...a),
+    setLocationPermission: (...a: any[]) => mockSetPermission(...a),
+    updateLocation: (...a: any[]) => mockUpdateLocation(...a),
+  },
+  offersApi: {
+    listMyOffers: (...a: any[]) => mockListMyOffers(...a),
+    accept: (...a: any[]) => mockAcceptOffer(...a),
+    reject: (...a: any[]) => mockRejectOffer(...a),
+  },
+  ordersApi: {
+    markPickedUp: (...a: any[]) => mockMarkPickedUp(...a),
+    markDelivered: (...a: any[]) => mockMarkDelivered(...a),
+  },
+  messagesApi: {
+    unreadCountForRider: (...a: any[]) => mockUnreadCount(...a),
+    listByOrder: (...a: any[]) => mockListByOrder(...a),
+    send: vi.fn(() => Promise.resolve()),
+    markRead: vi.fn(() => Promise.resolve()),
+  },
+  earningsApi: {
+    myEarningsSummary: (...a: any[]) => mockEarningsSummary(...a),
+    myPayouts: (...a: any[]) => mockMyPayouts(...a),
+    myRecentDeliveries: (...a: any[]) => mockRecentDeliveries(...a),
+  },
+}));
+
+// ── useLiveQuery ──────────────────────────────────────────────────────────────
+// Synchronous stand-in: runs the fetcher immediately (the deliveryApi mocks
+// above return plain values) so components render data on first paint.
+vi.mock('../hooks/useLiveQuery', () => ({
+  useLiveQuery: (fetcher: () => unknown, _deps: unknown[], options: { enabled?: boolean } = {}) => {
+    if (options.enabled === false) {
+      return { data: null, loading: false, error: null, refetch: vi.fn() };
+    }
+    let data: unknown = null;
+    try {
+      data = fetcher();
+    } catch {
+      data = null;
+    }
+    if (data && typeof (data as { then?: unknown }).then === 'function') data = null;
+    return { data, loading: false, error: null, refetch: vi.fn(() => Promise.resolve()) };
   },
 }));
 
@@ -61,12 +106,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 // ── Default return values ─────────────────────────────────────────────────────
-// RiderDashboard calls useQuery 3 times in this order:
-//   1. api.riders.myPresence
-//   2. api.offers.listMyOffers
-//   3. api.riders.myActiveOrders
-// We use mockImplementation with a counter so ordering is predictable across
-// re-renders (React may call hooks multiple times per render cycle).
 function setupDefaults(overrides: {
   presence?: any;
   offers?: any[];
@@ -75,21 +114,34 @@ function setupDefaults(overrides: {
   location?: any;
 } = {}) {
   const profile = overrides.profile ?? makeRiderProfile();
-  const presence = 'presence' in overrides ? overrides.presence : undefined;
+  const presence = 'presence' in overrides ? overrides.presence : null;
   const offers = overrides.offers ?? [];
   const activeOrders = overrides.activeOrders ?? [];
 
-  mockUseAuth.mockReturnValue({ signOut: mockSignOut });
-  mockUseRiderProfile.mockReturnValue({ profile });
-
-  // Track call count so each successive useQuery call gets the right data.
-  let callCount = 0;
-  mockUseQuery.mockImplementation(() => {
-    const idx = callCount++ % 3;
-    if (idx === 0) return presence;
-    if (idx === 1) return offers;
-    return activeOrders;
+  mockUseAuth.mockReturnValue({
+    user: { id: 'rider-1', email: 'rider@example.com' },
+    session: { access_token: 'token' },
+    loading: false,
+    signOut: mockSignOut,
   });
+  mockUseRiderProfile.mockReturnValue({ profile, updateProfile: vi.fn() });
+
+  mockMyPresence.mockReturnValue(presence);
+  mockListMyOffers.mockReturnValue(offers);
+  mockMyActiveOrders.mockReturnValue(activeOrders);
+  mockUnreadCount.mockReturnValue(0);
+  mockListByOrder.mockReturnValue([]);
+  mockEarningsSummary.mockReturnValue(null);
+  mockMyPayouts.mockReturnValue([]);
+  mockRecentDeliveries.mockReturnValue([]);
+
+  mockSetOnline.mockResolvedValue(undefined);
+  mockSetPermission.mockResolvedValue(undefined);
+  mockUpdateLocation.mockResolvedValue(undefined);
+  mockAcceptOffer.mockResolvedValue('order-1');
+  mockRejectOffer.mockResolvedValue(undefined);
+  mockMarkPickedUp.mockResolvedValue(undefined);
+  mockMarkDelivered.mockResolvedValue(undefined);
 
   mockUseRiderLocation.mockReturnValue(
     overrides.location ?? {
@@ -111,8 +163,7 @@ function renderDashboard() {
 
 describe('RiderDashboard', () => {
   beforeEach(() => {
-    mockNavigate.mockReset();
-    mockSignOut.mockReset();
+    vi.clearAllMocks();
     mockSignOut.mockResolvedValue(undefined);
   });
 
@@ -141,7 +192,7 @@ describe('RiderDashboard', () => {
 
   it('shows "Go online" button when rider has GPS fix and is offline', () => {
     setupDefaults({
-      // presence=undefined → isOnline=false; lastUpdate=now → not stale
+      // presence=null → isOnline=false; lastUpdate=now → not stale
       location: {
         permission: 'granted',
         coords: { latitude: 14.5995, longitude: 120.9842 },
@@ -150,13 +201,13 @@ describe('RiderDashboard', () => {
       },
     });
     renderDashboard();
-    expect(screen.getByRole('button', { name: /go online/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /go online/i }).length).toBeGreaterThan(0);
   });
 
   it('shows "Go offline" button when rider is online (presence=available)', async () => {
     // presence=available means isOnline=true
     setupDefaults({
-      presence: { status: 'available' },
+      presence: { riderId: 'rider-1', status: 'available' },
       location: {
         permission: 'granted',
         coords: { latitude: 14.5995, longitude: 120.9842 },
@@ -178,11 +229,12 @@ describe('RiderDashboard', () => {
     setupDefaults({
       activeOrders: [
         {
-          _id: 'order-1',
+          id: 'order-1',
           customerName: 'Juan dela Cruz',
           address: '123 Main St',
           contactNumber: '+63917',
           status: 'ready',
+          order_items: [],
         },
       ],
     });
@@ -195,16 +247,18 @@ describe('RiderDashboard', () => {
     const user = userEvent.setup();
     renderDashboard();
 
+    // Sign Out lives on the Profile tab.
+    await user.click(screen.getByRole('button', { name: /profile/i }));
     await user.click(screen.getByRole('button', { name: /sign out/i }));
 
     await waitFor(() => expect(mockSignOut).toHaveBeenCalled());
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/rider/login'));
   });
 
-  it('shows "No ratings yet" for a rider with zero ratings', () => {
-    setupDefaults({ profile: makeRiderProfile({ rating_count: 0 }) });
+  it('does not show a star rating for a rider with zero ratings', () => {
+    setupDefaults({ profile: makeRiderProfile({ rating_sum: 0, rating_count: 0 }) });
     renderDashboard();
-    expect(screen.getByText(/no ratings yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/★/)).not.toBeInTheDocument();
   });
 
   it('shows star rating for a rider that has ratings', () => {
@@ -220,8 +274,8 @@ describe('RiderDashboard', () => {
     const now = Date.now();
     setupDefaults({
       activeOrders: [
-        { _id: 'order-1', customerName: 'Juan dela Cruz', address: '123 Main St', contactNumber: '+63917', status: 'ready', riderAssignedAt: now - 120_000 },
-        { _id: 'order-2', customerName: 'Maria Santos', address: '456 Oak Ave', contactNumber: '+63918', status: 'ready', riderAssignedAt: now - 60_000 },
+        { id: 'order-1', customerName: 'Juan dela Cruz', address: '123 Main St', contactNumber: '+63917', status: 'ready', riderAssignedAt: now - 120_000, order_items: [] },
+        { id: 'order-2', customerName: 'Maria Santos', address: '456 Oak Ave', contactNumber: '+63918', status: 'ready', riderAssignedAt: now - 60_000, order_items: [] },
       ],
     });
     renderDashboard();
@@ -231,7 +285,7 @@ describe('RiderDashboard', () => {
   it('does not show "Batched" badge for a single active order', () => {
     setupDefaults({
       activeOrders: [
-        { _id: 'order-1', customerName: 'Juan dela Cruz', address: '123 Main St', contactNumber: '+63917', status: 'ready', riderAssignedAt: Date.now() },
+        { id: 'order-1', customerName: 'Juan dela Cruz', address: '123 Main St', contactNumber: '+63917', status: 'ready', riderAssignedAt: Date.now(), order_items: [] },
       ],
     });
     renderDashboard();
@@ -243,34 +297,37 @@ describe('RiderDashboard', () => {
     setupDefaults({
       // Pass newer order first in the array — component should sort it after the older one
       activeOrders: [
-        { _id: 'order-newer', customerName: 'Maria Santos', address: '456 Oak', contactNumber: '+63918', status: 'ready', riderAssignedAt: now - 30_000 },
-        { _id: 'order-older', customerName: 'Juan dela Cruz', address: '123 Main', contactNumber: '+63917', status: 'ready', riderAssignedAt: now - 120_000 },
+        { id: 'order-newer', customerName: 'Maria Santos', address: '456 Oak', contactNumber: '+63918', status: 'ready', riderAssignedAt: now - 30_000, order_items: [] },
+        { id: 'order-older', customerName: 'Juan dela Cruz', address: '123 Main', contactNumber: '+63917', status: 'ready', riderAssignedAt: now - 120_000, order_items: [] },
       ],
     });
     renderDashboard();
-    const cards = screen.getAllByRole('link');
-    // Both order cards are links; the older order should appear first in the DOM
-    const juanIdx = cards.findIndex((el) => el.textContent?.includes('Juan dela Cruz'));
-    const mariaIdx = cards.findIndex((el) => el.textContent?.includes('Maria Santos'));
+    const cards = screen.getAllByText(/dela Cruz|Santos/).map((el) => el.textContent ?? '');
+    // The older order (Juan) should appear before the newer one (Maria) in the DOM
+    const juanIdx = cards.findIndex((t) => t.includes('Juan dela Cruz'));
+    const mariaIdx = cards.findIndex((t) => t.includes('Maria Santos'));
     expect(juanIdx).toBeLessThan(mariaIdx);
   });
 
   it('shows RUSH badge on a priority offer card', () => {
     setupDefaults({
+      // Offers are only fetched while the rider is online.
+      presence: { riderId: 'rider-1', status: 'available' },
       offers: [
         {
-          offer: { _id: 'offer-1', expiresAt: Date.now() + 30_000, distanceKm: 1.2 },
+          offer: { id: 'offer-1', orderId: 'order-1', riderId: 'rider-1', status: 'pending', offeredAt: Date.now(), expiresAt: Date.now() + 30_000, distanceKm: 1.2 },
           order: {
-            _id: 'order-1',
+            id: 'order-1',
             customerName: 'Rush Customer',
             address: '789 Express Way',
             deliveryFee: 80,
             deliveryMode: 'priority',
+            order_items: [],
           },
         },
       ],
     });
     renderDashboard();
-    expect(screen.getByText('RUSH')).toBeInTheDocument();
+    expect(screen.getByText(/rush order/i)).toBeInTheDocument();
   });
 });

@@ -1,32 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
 import { Send } from 'lucide-react';
-import type { Id } from '../../convex/_generated/dataModel';
+import { messagesApi } from '../lib/deliveryApi';
+import { useLiveQuery } from '../hooks/useLiveQuery';
 
 interface Props {
-  orderId: Id<'orders'>;
+  orderId: string;
   senderType: 'customer' | 'rider';
   contactNumber?: string;
   isCompleted?: boolean;
 }
 
 const OrderChat: React.FC<Props> = ({ orderId, senderType, contactNumber, isCompleted = false }) => {
-  const messages = useQuery(api.messages.listByOrder, { orderId, contactNumber }) ?? [];
-  const send = useMutation(api.messages.send);
-  const markRead = useMutation(api.messages.markRead);
+  const { data, refetch } = useLiveQuery(
+    () => messagesApi.listByOrder(orderId, contactNumber),
+    [orderId, contactNumber],
+    { pollMs: 6_000 }
+  );
+  const messages = data ?? [];
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const markReadRef = useRef(markRead);
-  useEffect(() => {
-    markReadRef.current = markRead;
-  }, [markRead]);
-
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-    markReadRef.current({ orderId, contactNumber }).catch(() => {});
+    messagesApi.markRead(orderId, contactNumber).catch(() => {});
   }, [messages.length, orderId, contactNumber]);
 
   const handleSend = async (e: React.FormEvent) => {
@@ -35,8 +32,9 @@ const OrderChat: React.FC<Props> = ({ orderId, senderType, contactNumber, isComp
     if (!trimmed || sending) return;
     setSending(true);
     try {
-      await send({ orderId, senderType, contactNumber, text: trimmed });
+      await messagesApi.send({ orderId, senderType, contactNumber, text: trimmed });
       setText('');
+      await refetch();
     } finally {
       setSending(false);
     }
@@ -51,7 +49,7 @@ const OrderChat: React.FC<Props> = ({ orderId, senderType, contactNumber, isComp
           messages.map((m) => {
             const mine = m.senderType === senderType;
             return (
-              <div key={m._id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+              <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[75%] px-3 py-2 rounded-2xl text-sm ${mine ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
                   {m.text}
                 </div>

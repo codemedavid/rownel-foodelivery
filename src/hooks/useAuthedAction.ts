@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
-import { useConvexAuth } from 'convex/react';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
- * Wraps a mutation/action handler so it short-circuits cleanly when Convex's
- * auth handshake hasn't completed yet. Use for click handlers that fire
- * Convex mutations — the alternative is an "Unauthorized" thrown mid-call.
+ * Wraps a mutation handler so it short-circuits cleanly when the Supabase
+ * session isn't established yet. Use for click handlers that fire
+ * authenticated RPCs — the alternative is an "Unauthorized" thrown mid-call.
  *
  *   const goOnline = useAuthedAction(async () => { await setOnline(...) })
  *   <button onClick={() => goOnline().catch(setError)} disabled={!ready}>
@@ -15,7 +15,8 @@ import { useConvexAuth } from 'convex/react';
 export function useAuthedAction<TArgs extends any[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>
 ) {
-  const { isAuthenticated: ready } = useConvexAuth();
+  const { session, loading } = useAuth();
+  const ready = !loading && !!session;
 
   const run = useCallback(
     async (...args: TArgs) => {

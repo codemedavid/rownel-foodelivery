@@ -13,8 +13,8 @@ import {
   History,
   ExternalLink,
 } from 'lucide-react';
-import { useConvexOrderById, useConvexOrdersByPhone } from '../hooks/useConvexOrders';
-import type { ConvexOrder } from '../hooks/useConvexOrders';
+import { useOrderById, useOrdersByPhone } from '../hooks/useOrdersData';
+import type { Order } from '../lib/deliveryTypes';
 import CustomerRiderPanel from './CustomerRiderPanel';
 
 const STATUS_STEPS = [
@@ -60,7 +60,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function OrderDetail({ order }: { order: ConvexOrder }) {
+function OrderDetail({ order }: { order: Order }) {
   const currentStepIndex = STATUS_STEPS.findIndex((s) => s.key === order.status);
   const isCancelled = order.status === 'cancelled';
 
@@ -69,7 +69,7 @@ function OrderDetail({ order }: { order: ConvexOrder }) {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-800">Order Status</h2>
-          <span className="font-mono text-xs text-gray-400">{order._id}</span>
+          <span className="font-mono text-xs text-gray-400">{order.id}</span>
         </div>
 
         {isCancelled ? (
@@ -105,7 +105,7 @@ function OrderDetail({ order }: { order: ConvexOrder }) {
 
       {order.serviceType === 'delivery' && order.status !== 'cancelled' && (
         <CustomerRiderPanel
-          orderId={order._id}
+          orderId={order.id}
           assignedRiderId={(order as any).assignedRiderId}
           orderStatus={order.status}
           contactNumber={order.contactNumber}
@@ -146,7 +146,7 @@ function OrderDetail({ order }: { order: ConvexOrder }) {
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Placed</span>
             <span className="font-medium">
-              {new Date(order._creationTime).toLocaleDateString('en-US', {
+              {new Date(order.createdAt).toLocaleDateString('en-US', {
                 weekday: 'short', month: 'short', day: 'numeric',
                 hour: '2-digit', minute: '2-digit',
               })}
@@ -159,7 +159,7 @@ function OrderDetail({ order }: { order: ConvexOrder }) {
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Items</h2>
         <div className="space-y-3">
           {order.order_items.map((item) => (
-            <div key={item._id} className="flex justify-between items-start text-sm">
+            <div key={item.id} className="flex justify-between items-start text-sm">
               <div>
                 <p className="font-medium">{item.name}</p>
                 {item.variation && <p className="text-gray-400 text-xs">{(item.variation as any).name}</p>}
@@ -192,7 +192,7 @@ function OrderDetail({ order }: { order: ConvexOrder }) {
 function PhoneLookupTab({ onSelectOrder }: { onSelectOrder: (id: string) => void }) {
   const [phoneInput, setPhoneInput] = useState('');
   const [searchPhone, setSearchPhone] = useState<string | null>(null);
-  const { orders, loading } = useConvexOrdersByPhone(searchPhone);
+  const { orders, loading } = useOrdersByPhone(searchPhone);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,19 +237,19 @@ function PhoneLookupTab({ onSelectOrder }: { onSelectOrder: (id: string) => void
           <p className="text-sm text-gray-500">{orders.length} order{orders.length !== 1 ? 's' : ''} found</p>
           {orders.map((order) => (
             <button
-              key={order._id}
-              onClick={() => onSelectOrder(order._id)}
+              key={order.id}
+              onClick={() => onSelectOrder(order.id)}
               className="w-full bg-white rounded-xl shadow-sm p-4 text-left hover:shadow-md transition-shadow border border-transparent hover:border-red-200"
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="font-mono text-xs text-gray-400 truncate max-w-[55%]">{order._id}</span>
+                <span className="font-mono text-xs text-gray-400 truncate max-w-[55%]">{order.id}</span>
                 <StatusBadge status={order.status} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-gray-800 text-sm">{order.customerName}</p>
                   <p className="text-xs text-gray-500">
-                    {new Date(order._creationTime).toLocaleDateString('en-US', {
+                    {new Date(order.createdAt).toLocaleDateString('en-US', {
                       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                     })}
                   </p>
@@ -301,7 +301,7 @@ function HistoryTab({ onSelectOrder }: { onSelectOrder: (id: string) => void }) 
   }
 
   const activeOrders = history.filter((r) => {
-    // We only know the orderId; status comes from Convex live data, so mark recent ones
+    // We only know the orderId; status comes from live order data, so mark recent ones
     const ageMs = Date.now() - r.placedAt;
     return ageMs < 24 * 60 * 60 * 1000; // show as potentially active if < 24h
   });
@@ -361,7 +361,7 @@ const OrderTracking: React.FC = () => {
   const navigate = useNavigate();
   const [searchId, setSearchId] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>(orderId ? 'track' : 'history');
-  const { order, loading } = useConvexOrderById(orderId ?? null);
+  const { order, loading } = useOrderById(orderId ?? null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

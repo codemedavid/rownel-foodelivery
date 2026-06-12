@@ -5,14 +5,26 @@ import { MemoryRouter } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import CustomerRiderPanel from './CustomerRiderPanel';
 import { makeRiderProfile } from '../test/mocks';
-import type { Id } from '../../convex/_generated/dataModel';
 
-// ── convex/react ──────────────────────────────────────────────────────────────
-const mockUseQuery = vi.fn();
+// ── deliveryApi (replaces the old convex/react useQuery/useMutation mocks) ────
+const mockGetPresenceById = vi.fn();
+const mockListAvailableLocations = vi.fn();
+const mockListByOrder = vi.fn();
+const mockGetForOrder = vi.fn();
+const mockSubmitRating = vi.fn();
 
-vi.mock('convex/react', () => ({
-  useQuery: (...args: any[]) => mockUseQuery(...args),
-  useMutation: () => vi.fn().mockResolvedValue(undefined),
+vi.mock('../lib/deliveryApi', () => ({
+  ridersApi: {
+    getPresenceById: (...args: any[]) => mockGetPresenceById(...args),
+    listAvailableLocations: (...args: any[]) => mockListAvailableLocations(...args),
+  },
+  messagesApi: {
+    listByOrder: (...args: any[]) => mockListByOrder(...args),
+  },
+  ratingsApi: {
+    getForOrder: (...args: any[]) => mockGetForOrder(...args),
+    submit: (...args: any[]) => mockSubmitRating(...args),
+  },
 }));
 
 // ── useRiderProfile (fetchRiderById) ──────────────────────────────────────────
@@ -23,7 +35,7 @@ vi.mock('../hooks/useRiderProfile', () => ({
   ratingAverage: (p: any) => (p?.rating_count > 0 ? p.rating_sum / p.rating_count : null),
 }));
 
-// ── supabase (used inside RatingPrompt) ───────────────────────────────────────
+// ── supabase (used inside RatingPrompt and useLiveQuery) ──────────────────────
 vi.mock('../lib/supabase', () => ({
   supabase: {
     rpc: vi.fn(() => Promise.resolve({ error: null })),
@@ -47,7 +59,7 @@ type PanelProps = React.ComponentProps<typeof CustomerRiderPanel>;
 
 function defaultProps(overrides: Partial<PanelProps> = {}): PanelProps {
   return {
-    orderId: 'order-1' as Id<'orders'>,
+    orderId: 'order-1',
     assignedRiderId: 'rider-1',
     orderStatus: 'out_for_delivery',
     contactNumber: '+639170000000',
@@ -63,38 +75,45 @@ function renderPanel(props: Partial<PanelProps> = {}) {
   );
 }
 
-// CustomerRiderPanel calls useQuery twice:
-//   1. api.riders.getPresenceById  (or skipped when no assignedRiderId)
-//   2. api.ratings.getForOrder
+// CustomerRiderPanel reads two key queries through useLiveQuery:
+//   1. ridersApi.getPresenceById   (skipped when no assignedRiderId)
+//   2. ratingsApi.getForOrder
 // Helper to configure both in one place.
 function setupQuery(presence: any, existingRating: any) {
-  let callCount = 0;
-  mockUseQuery.mockImplementation(() => {
-    const idx = callCount++ % 2;
-    return idx === 0 ? presence : existingRating;
-  });
+  mockGetPresenceById.mockResolvedValue(presence ?? null);
+  mockGetForOrder.mockResolvedValue(existingRating ?? null);
 }
 
 describe('CustomerRiderPanel', () => {
   beforeEach(() => {
-    mockUseQuery.mockReset();
+    mockGetPresenceById.mockReset();
+    mockListAvailableLocations.mockReset();
+    mockListByOrder.mockReset();
+    mockGetForOrder.mockReset();
+    mockSubmitRating.mockReset();
     mockFetchRiderById.mockReset();
+
+    mockListAvailableLocations.mockResolvedValue([]);
+    mockListByOrder.mockResolvedValue([]);
+    mockSubmitRating.mockResolvedValue(undefined);
 
     // Default: no presence, no existing rating.
     setupQuery(undefined, undefined);
   });
 
-  it('renders nothing when assignedRiderId is undefined and status is not "ready"', async () => {
+  it('renders nothing when assignedRiderId is undefined and status is not a pre-assignment status', async () => {
+    // 'cancelled' is outside PRE_ASSIGN_STATUSES (pending/confirmed/preparing/ready),
+    // so with no rider assigned the panel should render nothing at all.
     mockFetchRiderById.mockResolvedValue(null);
-    const { container } = renderPanel({ assignedRiderId: undefined, orderStatus: 'pending' });
+    const { container } = renderPanel({ assignedRiderId: undefined, orderStatus: 'cancelled' });
     await waitFor(() => {}); // let effects settle
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows "Looking for a nearby rider" when status is ready and no riderId', async () => {
+  it('shows the "Finding your rider" state when status is ready and no riderId', async () => {
     mockFetchRiderById.mockResolvedValue(null);
     renderPanel({ assignedRiderId: undefined, orderStatus: 'ready' });
-    expect(await screen.findByText(/looking for a nearby rider/i)).toBeInTheDocument();
+    expect(await screen.findByText(/finding your rider/i)).toBeInTheDocument();
   });
 
   it('renders rider name and plate when fetchRiderById resolves a profile', async () => {
@@ -105,7 +124,7 @@ describe('CustomerRiderPanel', () => {
       vehicle_type: 'motorcycle',
     });
     mockFetchRiderById.mockResolvedValue(profile);
-    mockUseQuery.mockReturnValue(undefined); // presence = undefined
+    mockGetPresenceById.mockResolvedValue(null); // presence unknown
 
     renderPanel();
 
@@ -131,8 +150,10 @@ describe('CustomerRiderPanel', () => {
     renderPanel();
 
     await screen.findByText('Online Rider');
-    // The green dot is a <span> with bg-green-500 - verify via DOM
-    const dot = document.querySelector('.bg-green-500');
+    // The header shows an "Online" label next to a green dot (bg-green-400 span).
+    // Presence resolves asynchronously through useLiveQuery, so wait for it.
+    expect(await screen.findByText('Online')).toBeInTheDocument();
+    const dot = document.querySelector('.bg-green-400');
     expect(dot).toBeInTheDocument();
   });
 
@@ -149,8 +170,8 @@ describe('CustomerRiderPanel', () => {
     await user.click(chatBtn);
     expect(screen.getByTestId('order-chat')).toBeInTheDocument();
 
-    // Clicking again closes the chat
-    await user.click(screen.getByRole('button', { name: /close chat/i }));
+    // Clicking again closes the chat (the toggle button now reads "Close")
+    await user.click(screen.getByRole('button', { name: /^close$/i }));
     expect(screen.queryByTestId('order-chat')).not.toBeInTheDocument();
   });
 
@@ -183,6 +204,8 @@ describe('CustomerRiderPanel', () => {
     renderPanel();
 
     await screen.findByText(profile.name);
-    expect(screen.getByText(/★\s*5\.0/)).toBeInTheDocument();
+    // Average renders as a Star icon followed by "5.0" and the count "(8)"
+    expect(screen.getByText('5.0')).toBeInTheDocument();
+    expect(screen.getByText('(8)')).toBeInTheDocument();
   });
 });

@@ -1,37 +1,54 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
 import {
   ArrowLeft, MapPin, Phone, Package, CheckCircle,
   ChevronRight, Navigation, MessageCircle, AlertTriangle,
 } from 'lucide-react';
-import type { Id } from '../../convex/_generated/dataModel';
 import OrderChat from './OrderChat';
 import RiderTrackingMap from './RiderTrackingMap';
 import { useRiderLocation } from '../hooks/useRiderLocation';
+import { useLiveQuery } from '../hooks/useLiveQuery';
+import { ordersApi, ridersApi, messagesApi } from '../lib/deliveryApi';
+import { useAuth } from '../contexts/AuthContext';
 
 const RiderOrderDetail: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
-  const order = useQuery(api.orders.getById, orderId ? { orderId: orderId as Id<'orders'> } : 'skip');
-  const activeOrders = useQuery(api.riders.myActiveOrders) ?? [];
-  const messages = useQuery(api.messages.listByOrder, orderId ? { orderId: orderId as Id<'orders'> } : 'skip') ?? [];
-  const markPickedUp = useMutation(api.orders.markPickedUp);
-  const markDelivered = useMutation(api.orders.markDelivered);
+  const { user } = useAuth();
+  const {
+    data: order,
+    loading: orderLoading,
+    refetch: refetchOrder,
+  } = useLiveQuery(
+    () => ordersApi.getPublicById(orderId!),
+    [orderId],
+    { enabled: !!orderId, pollMs: 15_000 }
+  );
+  const { data: activeOrdersData } = useLiveQuery(
+    () => ridersApi.myActiveOrders(user!.id),
+    [user?.id],
+    { enabled: !!user, pollMs: 30_000 }
+  );
+  const activeOrders = activeOrdersData ?? [];
+  const { data: messagesData } = useLiveQuery(
+    () => messagesApi.listByOrder(orderId!),
+    [orderId],
+    { enabled: !!orderId, pollMs: 6_000 }
+  );
+  const messages = messagesData ?? [];
   const location = useRiderLocation(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [chatOpen, setChatOpen] = useState(false);
 
-  if (order === undefined) {
+  if (orderLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-gray-400 text-sm animate-pulse">Loading order…</div>
       </div>
     );
   }
-  if (order === null) {
+  if (!order) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-100">
         <p className="text-gray-700">Order not found.</p>
@@ -44,7 +61,7 @@ const RiderOrderDetail: React.FC = () => {
 
   const handlePickup = async () => {
     setBusy(true); setError('');
-    try { await markPickedUp({ orderId: order._id }); }
+    try { await ordersApi.markPickedUp(order.id); await refetchOrder(); }
     catch (e: any) { setError(e?.message ?? 'Failed'); }
     finally { setBusy(false); }
   };
@@ -52,7 +69,7 @@ const RiderOrderDetail: React.FC = () => {
   const handleDeliver = async () => {
     setBusy(true); setError('');
     try {
-      await markDelivered({ orderId: order._id });
+      await ordersApi.markDelivered(order.id);
       navigate('/rider/dashboard');
     } catch (e: any) { setError(e?.message ?? 'Failed'); }
     finally { setBusy(false); }
@@ -64,13 +81,13 @@ const RiderOrderDetail: React.FC = () => {
       : null;
 
   const nextOrder = [...activeOrders]
-    .filter((o) => o._id !== order._id && o.status !== 'completed' && o.status !== 'cancelled')
+    .filter((o) => o.id !== order.id && o.status !== 'completed' && o.status !== 'cancelled')
     .sort((a, b) => (a.riderAssignedAt ?? 0) - (b.riderAssignedAt ?? 0))[0] ?? null;
 
   const isReady = order.status === 'ready';
   const isDelivering = order.status === 'out_for_delivery';
   const isDone = order.status === 'completed';
-  const unread = (messages as any[]).filter((m) => m.senderType === 'customer' && !m.readAt).length;
+  const unread = messages.filter((m) => m.senderType === 'customer' && !m.readAt).length;
 
   return (
     <div className="h-[100dvh] bg-gray-100 flex flex-col overflow-hidden">
@@ -137,7 +154,7 @@ const RiderOrderDetail: React.FC = () => {
 
             {chatOpen && (
               <div className="mt-3">
-                <OrderChat orderId={order._id} senderType="rider" />
+                <OrderChat orderId={order.id} senderType="rider" />
               </div>
             )}
           </div>
@@ -165,13 +182,13 @@ const RiderOrderDetail: React.FC = () => {
           <div className="bg-white rounded-2xl p-4">
             <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">Order Items</p>
             <div className="space-y-2.5">
-              {(order.order_items ?? []).map((item: any) => (
-                <div key={item._id} className="flex justify-between items-start gap-2">
+              {(order.order_items ?? []).map((item) => (
+                <div key={item.id} className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <span className="text-sm text-gray-900">
                       <span className="font-semibold">{item.quantity}×</span> {item.name}
                     </span>
-                    {item.variation && (
+                    {item.variation != null && (
                       <p className="text-xs text-gray-400 mt-0.5">{JSON.stringify(item.variation)}</p>
                     )}
                   </div>
@@ -212,7 +229,7 @@ const RiderOrderDetail: React.FC = () => {
           {/* Next order */}
           {nextOrder && (
             <Link
-              to={`/rider/order/${nextOrder._id}`}
+              to={`/rider/order/${nextOrder.id}`}
               className="flex items-center justify-between bg-white rounded-2xl p-4 hover:bg-gray-50 transition-colors shadow-sm"
             >
               <div className="min-w-0">

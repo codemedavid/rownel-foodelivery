@@ -1,6 +1,5 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useConvexAuth } from 'convex/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRiderProfile } from '../hooks/useRiderProfile';
 
@@ -11,14 +10,8 @@ interface Props {
 const ProtectedRiderRoute: React.FC<Props> = ({ children }) => {
   const { user, loading } = useAuth();
   const { profile, loading: profileLoading } = useRiderProfile();
-  const { isLoading: convexAuthLoading } = useConvexAuth();
 
-  // Wait until Convex has attempted its auth handshake — children subscribe to
-  // Convex queries on mount, so rendering before the handshake completes makes
-  // those queries throw "Unauthorized" mid-render. We don't require the
-  // handshake to *succeed* (that would hang forever on misconfig); the
-  // ErrorBoundary catches anything that still throws downstream.
-  if (loading || (user && (profileLoading || convexAuthLoading))) {
+  if (loading || (user && profileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-500">
         Loading…

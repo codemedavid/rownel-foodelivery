@@ -5,8 +5,7 @@ import { PaymentMethod } from '../types';
 import { usePaymentMethods } from '../hooks/usePaymentMethods';
 import { useCartContext } from '../contexts/CartContext';
 import { useMerchants } from '../hooks/useMerchants';
-import { useMutation, useAction } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import { createOrder } from '../hooks/useOrdersData';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
 import MapLocationPicker from './MapLocationPicker';
 import type { OSMAddressSuggestion } from '../lib/osm';
@@ -22,8 +21,6 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
   const { paymentMethods: allPaymentMethods } = usePaymentMethods();
   const { cartItems, getTotalPrice, clearCart } = useCartContext();
   const { merchants } = useMerchants();
-  const createOrderMutation = useMutation(api.orders.create);
-  const decrementStock = useAction(api.inventoryActions.decrementStock);
   const navigate = useNavigate();
   const totalPrice = getTotalPrice();
   
@@ -368,7 +365,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
           quantity: item.quantity,
         }));
 
-        const orderId = await createOrderMutation({
+        const orderId = await createOrder({
           merchantId,
           customerName: trimmedCustomerName,
           contactNumber: trimmedContactNumber,
@@ -386,16 +383,8 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
           total: orderTotal,
           ipAddress,
           items: orderItems,
+          stockAdjustments: stockAdjustments.length > 0 ? stockAdjustments : undefined,
         });
-
-        // Best-effort inventory decrement via Supabase bridge
-        if (stockAdjustments.length > 0) {
-          try {
-            await decrementStock({ items: stockAdjustments });
-          } catch (err) {
-            console.error("Failed to decrement stock:", err);
-          }
-        }
 
         // Save to local order history
         try {

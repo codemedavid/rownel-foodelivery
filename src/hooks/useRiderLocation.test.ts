@@ -3,47 +3,25 @@
  *
  * Covers:
  *  - disabled → no watchPosition called
- *  - enabled → calls watchPosition, success path calls updateLocation mutation
- *  - throttling (15 s) → two rapid updates → one mutation call
- *  - permission denied → calls setLocationPermission with 'denied'
+ *  - enabled → calls watchPosition, success path calls ridersApi.updateLocation
+ *  - throttling (20 s) → two rapid updates → one API call
+ *  - permission denied → calls ridersApi.setLocationPermission with 'denied'
  *  - cleanup on unmount → clearWatch called
- *
- * NOTE on convex/riders.ts & convex/riderActions.ts:
- *  These files are entirely composed of Convex query/mutation/action/internalQuery
- *  wrappers that import from `convex/_generated/server` and `convex/_generated/api`.
- *  Running them outside a Convex runtime requires either `convex-test` (a
- *  separate package not in package.json) or a heavyweight Convex emulator.
- *  Neither is available in this project, so direct handler tests are SKIPPED.
- *  The pure helper `fetchWithTimeout` and `_verifyAdmin` logic inside those
- *  files are tested indirectly through integration / e2e paths.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRiderLocation } from './useRiderLocation';
 
-// ─── Mock convex/react ────────────────────────────────────────────────────────
+// ─── Mock lib/deliveryApi ─────────────────────────────────────────────────────
 
 const mockUpdateLocation = vi.fn().mockResolvedValue(undefined);
 const mockSetLocationPermission = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('convex/react', () => ({
-  useMutation: (ref: unknown) => {
-    // Distinguish which mutation is being requested by checking the reference
-    // identity stored on the api object.
-    const refStr = String(ref);
-    if (refStr.includes('setLocationPermission')) return mockSetLocationPermission;
-    return mockUpdateLocation;
-  },
-}));
-
-// Mock the generated api so the useMutation selector strings work.
-vi.mock('../../convex/_generated/api', () => ({
-  api: {
-    riders: {
-      updateLocation: 'riders:updateLocation',
-      setLocationPermission: 'riders:setLocationPermission',
-    },
+vi.mock('../lib/deliveryApi', () => ({
+  ridersApi: {
+    updateLocation: (...args: unknown[]) => mockUpdateLocation(...args),
+    setLocationPermission: (...args: unknown[]) => mockSetLocationPermission(...args),
   },
 }));
 
@@ -60,17 +38,20 @@ function getGeoMock() {
 }
 
 function makePosition(lat: number, lng: number): GeolocationPosition {
+  const coords = {
+    latitude: lat,
+    longitude: lng,
+    accuracy: 10,
+    altitude: null,
+    altitudeAccuracy: null,
+    heading: null,
+    speed: null,
+    toJSON() { return this; },
+  };
   return {
-    coords: {
-      latitude: lat,
-      longitude: lng,
-      accuracy: 10,
-      altitude: null,
-      altitudeAccuracy: null,
-      heading: null,
-      speed: null,
-    },
+    coords,
     timestamp: Date.now(),
+    toJSON() { return this; },
   };
 }
 
@@ -122,7 +103,7 @@ describe('useRiderLocation()', () => {
     expect(getGeoMock().watchPosition).toHaveBeenCalledTimes(1);
   });
 
-  it('calls updateLocation mutation on first successful position', async () => {
+  it('calls ridersApi.updateLocation on first successful position', async () => {
     let successCb!: PositionCallback;
     getGeoMock().watchPosition.mockImplementation((onSuccess: PositionCallback) => {
       successCb = onSuccess;
@@ -131,7 +112,7 @@ describe('useRiderLocation()', () => {
 
     renderHook(() => useRiderLocation(true));
 
-    // Advance time past the 15s throttle window so the first update is sent.
+    // Advance time past the 20s throttle window so the first update is sent.
     vi.advanceTimersByTime(20_000);
 
     await act(async () => {
@@ -141,10 +122,7 @@ describe('useRiderLocation()', () => {
     });
 
     expect(mockUpdateLocation).toHaveBeenCalledTimes(1);
-    expect(mockUpdateLocation).toHaveBeenCalledWith({
-      latitude: 14.5995,
-      longitude: 120.9842,
-    });
+    expect(mockUpdateLocation).toHaveBeenCalledWith(14.5995, 120.9842);
   });
 
   it('sets state to granted after a successful position', async () => {
@@ -169,7 +147,7 @@ describe('useRiderLocation()', () => {
 
   // ─── throttling ────────────────────────────────────────────────────────────
 
-  it('throttles updateLocation — two rapid updates produce only one mutation call', async () => {
+  it('throttles updateLocation — two rapid updates produce only one API call', async () => {
     let successCb!: PositionCallback;
     getGeoMock().watchPosition.mockImplementation((onSuccess: PositionCallback) => {
       successCb = onSuccess;
@@ -182,22 +160,22 @@ describe('useRiderLocation()', () => {
     vi.advanceTimersByTime(20_000);
 
     await act(async () => {
-      // First position — should trigger a mutation.
+      // First position — should trigger an update.
       successCb(makePosition(14.0, 120.0));
       await Promise.resolve();
     });
 
-    // Second position arrives immediately — within the 15 s window.
+    // Second position arrives immediately — within the 20 s window.
     await act(async () => {
       successCb(makePosition(14.001, 120.001));
       await Promise.resolve();
     });
 
-    // Only one mutation should have been sent.
+    // Only one update should have been sent.
     expect(mockUpdateLocation).toHaveBeenCalledTimes(1);
   });
 
-  it('sends a second mutation after the throttle window expires', async () => {
+  it('sends a second update after the throttle window expires', async () => {
     let successCb!: PositionCallback;
     getGeoMock().watchPosition.mockImplementation((onSuccess: PositionCallback) => {
       successCb = onSuccess;
@@ -217,7 +195,7 @@ describe('useRiderLocation()', () => {
     expect(mockUpdateLocation).toHaveBeenCalledTimes(1);
 
     // Advance past another full throttle interval.
-    vi.advanceTimersByTime(15_001);
+    vi.advanceTimersByTime(20_001);
 
     await act(async () => {
       successCb(makePosition(14.1, 120.1));
@@ -229,7 +207,7 @@ describe('useRiderLocation()', () => {
 
   // ─── permission denied ─────────────────────────────────────────────────────
 
-  it('sets permission to "denied" and calls setLocationPermission mutation on PERMISSION_DENIED error', async () => {
+  it('sets permission to "denied" and calls setLocationPermission on PERMISSION_DENIED error', async () => {
     let errorCb!: PositionErrorCallback;
     getGeoMock().watchPosition.mockImplementation(
       (_onSuccess: PositionCallback, onError: PositionErrorCallback) => {
@@ -247,7 +225,7 @@ describe('useRiderLocation()', () => {
 
     expect(result.current.permission).toBe('denied');
     expect(result.current.error).toBe('User denied Geolocation');
-    expect(mockSetLocationPermission).toHaveBeenCalledWith({ permission: 'denied' });
+    expect(mockSetLocationPermission).toHaveBeenCalledWith('denied');
   });
 
   it('does NOT call setLocationPermission for non-permission errors', async () => {

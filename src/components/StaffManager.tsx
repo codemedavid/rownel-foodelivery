@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Plus, UserCheck, UserX, Users, X, Pencil, Globe } from 'lucide-react';
-import { useMutation, useQuery, useAction } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import { staffApi } from '../lib/deliveryApi';
+import { useLiveQuery } from '../hooks/useLiveQuery';
+import type { StaffRecord } from '../lib/deliveryTypes';
 import { useMerchants } from '../hooks/useMerchants';
 
 interface StaffManagerProps {
@@ -9,11 +10,7 @@ interface StaffManagerProps {
 }
 
 const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
-  const staffList = useQuery(api.staff.listAll);
-  const adminCreateStaff = useAction(api.staffActions.adminCreateStaff);
-  const updateStaff = useMutation(api.staff.update);
-  const deactivateStaff = useMutation(api.staff.deactivate);
-  const activateStaff = useMutation(api.staff.activate);
+  const { data: staffList, refetch: refetchStaff } = useLiveQuery(() => staffApi.listAll(), []);
   const { merchants } = useMerchants();
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -58,7 +55,7 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
     setIsSubmitting(true);
 
     try {
-      await adminCreateStaff({
+      await staffApi.adminCreateStaff({
         email: formData.email,
         password: formData.password,
         name: formData.name,
@@ -68,6 +65,7 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
 
       setSuccess(`Staff account created for ${formData.name} (${formData.email})`);
       resetForm();
+      await refetchStaff();
     } catch (err) {
       console.error('Error creating staff:', err);
       setError(err instanceof Error ? err.message : 'Failed to create staff account');
@@ -76,11 +74,10 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
     }
   };
 
-  const handleStartEdit = (staff: any) => {
-    const ids = staff.merchantIds ?? (staff.merchantId ? [staff.merchantId] : []);
-    setEditMerchantIds(ids);
+  const handleStartEdit = (staff: StaffRecord) => {
+    setEditMerchantIds(staff.merchantIds ?? []);
     setEditAllMerchants(staff.allMerchants ?? false);
-    setEditingStaffId(staff._id);
+    setEditingStaffId(staff.id);
   };
 
   const handleSaveEdit = async (staffId: string) => {
@@ -90,13 +87,13 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
     }
     try {
       setError(null);
-      await updateStaff({
-        staffId: staffId as any,
+      await staffApi.update(staffId, {
         merchantIds: editMerchantIds,
         allMerchants: editAllMerchants,
       });
       setEditingStaffId(null);
       setSuccess('Staff merchant assignments updated.');
+      await refetchStaff();
     } catch (err) {
       console.error('Error updating staff:', err);
       setError(err instanceof Error ? err.message : 'Failed to update staff');
@@ -106,22 +103,19 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
   const handleToggleActive = async (staffId: string, isActive: boolean) => {
     try {
       setError(null);
-      if (isActive) {
-        await deactivateStaff({ staffId: staffId as any });
-      } else {
-        await activateStaff({ staffId: staffId as any });
-      }
+      await staffApi.setActive(staffId, !isActive);
+      await refetchStaff();
     } catch (err) {
       console.error('Error toggling staff status:', err);
       setError(err instanceof Error ? err.message : 'Failed to update staff status');
     }
   };
 
-  /** Resolve merchant display for a staff record (backward compat) */
-  const getStaffMerchantDisplay = (staff: any) => {
+  /** Resolve merchant display for a staff record */
+  const getStaffMerchantDisplay = (staff: StaffRecord) => {
     if (staff.allMerchants) return null; // handled separately with badge
-    const ids: string[] = staff.merchantIds ?? (staff.merchantId ? [staff.merchantId] : []);
-    return ids.map((id: string) => merchantMap.get(id) || id).join(', ') || 'No merchant';
+    const ids = staff.merchantIds ?? [];
+    return ids.map((id) => merchantMap.get(id) || id).join(', ') || 'No merchant';
   };
 
   // ---- Merchant checkbox list (reused in create + edit) ----
@@ -274,7 +268,7 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
         )}
 
         {/* Staff List */}
-        {staffList === undefined ? (
+        {!staffList ? (
           <div className="text-center py-12 text-gray-500">Loading staff...</div>
         ) : staffList.length === 0 ? (
           <div className="text-center py-12">
@@ -286,7 +280,7 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
           <div className="space-y-4">
             {staffList.map((staff) => (
               <div
-                key={staff._id}
+                key={staff.id}
                 className="bg-white rounded-xl shadow-sm p-4"
               >
                 <div className="flex items-center justify-between">
@@ -320,7 +314,7 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleToggleActive(staff._id, staff.isActive)}
+                      onClick={() => handleToggleActive(staff.id, staff.isActive)}
                       className={`p-2 rounded-lg transition-colors ${
                         staff.isActive
                           ? 'text-red-600 hover:bg-red-50'
@@ -338,7 +332,7 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
                 </div>
 
                 {/* Inline edit panel */}
-                {editingStaffId === staff._id && (
+                {editingStaffId === staff.id && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <MerchantCheckboxList
                       selectedIds={editMerchantIds}
@@ -348,7 +342,7 @@ const StaffManager: React.FC<StaffManagerProps> = ({ onBack }) => {
                     />
                     <div className="flex gap-2 mt-3">
                       <button
-                        onClick={() => handleSaveEdit(staff._id)}
+                        onClick={() => handleSaveEdit(staff.id)}
                         className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
                       >
                         Save

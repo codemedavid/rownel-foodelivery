@@ -8,7 +8,6 @@ import { makeAuthUser, makeRiderProfile } from '../test/mocks';
 // ── Module-level mocks with controllable return values ────────────────────────
 const mockUseAuth = vi.fn();
 const mockUseRiderProfile = vi.fn();
-const mockUseConvexAuth = vi.fn();
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
@@ -17,10 +16,6 @@ vi.mock('../contexts/AuthContext', () => ({
 vi.mock('../hooks/useRiderProfile', () => ({
   useRiderProfile: () => mockUseRiderProfile(),
   ratingAverage: () => null,
-}));
-
-vi.mock('convex/react', () => ({
-  useConvexAuth: () => mockUseConvexAuth(),
 }));
 
 // ── Test helpers ──────────────────────────────────────────────────────────────
@@ -42,8 +37,6 @@ describe('ProtectedRiderRoute', () => {
   beforeEach(() => {
     mockUseAuth.mockReset();
     mockUseRiderProfile.mockReset();
-    mockUseConvexAuth.mockReset();
-    mockUseConvexAuth.mockReturnValue({ isLoading: false });
   });
 
   it('shows a loading indicator while auth is resolving', () => {

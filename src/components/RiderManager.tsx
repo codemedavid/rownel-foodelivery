@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useQuery, useAction } from 'convex/react';
 import { ArrowLeft, Bike, MapPin, Check, X, Save, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { api } from '../../convex/_generated/api';
+import { ridersApi, staffApi } from '../lib/deliveryApi';
+import { useLiveQuery } from '../hooks/useLiveQuery';
 import type { RiderProfile, RiderSettings } from '../hooks/useRiderProfile';
 
 interface Props {
@@ -15,9 +15,9 @@ const RiderManager: React.FC<Props> = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'pending' | 'active' | 'settings'>('pending');
   const [showCreate, setShowCreate] = useState(false);
-  const presence = useQuery(api.riders.listAvailable) ?? [];
-  const presenceByUser = new Map(presence.map((p: any) => [p.supabaseUserId, p]));
-  const setRiderRole = useAction(api.riderActions.adminSetRiderRole);
+  const { data: presenceData } = useLiveQuery(() => ridersApi.listAvailable(), [], { pollMs: 30_000 });
+  const presence = presenceData ?? [];
+  const presenceByUser = new Map(presence.map((p) => [p.riderId, p]));
 
   const refresh = async () => {
     setLoading(true);
@@ -35,7 +35,7 @@ const RiderManager: React.FC<Props> = ({ onBack }) => {
   const approve = async (rider: RiderProfile) => {
     await supabase.from('riders').update({ is_approved: true }).eq('id', rider.id);
     try {
-      await setRiderRole({ userId: rider.id });
+      await staffApi.adminSetRole(rider.id, 'rider');
     } catch (e) {
       console.error('Could not set rider role in app_metadata:', e);
     }
@@ -285,9 +285,6 @@ const PlatformSettings: React.FC<{ settings: RiderSettings; onSaved: () => void 
       >
         {saving ? 'Saving…' : 'Save settings'}
       </button>
-      <p className="text-xs text-gray-500">
-        Note: assignment radius and concurrency are also configured in <code>convex/offers.ts</code> constants — update both for full effect.
-      </p>
     </div>
   );
 };
@@ -312,7 +309,6 @@ interface CreateRiderModalProps {
 }
 
 const CreateRiderModal: React.FC<CreateRiderModalProps> = ({ onClose, onCreated }) => {
-  const create = useAction(api.riderActions.adminCreateRider);
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -332,7 +328,7 @@ const CreateRiderModal: React.FC<CreateRiderModalProps> = ({ onClose, onCreated 
     e.preventDefault();
     setSubmitting(true); setError('');
     try {
-      await create({
+      await staffApi.adminCreateRider({
         email: form.email.trim(),
         password: form.password,
         name: form.name.trim(),

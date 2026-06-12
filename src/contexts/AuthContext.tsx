@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
-import { useQuery } from 'convex/react';
 import { supabase } from '../lib/supabase';
-import { api } from '../../convex/_generated/api';
+import { staffApi } from '../lib/deliveryApi';
+import type { StaffRecord } from '../lib/deliveryTypes';
 import { isAdminUser, isRiderUser, isStaffUser } from '../lib/authRoles';
 
 interface AuthContextType {
@@ -81,10 +81,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   }, []);
 
-  const staffRecord = useQuery(
-    api.staff.getBySupabaseUser,
-    user ? { supabaseUserId: user.id } : 'skip',
-  );
+  const [staffRecord, setStaffRecord] = useState<StaffRecord | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) {
+      setStaffRecord(null);
+      return;
+    }
+    staffApi
+      .getBySupabaseUser(user.id)
+      .then((record) => {
+        if (!cancelled) setStaffRecord(record);
+      })
+      .catch(() => {
+        if (!cancelled) setStaffRecord(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const value = useMemo<AuthContextType>(() => {
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL as string | undefined;

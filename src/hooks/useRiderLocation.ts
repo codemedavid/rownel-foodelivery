@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMutation } from 'convex/react';
-import { api } from '../../convex/_generated/api';
+import { ridersApi } from '../lib/deliveryApi';
 
 export type LocationPermission = 'granted' | 'denied' | 'unknown';
 
@@ -11,24 +10,13 @@ interface State {
   error: string | null;
 }
 
-const MIN_UPDATE_INTERVAL_MS = 15_000;
+// 20s between writes keeps a full shift around ~180 location updates/hour per
+// rider — comfortable headroom on Supabase free-tier request volume.
+const MIN_UPDATE_INTERVAL_MS = 20_000;
 
 // Watches the rider's geolocation while `enabled` is true and pushes updates
-// to Convex. Returns permission state for the dashboard's location gate.
+// to Supabase. Returns permission state for the dashboard's location gate.
 export function useRiderLocation(enabled: boolean) {
-  const updateLocation = useMutation(api.riders.updateLocation);
-  const setPermission = useMutation(api.riders.setLocationPermission);
-
-  // Stash mutations in refs so the watch effect's deps stay [enabled] only.
-  // If we listed the mutation refs in deps, any unstable identity would
-  // tear down and recreate the geolocation watch on every render.
-  const updateLocationRef = useRef(updateLocation);
-  const setPermissionRef = useRef(setPermission);
-  useEffect(() => {
-    updateLocationRef.current = updateLocation;
-    setPermissionRef.current = setPermission;
-  }, [updateLocation, setPermission]);
-
   const [state, setState] = useState<State>({
     permission: 'unknown',
     coords: null,
@@ -77,10 +65,10 @@ export function useRiderLocation(enabled: boolean) {
         ) {
           inFlightRef.current = true;
           lastSentRef.current = now;
-          // Swallow errors silently — the most common cause is a brief Convex
-          // auth gap during a Supabase token refresh. The next watch tick
-          // will retry, so logging would just spam the console.
-          updateLocationRef.current({ latitude, longitude })
+          // Swallow errors silently — the most common cause is a brief auth
+          // gap during a token refresh. The next watch tick will retry.
+          ridersApi
+            .updateLocation(latitude, longitude)
             .catch(() => {})
             .finally(() => {
               inFlightRef.current = false;
@@ -95,7 +83,7 @@ export function useRiderLocation(enabled: boolean) {
           error: err.message,
         }));
         if (denied) {
-          setPermissionRef.current({ permission: 'denied' }).catch(() => {});
+          ridersApi.setLocationPermission('denied').catch(() => {});
         }
       },
       { enableHighAccuracy: true, maximumAge: 10_000, timeout: 30_000 }
