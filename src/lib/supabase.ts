@@ -36,9 +36,11 @@ export type Database = {
           id: string;
           name: string;
           icon: string;
-          merchant_id: string;
+          merchant_id: string | null;
           sort_order: number;
           active: boolean;
+          start_time: string | null;
+          end_time: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -46,9 +48,11 @@ export type Database = {
           id: string;
           name: string;
           icon: string;
-          merchant_id: string;
+          merchant_id?: string | null;
           sort_order?: number;
           active?: boolean;
+          start_time?: string | null;
+          end_time?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -56,9 +60,11 @@ export type Database = {
           id?: string;
           name?: string;
           icon?: string;
-          merchant_id?: string;
+          merchant_id?: string | null;
           sort_order?: number;
           active?: boolean;
+          start_time?: string | null;
+          end_time?: string | null;
           created_at?: string;
           updated_at?: string;
         };
