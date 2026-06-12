@@ -553,6 +553,29 @@ export const dispatchSettingsApi = {
 // Edge Function, which holds the service-role key)
 // ---------------------------------------------------------------------------
 
+/**
+ * Pull a `{ error }` payload out of a FunctionsHttpError's `context`. Its shape
+ * varies by supabase-js version: a `Response` (has `.json()`/`.text()`), an
+ * already-parsed body object, or undefined. Never throws — returns null on any
+ * failure so the caller can fall back to the generic error message.
+ */
+async function extractErrorPayload(ctx: unknown): Promise<{ error?: string } | null> {
+  if (!ctx) return null;
+  try {
+    if (typeof (ctx as Response).json === 'function') {
+      return (await (ctx as Response).json()) as { error?: string };
+    }
+    if (typeof (ctx as Response).text === 'function') {
+      const t = await (ctx as Response).text();
+      return t ? (JSON.parse(t) as { error?: string }) : null;
+    }
+    if (typeof ctx === 'object') return ctx as { error?: string };
+  } catch {
+    // Body wasn't JSON or was already consumed — fall through to null.
+  }
+  return null;
+}
+
 async function invokeAdminUsers<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('admin-users', { body });
   if (error) {

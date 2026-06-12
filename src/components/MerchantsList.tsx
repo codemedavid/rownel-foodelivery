@@ -32,7 +32,8 @@ const MerchantsList: React.FC = () => {
   const { promotions } = usePromotions();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPromotionIndex, setCurrentPromotionIndex] = useState(0);
-  const [showAllNearMe, setShowAllNearMe] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const exploreSectionRef = React.useRef<HTMLDivElement | null>(null);
 
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'ready' | 'error'>('idle');
@@ -277,16 +278,21 @@ const MerchantsList: React.FC = () => {
   }, [merchantsWithDistance]);
 
   const nearMeMerchants = useMemo(() => {
-    if (showAllNearMe) {
-      return allNearMeMerchants;
-    }
-
     return allNearMeMerchants.slice(0, NEAR_ME_VISIBLE_LIMIT);
-  }, [allNearMeMerchants, showAllNearMe]);
+  }, [allNearMeMerchants]);
 
   const popularMerchants = useMemo(() => {
     return [...merchantsWithDistance].sort((a, b) => b.rating - a.rating).slice(0, 5);
   }, [merchantsWithDistance]);
+
+  const exploreMerchants = useMemo(() => {
+    if (!selectedCategory) return allNearMeMerchants;
+    return allNearMeMerchants.filter((m) => m.category === selectedCategory);
+  }, [allNearMeMerchants, selectedCategory]);
+
+  const scrollToExplore = useCallback(() => {
+    exploreSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   const categories = useMemo(() => {
     const cats = new Set(merchantsWithDistance.map((m) => m.category));
@@ -417,7 +423,7 @@ const MerchantsList: React.FC = () => {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-1.5 text-gray-700 font-medium">
               <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-              {merchant.rating.toFixed(1)} <span className="text-gray-400 font-normal">({merchant.totalReviews})</span>
+              4.9
             </div>
             <div className="flex items-center gap-1 text-gray-500">
               <MapPin className="w-3.5 h-3.5" />
@@ -427,6 +433,47 @@ const MerchantsList: React.FC = () => {
           {!openStatus.isOpen && openStatus.nextOpenTime && (
             <p className="text-xs text-red-500 mt-1">{openStatus.nextOpenTime}</p>
           )}
+        </div>
+      </button>
+    );
+  };
+
+  const MerchantGridCard = ({ merchant }: { merchant: MerchantWithDistance }) => {
+    const openStatus = isMerchantOpen(merchant.openingHours);
+    return (
+      <button
+        onClick={() => handleSelectMerchant(merchant.id)}
+        className={`group flex flex-col bg-white rounded-2xl shadow-sm hover:shadow-md transition-all text-left overflow-hidden border border-gray-100${!openStatus.isOpen ? ' opacity-70' : ''}`}
+      >
+        <div className="h-24 sm:h-28 bg-gray-100 relative">
+          {merchant.coverImageUrl || merchant.logoUrl ? (
+            <img
+              src={merchant.coverImageUrl || merchant.logoUrl}
+              alt={merchant.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-2xl text-gray-300">🍽️</div>
+          )}
+          {!openStatus.isOpen && (
+            <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm">
+              Closed
+            </div>
+          )}
+        </div>
+        <div className="p-3 flex-1 flex flex-col">
+          <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-1">{merchant.name}</h3>
+          <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{merchant.cuisineType || merchant.description || 'Restaurant'}</p>
+          <div className="mt-auto pt-2 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1 text-gray-700 font-medium">
+              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+              4.9
+            </div>
+            <div className="flex items-center gap-0.5 text-gray-500">
+              <MapPin className="w-3 h-3" />
+              {typeof merchant.distanceKm === 'number' ? `${merchant.distanceKm.toFixed(1)}km` : 'N/A'}
+            </div>
+          </div>
         </div>
       </button>
     );
@@ -574,30 +621,66 @@ const MerchantsList: React.FC = () => {
             {/* Categories Section */}
             <section>
               <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 snap-x">
-                {categories.map((cat) => (
-                  <div key={cat.id} className="flex flex-col items-center gap-2 min-w-[72px] cursor-pointer group">
-                    <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center text-2xl shadow-sm border border-gray-100 group-hover:scale-105 transition-transform">
-                      {cat.icon}
-                    </div>
-                    <span className="text-xs font-medium text-gray-700">{cat.name}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    scrollToExplore();
+                  }}
+                  className="flex flex-col items-center gap-2 min-w-[72px] group"
+                >
+                  <div
+                    className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl shadow-sm border transition-all group-hover:scale-105 ${
+                      selectedCategory === null
+                        ? 'bg-green-800 border-green-800 text-white'
+                        : 'bg-white border-gray-100'
+                    }`}
+                  >
+                    🍽️
                   </div>
-                ))}
+                  <span className={`text-xs font-medium ${selectedCategory === null ? 'text-green-800' : 'text-gray-700'}`}>
+                    All
+                  </span>
+                </button>
+                {categories.map((cat) => {
+                  const isActive = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(isActive ? null : cat.id);
+                        scrollToExplore();
+                      }}
+                      className="flex flex-col items-center gap-2 min-w-[72px] group"
+                    >
+                      <div
+                        className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl shadow-sm border transition-all group-hover:scale-105 ${
+                          isActive ? 'bg-green-800 border-green-800 text-white' : 'bg-white border-gray-100'
+                        }`}
+                      >
+                        {cat.icon}
+                      </div>
+                      <span className={`text-xs font-medium ${isActive ? 'text-green-800' : 'text-gray-700'}`}>
+                        {cat.name}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </section>
 
-            {/* Restaurants Near Me (Horizontal Scroll) */}
+            {/* Restaurants Near Me (Horizontal Scroll – quick peek of closest) */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900">Restaurants near me</h2>
+                <h2 className="text-lg font-bold text-gray-900">Closest to you</h2>
                 {allNearMeMerchants.length > NEAR_ME_VISIBLE_LIMIT && (
                   <button
                     type="button"
-                    onClick={() => setShowAllNearMe((prev) => !prev)}
+                    onClick={scrollToExplore}
                     className="text-sm text-green-800 font-medium flex items-center hover:text-green-900"
-                    aria-expanded={showAllNearMe}
                   >
-                    {showAllNearMe ? 'See less' : 'See more'}{' '}
-                    {showAllNearMe ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    Explore all <ChevronRight className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -609,6 +692,42 @@ const MerchantsList: React.FC = () => {
                   <div className="text-gray-500 text-sm py-4">No merchants found near your selected location.</div>
                 )}
               </div>
+            </section>
+
+            {/* Explore All Restaurants (Responsive Grid – see everything) */}
+            <section ref={exploreSectionRef} className="scroll-mt-20">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    {selectedCategory
+                      ? `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} stores`
+                      : 'Explore all restaurants'}
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {exploreMerchants.length} {exploreMerchants.length === 1 ? 'store' : 'stores'} near you
+                  </p>
+                </div>
+                {selectedCategory && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory(null)}
+                    className="text-sm text-green-800 font-medium flex items-center hover:text-green-900"
+                  >
+                    Clear filter <X className="w-4 h-4 ml-0.5" />
+                  </button>
+                )}
+              </div>
+              {exploreMerchants.length === 0 ? (
+                <p className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+                  No stores found{selectedCategory ? ' in this category' : ''} near your location.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                  {exploreMerchants.map((merchant) => (
+                    <MerchantGridCard key={merchant.id} merchant={merchant} />
+                  ))}
+                </div>
+              )}
             </section>
 
             <section>
@@ -665,9 +784,13 @@ const MerchantsList: React.FC = () => {
             {/* Popular/Featured (Store near you) */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900">Store near you</h2>
-                <button className="text-sm text-green-800 font-medium flex items-center hover:text-green-900">
-                  See more <ChevronRight className="w-4 h-4" />
+                <h2 className="text-lg font-bold text-gray-900">Popular stores</h2>
+                <button
+                  type="button"
+                  onClick={scrollToExplore}
+                  className="text-sm text-green-800 font-medium flex items-center hover:text-green-900"
+                >
+                  See all <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x">

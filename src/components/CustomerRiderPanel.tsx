@@ -3,7 +3,6 @@ import { Bike, Phone, MessageCircle, Star, MapPin } from 'lucide-react';
 import { messagesApi, ratingsApi, ridersApi } from '../lib/deliveryApi';
 import { useLiveQuery } from '../hooks/useLiveQuery';
 import { fetchRiderById, type RiderProfile } from '../hooks/useRiderProfile';
-import { supabase } from '../lib/supabase';
 import { showNotification, requestNotificationPermission, notificationPermission } from '../lib/notificationUtils';
 import OrderChat from './OrderChat';
 import RiderTrackingMap from './RiderTrackingMap';
@@ -284,7 +283,6 @@ const CustomerRiderPanel: React.FC<Props> = ({
         <RatingPrompt
           orderId={orderId}
           contactNumber={contactNumber}
-          riderId={assignedRiderId!}
           onSubmitted={refetchRating}
         />
       )}
@@ -297,9 +295,8 @@ const CustomerRiderPanel: React.FC<Props> = ({
 const RatingPrompt: React.FC<{
   orderId: string;
   contactNumber: string;
-  riderId: string;
   onSubmitted?: () => void;
-}> = ({ orderId, contactNumber, riderId, onSubmitted }) => {
+}> = ({ orderId, contactNumber, onSubmitted }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -311,25 +308,9 @@ const RatingPrompt: React.FC<{
     setSubmitting(true);
     setError('');
     try {
+      // submit_rider_rating already updates the rider's aggregate rating_sum /
+      // rating_count server-side, so the client must NOT increment again.
       await ratingsApi.submit({ orderId, contactNumber, rating, comment: comment.trim() || undefined });
-      await supabase
-        .rpc('increment_rider_rating', { p_rider_id: riderId, p_rating: rating })
-        .catch(async () => {
-          const { data } = await supabase
-            .from('riders')
-            .select('rating_sum,rating_count')
-            .eq('id', riderId)
-            .single();
-          if (data) {
-            await supabase
-              .from('riders')
-              .update({
-                rating_sum: (data.rating_sum ?? 0) + rating,
-                rating_count: (data.rating_count ?? 0) + 1,
-              })
-              .eq('id', riderId);
-          }
-        });
       setDone(true);
       onSubmitted?.();
     } catch (e: any) {
