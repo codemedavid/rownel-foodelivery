@@ -11,6 +11,7 @@ import MapLocationPicker from './MapLocationPicker';
 import type { OSMAddressSuggestion } from '../lib/osm';
 import { reverseGeocode, isWithinPhilippines } from '../lib/osm';
 import { calculateDeliveryFee, haversineKm } from '../lib/deliveryPricing';
+import { resolveDeliveryMode } from '../lib/deliveryMode';
 import { getMinOrderStatus, isMerchantOpen } from '../lib/timeUtils';
 
 interface CheckoutProps {
@@ -377,7 +378,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
           merchantLongitude: merchantForOrder?.longitude ?? undefined,
           distanceKm: quote?.distanceKm,
           deliveryFee: merchantDeliveryFee,
-          deliveryMode: hasEconomyOption ? deliveryMode : undefined,
+          deliveryMode: resolveDeliveryMode(hasEconomyOption, deliveryMode),
           paymentMethod,
           notes: mergedNotes || undefined,
           total: orderTotal,
