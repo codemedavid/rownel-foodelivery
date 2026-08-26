@@ -11,8 +11,14 @@
 
 /** Chains that operate multiple branches. The branch suffix is not part of the product identity. */
 const KNOWN_BRANDS = [
+  "Pareng Jay's Lechon",
   'Chooks-to-Go',
+  'Kapyem Coffee',
+  'Minute Burger',
+  'Potato Corner',
   'Mang Inasal',
+  'Red Ribbon',
+  'Goldilocks',
   'Shawarma Shack',
   'Big Brew',
   'Don Benitos',

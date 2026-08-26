@@ -48,6 +48,17 @@ describe('deriveBrand', () => {
     expect(deriveBrand('Mang Inasal Bacnotan')).toBe('Mang Inasal');
   });
 
+  it.each([
+    ['Red Ribbon Bauang', 'Red Ribbon'],
+    ['Goldilocks Naguilian', 'Goldilocks'],
+    ['Kapyem Coffee Luna Main', 'Kapyem Coffee'],
+    ['Potato Corner Naguilian', 'Potato Corner'],
+    ['Minute Burger Naguilian', 'Minute Burger'],
+    ["Pareng Jay's Lechon (Luna)", "Pareng Jay's Lechon"],
+  ])('collapses branches of %s onto one brand', (merchantName, expected) => {
+    expect(deriveBrand(merchantName)).toBe(expected);
+  });
+
   it('keeps the full name for an independent merchant', () => {
     expect(deriveBrand('Kusina ni Maria')).toBe('Kusina ni Maria');
   });
