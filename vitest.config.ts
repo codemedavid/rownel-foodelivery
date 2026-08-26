@@ -14,6 +14,7 @@ export default defineConfig({
       provider: 'v8',
       include: [
         'src/lib/imagekit.ts',
+        'src/lib/imageCatalog.ts',
         'src/hooks/useImageUpload.ts',
         'src/components/OptimizedImage.tsx',
         'src/hooks/useRider*.ts',
