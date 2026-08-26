@@ -5,6 +5,7 @@ import {
   buildManifest,
   withCandidates,
   withUpload,
+  autoApprove,
   selectPendingUploads,
   selectPendingReview,
   buildRowUpdates,
@@ -219,7 +220,58 @@ describe('selectPendingUploads', () => {
   });
 });
 
+describe('autoApprove', () => {
+  const pendingWith = (confidence: ImageCandidate['confidence']): ManifestEntry =>
+    withCandidates(entryFor('jollibee::1pc-chickenjoy', buildManifest(merchants, items)), [
+      candidate('https://src.example/x.jpg', confidence),
+    ]);
+
+  it('approves an official candidate for every row', () => {
+    const [entry] = autoApprove([pendingWith('official')], items);
+    expect(entry.status).toBe('approved');
+    expect(entry.targetRowIds).toEqual(['i1', 'i2']);
+  });
+
+  it('approves a likely candidate for every row', () => {
+    expect(autoApprove([pendingWith('likely')], items)[0].status).toBe('approved');
+  });
+
+  it('limits a generic candidate to rows that have no image yet', () => {
+    const [entry] = autoApprove([pendingWith('generic')], items);
+    expect(entry.status).toBe('approved');
+    expect(entry.targetRowIds).toEqual(['i2']);
+  });
+
+  it('rejects a generic candidate when every row already has an image', () => {
+    const allHaveImages = items.map((item) => ({ ...item, imageUrl: 'https://old.example/x.jpg' }));
+    const [entry] = autoApprove([pendingWith('generic')], allHaveImages);
+    expect(entry.status).toBe('rejected');
+    expect(entry.targetRowIds).toEqual([]);
+  });
+
+  it('leaves entries that are not pending review untouched', () => {
+    const manifest = buildManifest(merchants, items);
+    expect(autoApprove(manifest, items)).toEqual(manifest);
+  });
+
+  it('does not mutate the input manifest', () => {
+    const input = [pendingWith('official')];
+    autoApprove(input, items);
+    expect(input[0].status).toBe('pending-review');
+  });
+});
+
 describe('buildRowUpdates', () => {
+  it('updates only the targeted rows when an entry is row-limited', () => {
+    const entry: ManifestEntry = {
+      ...entryFor('jollibee::1pc-chickenjoy', buildManifest(merchants, items)),
+      status: 'uploaded',
+      imagekitUrl: 'https://ik.imagekit.io/x/c.jpg',
+      targetRowIds: ['i2'],
+    };
+    expect(buildRowUpdates([entry])).toEqual([{ rowId: 'i2', imageUrl: 'https://ik.imagekit.io/x/c.jpg' }]);
+  });
+
   it('fans one uploaded image out to every row that shares the product', () => {
     const entry: ManifestEntry = {
       ...entryFor('jollibee::1pc-chickenjoy', buildManifest(merchants, items)),

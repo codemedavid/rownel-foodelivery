@@ -75,6 +75,8 @@ export interface ManifestEntry {
   chosenUrl: string | null;
   imagekitUrl: string | null;
   status: ManifestStatus;
+  /** Rows this entry may write to. Absent means every row in `rowIds`. */
+  targetRowIds?: string[];
 }
 
 export interface RowUpdate {
@@ -152,6 +154,30 @@ export const withUpload = (entry: ManifestEntry, imagekitUrl: string): ManifestE
   return { ...entry, imagekitUrl, status: 'uploaded' };
 };
 
+/**
+ * Applies the review policy that a brand-accurate photo may replace anything,
+ * but a merely generic one may only fill an empty slot — overwriting a
+ * merchant's real photo of their real dish with stock imagery is a downgrade.
+ */
+export const autoApprove = (manifest: ManifestEntry[], items: CatalogItemRow[]): ManifestEntry[] => {
+  const hasImageByRowId = new Map(items.map((item) => [item.id, Boolean(item.imageUrl)]));
+
+  return manifest.map((entry) => {
+    if (entry.status !== 'pending-review') return entry;
+
+    const topConfidence = entry.candidates[0]?.confidence;
+    if (topConfidence !== 'generic') {
+      return { ...entry, status: 'approved', targetRowIds: [...entry.rowIds] };
+    }
+
+    const emptyRowIds = entry.rowIds.filter((rowId) => !hasImageByRowId.get(rowId));
+    if (emptyRowIds.length === 0) {
+      return { ...entry, status: 'rejected', targetRowIds: [] };
+    }
+    return { ...entry, status: 'approved', targetRowIds: emptyRowIds };
+  });
+};
+
 export const selectPendingReview = (manifest: ManifestEntry[]): ManifestEntry[] =>
   manifest.filter((entry) => entry.status === 'pending-review');
 
@@ -162,7 +188,9 @@ export const selectPendingUploads = (manifest: ManifestEntry[]): ManifestEntry[]
 export const buildRowUpdates = (manifest: ManifestEntry[]): RowUpdate[] =>
   manifest
     .filter((entry) => entry.status === 'uploaded' && entry.imagekitUrl)
-    .flatMap((entry) => entry.rowIds.map((rowId) => ({ rowId, imageUrl: entry.imagekitUrl as string })));
+    .flatMap((entry) =>
+      (entry.targetRowIds ?? entry.rowIds).map((rowId) => ({ rowId, imageUrl: entry.imagekitUrl as string })),
+    );
 
 /** Snapshots the current URL of every row an update would overwrite. */
 export const buildRollback = (updates: RowUpdate[], items: CatalogItemRow[]): RowUpdate[] => {
