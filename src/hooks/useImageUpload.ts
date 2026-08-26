@@ -1,69 +1,50 @@
 import { useState } from 'react';
-import { uploadMenuImageToCloudinary, compressImage } from '../lib/cloudinary';
+import { uploadToImageKit, deleteFromImageKit } from '../lib/imagekit';
+import { compressImage } from '../lib/imageCompression';
+
+const MENU_IMAGE_FOLDER = 'menu-items';
+const COMPRESSION_MAX_WIDTH = 1200;
+const COMPRESSION_QUALITY = 0.8;
+
+const PROGRESS_AFTER_COMPRESSION = 40;
+const PROGRESS_COMPLETE = 100;
+const PROGRESS_RESET_DELAY_MS = 1000;
 
 export const useImageUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
   const uploadImage = async (file: File): Promise<string> => {
+    setUploading(true);
+    setUploadProgress(0);
+
     try {
-      setUploading(true);
-      setUploadProgress(0);
+      const compressedFile = await compressImage(
+        file,
+        COMPRESSION_MAX_WIDTH,
+        COMPRESSION_QUALITY
+      );
+      setUploadProgress(PROGRESS_AFTER_COMPRESSION);
 
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-      if (!allowedTypes.includes(file.type)) {
-        throw new Error('Please upload a valid image file (JPEG, PNG, WebP, or GIF)');
-      }
+      const { url } = await uploadToImageKit(compressedFile, { folder: MENU_IMAGE_FOLDER });
+      setUploadProgress(PROGRESS_COMPLETE);
 
-      // Validate file size (10MB limit for Cloudinary)
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      if (file.size > maxSize) {
-        throw new Error('Image size must be less than 10MB');
-      }
-
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 100);
-
-      // Compress image before upload (1200px max, 80% quality)
-      setUploadProgress(20);
-      const compressedFile = await compressImage(file, 1200, 0.8);
-      setUploadProgress(40);
-
-      // Upload to Cloudinary
-      const imageUrl = await uploadMenuImageToCloudinary(compressedFile);
-
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-
-      return imageUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      throw error;
+      return url;
     } finally {
       setUploading(false);
-      setTimeout(() => setUploadProgress(0), 1000);
+      setTimeout(() => setUploadProgress(0), PROGRESS_RESET_DELAY_MS);
     }
   };
 
+  /**
+   * Best-effort removal from storage. A failure here must not block the caller
+   * from unlinking the image, otherwise the UI is stuck on a broken reference.
+   */
   const deleteImage = async (imageUrl: string): Promise<void> => {
     try {
-      // Note: Cloudinary free tier doesn't support deletion via API
-      // Images will be automatically cleaned up after a period of inactivity
-      // For production, you would need to implement server-side deletion
-      console.log('Image deletion requested for:', imageUrl);
-      console.log('Note: Cloudinary free tier images are auto-managed');
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      throw error;
+      await deleteFromImageKit(imageUrl);
+    } catch {
+      // Intentionally swallowed: storage cleanup is not worth failing the edit.
     }
   };
 
@@ -71,6 +52,6 @@ export const useImageUpload = () => {
     uploadImage,
     deleteImage,
     uploading,
-    uploadProgress
+    uploadProgress,
   };
 };

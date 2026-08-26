@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import OptimizedImage from './OptimizedImage';
 
 const ENDPOINT = 'https://ik.imagekit.io/hvqkkhesl';
@@ -71,7 +71,7 @@ describe('OptimizedImage', () => {
     );
 
     // Act
-    screen.getByAltText('Broken').dispatchEvent(new Event('error'));
+    fireEvent.error(screen.getByAltText('Broken'));
 
     // Assert
     expect(screen.getByText('No image')).toBeInTheDocument();

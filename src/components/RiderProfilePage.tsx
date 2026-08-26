@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, Loader2, Star, Bike } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRiderProfile, ratingAverage } from '../hooks/useRiderProfile';
-import { compressImage, uploadRiderPhotoToCloudinary } from '../lib/cloudinary';
+import { compressImage } from '../lib/imageCompression';
+import { uploadToImageKit } from '../lib/imagekit';
 
 const VEHICLE_LABELS: Record<string, string> = {
   motorcycle: 'Motorcycle',
@@ -41,7 +42,10 @@ const RiderProfilePage: React.FC = () => {
     setUploadingPhoto(true);
     try {
       const compressed = await compressImage(file, 800, 0.85);
-      const url = await uploadRiderPhotoToCloudinary(compressed, user.id);
+      const { url } = await uploadToImageKit(compressed, {
+        folder: 'rider-photos',
+        fileName: `rider_${user.id}`,
+      });
       await updateProfile({ photo_url: url });
       setSuccess('Profile photo updated.');
     } catch (err: any) {

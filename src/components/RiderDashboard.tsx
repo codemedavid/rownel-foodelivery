@@ -14,7 +14,8 @@ import { useRiderProfile, ratingAverage } from '../hooks/useRiderProfile';
 import { useRiderLocation } from '../hooks/useRiderLocation';
 import { useRiderNotifications } from '../hooks/useRiderNotifications';
 import { requestNotificationPermission, notificationPermission } from '../lib/notificationUtils';
-import { compressImage, uploadRiderPhotoToCloudinary } from '../lib/cloudinary';
+import { compressImage } from '../lib/imageCompression';
+import { uploadToImageKit } from '../lib/imagekit';
 import RiderTrackingMap from './RiderTrackingMap';
 import OrderChat from './OrderChat';
 
@@ -790,7 +791,10 @@ const ProfileTab: React.FC<{
     setUploadingPhoto(true);
     try {
       const compressed = await compressImage(file, 800, 0.85);
-      const url = await uploadRiderPhotoToCloudinary(compressed, user.id);
+      const { url } = await uploadToImageKit(compressed, {
+        folder: 'rider-photos',
+        fileName: `rider_${user.id}`,
+      });
       await updateProfile({ photo_url: url });
       setFeedback({ type: 'success', msg: 'Photo updated.' });
     } catch (err: any) {
