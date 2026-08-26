@@ -40,15 +40,21 @@ const mapVariation = (v: Row): Variation => ({
   sortOrder: v.sort_order ?? 0,
 });
 
-const mapVariationGroup = (g: Row): VariationGroup => ({
-  id: g.id,
-  name: g.name,
-  required: g.required ?? false,
-  sortOrder: g.sort_order ?? 0,
-  variations: (g.variations ?? [])
-    .map(mapVariation)
-    .sort((a: Variation, b: Variation) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
-});
+// Groups may arrive with nested variations, or (DB shape) as bare rows whose
+// members live in the item's flat variations list linked by variation_group name.
+const mapVariationGroup = (g: Row, flatVariations: Row[]): VariationGroup => {
+  const members =
+    g.variations ?? flatVariations.filter((v) => (v.variation_group ?? 'default') === g.name);
+  return {
+    id: g.id,
+    name: g.name,
+    required: g.required ?? false,
+    sortOrder: g.sort_order ?? 0,
+    variations: members
+      .map(mapVariation)
+      .sort((a: Variation, b: Variation) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+  };
+};
 
 const mapAddOn = (a: Row): AddOn => ({
   id: a.id,
@@ -82,7 +88,7 @@ export const mapMenuItemRow = (row: Row, now: Date = new Date()): MenuItem => {
     available: row.available ?? true,
     variations: row.variations?.map(mapVariation),
     variationGroups: row.variation_groups
-      ?.map(mapVariationGroup)
+      ?.map((g: Row) => mapVariationGroup(g, row.variations ?? []))
       .sort((a: VariationGroup, b: VariationGroup) => a.sortOrder - b.sortOrder),
     addOns: row.add_ons?.map(mapAddOn),
     discountPrice: row.discount_price ?? undefined,

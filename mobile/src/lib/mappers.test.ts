@@ -105,6 +105,22 @@ describe('mapMenuItemRow', () => {
     expect(item.variationGroups?.[0].variations.map((v) => v.name)).toEqual(['Solo', 'Large']);
   });
 
+  it('assembles groups from flat variations linked by variation_group name (DB shape)', () => {
+    const dbShapeRow = {
+      ...itemRow,
+      variations: [
+        { id: 'v1', name: 'Solo', price: 0, variation_group: 'Size', sort_order: 1 },
+        { id: 'v2', name: 'Large', price: 40, variation_group: 'Size', sort_order: 2 },
+      ],
+      variation_groups: [{ id: 'g1', name: 'Size', required: true, sort_order: 1 }],
+    };
+
+    const item = mapMenuItemRow(dbShapeRow, during);
+
+    expect(item.variationGroups?.[0].variations.map((v) => v.name)).toEqual(['Solo', 'Large']);
+    expect(item.variationGroups?.[0].variations[1].price).toBe(40);
+  });
+
   it('defaults availability to true when the column is null', () => {
     const item = mapMenuItemRow({ ...itemRow, available: null }, during);
     expect(item.available).toBe(true);
