@@ -13,6 +13,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
+        'src/lib/imagekit.ts',
+        'src/hooks/useImageUpload.ts',
+        'src/components/OptimizedImage.tsx',
         'src/hooks/useRider*.ts',
         'src/components/Rider*.tsx',
         'src/components/CustomerRiderPanel.tsx',

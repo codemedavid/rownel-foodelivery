@@ -8,6 +8,9 @@ import MobileNav from './MobileNav';
 import { ArrowLeft, Star, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { isMerchantOpen, isCategoryAvailable } from '../lib/timeUtils';
+import OptimizedImage from './OptimizedImage';
+
+const LOGO_WIDTH = 128;
 
 // Preload images for better performance
 const preloadImages = (items: MenuItem[]) => {
@@ -152,9 +155,10 @@ const Menu: React.FC<MenuProps> = ({ menuItems }) => {
               </div>
             </div>
             {selectedMerchant.logoUrl && (
-              <img
+              <OptimizedImage
                 src={selectedMerchant.logoUrl}
                 alt={selectedMerchant.name}
+                width={LOGO_WIDTH}
                 className="w-16 h-16 rounded-2xl object-cover border-2 border-gray-200"
               />
             )}

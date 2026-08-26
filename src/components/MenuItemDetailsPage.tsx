@@ -7,6 +7,10 @@ import { useMenuContext } from '../contexts/MenuContext';
 import { useCartContext } from '../contexts/CartContext';
 import { isMerchantOpen, isCategoryAvailable } from '../lib/timeUtils';
 import { useCategories } from '../hooks/useCategories';
+import OptimizedImage from './OptimizedImage';
+
+// Full-bleed hero on the details page, capped at typical mobile/tablet width.
+const DETAIL_IMAGE_WIDTH = 800;
 
 const MenuItemDetailsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -180,7 +184,7 @@ const MenuItemDetailsPage: React.FC = () => {
           <div className="grid gap-0 md:grid-cols-2">
             <div className="h-72 bg-gray-100 md:h-full">
               {item.image ? (
-                <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                <OptimizedImage src={item.image} alt={item.name} width={DETAIL_IMAGE_WIDTH} isPriority className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-6xl text-gray-300">🍽️</div>
               )}

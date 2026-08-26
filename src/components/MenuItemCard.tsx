@@ -1,6 +1,10 @@
 import React from 'react';
 import { Plus, Minus } from 'lucide-react';
 import { MenuItem } from '../types';
+import OptimizedImage from './OptimizedImage';
+
+// The card image slot renders at ~384px wide on the widest grid column.
+const CARD_IMAGE_WIDTH = 400;
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -46,22 +50,17 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
   return (
     <div className={`group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-md transition-all duration-300 hover:shadow-2xl ${!item.available || disabled ? 'opacity-60' : ''}`}>
       <div className="relative h-52 bg-gradient-to-br from-green-50 to-green-100">
-        {item.image ? (
-          <img
-            src={item.image}
-            alt={item.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-            decoding="async"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-            }}
-          />
-        ) : null}
-        <div className={`absolute inset-0 flex items-center justify-center ${item.image ? 'hidden' : ''}`}>
-          <div className="text-6xl text-gray-400 opacity-20">☕</div>
-        </div>
+        <OptimizedImage
+          src={item.image}
+          alt={item.name}
+          width={CARD_IMAGE_WIDTH}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          fallback={
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-6xl text-gray-400 opacity-20">☕</div>
+            </div>
+          }
+        />
 
         <div className="absolute left-3 top-3 flex flex-col gap-2">
           {item.isOnDiscount && item.discountPrice && (

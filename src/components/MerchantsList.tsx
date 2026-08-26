@@ -10,6 +10,12 @@ import { reverseGeocode, type OSMAddressSuggestion } from '../lib/osm';
 import { useMenu } from '../hooks/useMenu';
 import { usePromotions } from '../hooks/usePromotions';
 import { isMerchantOpen } from '../lib/timeUtils';
+import OptimizedImage from './OptimizedImage';
+
+const MERCHANT_COVER_WIDTH = 600;
+const BANNER_WIDTH = 900;
+const THUMBNAIL_WIDTH = 160;
+const LOGO_WIDTH = 120;
 
 const USER_LOCATION_STORAGE_KEY = 'userDeliveryLocation';
 const MAX_SEARCH_RESULTS = 20;
@@ -402,9 +408,10 @@ const MerchantsList: React.FC = () => {
       >
         <div className="h-32 bg-gray-100 relative">
           {merchant.coverImageUrl || merchant.logoUrl ? (
-            <img
+            <OptimizedImage
               src={merchant.coverImageUrl || merchant.logoUrl}
               alt={merchant.name}
+              width={MERCHANT_COVER_WIDTH}
               className="w-full h-full object-cover"
             />
           ) : null}
@@ -447,9 +454,10 @@ const MerchantsList: React.FC = () => {
       >
         <div className="h-24 sm:h-28 bg-gray-100 relative">
           {merchant.coverImageUrl || merchant.logoUrl ? (
-            <img
+            <OptimizedImage
               src={merchant.coverImageUrl || merchant.logoUrl}
               alt={merchant.name}
+              width={MERCHANT_COVER_WIDTH}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
@@ -488,7 +496,7 @@ const MerchantsList: React.FC = () => {
       <div className="flex items-start gap-3">
         <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100">
           {item.image ? (
-            <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+            <OptimizedImage src={item.image} alt={item.name} width={THUMBNAIL_WIDTH} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xl text-gray-300">🍽️</div>
           )}
@@ -799,7 +807,7 @@ const MerchantsList: React.FC = () => {
                   return (
                     <div key={merchant.id} onClick={() => handleSelectMerchant(merchant.id)} className={`flex flex-col items-center gap-2 cursor-pointer min-w-[80px]${!openStatus.isOpen ? ' opacity-60' : ''}`}>
                       <div className="w-20 h-20 rounded-2xl bg-white shadow-sm border border-gray-100 p-2 overflow-hidden relative">
-                        <img src={merchant.logoUrl || ''} alt={merchant.name} className="w-full h-full object-contain" />
+                        <OptimizedImage src={merchant.logoUrl} alt={merchant.name} width={LOGO_WIDTH} className="w-full h-full object-contain" />
                         {!openStatus.isOpen && (
                           <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-[9px] font-bold text-center py-0.5">
                             Closed
@@ -838,9 +846,11 @@ const MerchantsList: React.FC = () => {
                     }`}
                   >
                     {promotion.banner_image_url ? (
-                      <img
+                      <OptimizedImage
                         src={promotion.banner_image_url}
                         alt={promotion.title}
+                        width={BANNER_WIDTH}
+                        isPriority
                         className="absolute inset-0 w-full h-full object-cover"
                       />
                     ) : (
