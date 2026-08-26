@@ -15,8 +15,16 @@ import { projectRoot } from './loadEnv.mjs';
 import { withCandidates } from '../src/lib/imageCatalog.ts';
 
 const MANIFEST_PATH = resolve(projectRoot, 'docs/images/image-manifest.json');
-const REACHABILITY_TIMEOUT_MS = 15000;
-const MAX_CONCURRENT_CHECKS = 12;
+const REACHABILITY_TIMEOUT_MS = 20000;
+// Wikimedia throttles aggressively; verify one host at a time, paced and retried,
+// so a 429 is never mistaken for a dead image.
+const MAX_CONCURRENT_CHECKS = 3;
+const PER_REQUEST_DELAY_MS = 200;
+const MAX_RETRIES = 4;
+const RETRY_BASE_DELAY_MS = 1500;
+const USER_AGENT = 'rownel-foodelivery-image-audit/1.0 (catalog image verification)';
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const resultsDir = process.argv[2];
 if (!resultsDir) {
@@ -44,39 +52,60 @@ for (const file of readdirSync(resultsDir).filter((f) => /^result-\d+\.json$/.te
 
 console.log(`read ${filesRead} result file(s), ${candidatesByKey.size} product(s) with candidates`);
 
-/** A candidate is only usable if the URL responds and actually serves an image. */
+/**
+ * A candidate is only usable if the URL responds and actually serves an image.
+ * Retries on 429/5xx: a throttled request means "ask again later", not "dead".
+ */
 async function isReachableImage(url) {
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { Range: 'bytes=0-0' },
-      signal: AbortSignal.timeout(REACHABILITY_TIMEOUT_MS),
-    });
-    if (!response.ok) return false;
-    return (response.headers.get('content-type') ?? '').startsWith('image/');
-  } catch {
-    return false;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { Range: 'bytes=0-0', 'User-Agent': USER_AGENT },
+        signal: AbortSignal.timeout(REACHABILITY_TIMEOUT_MS),
+      });
+      if (response.status === 429 || response.status >= 500) {
+        await sleep(RETRY_BASE_DELAY_MS * 2 ** attempt);
+        continue;
+      }
+      if (!response.ok) return false;
+      return (response.headers.get('content-type') ?? '').startsWith('image/');
+    } catch {
+      await sleep(RETRY_BASE_DELAY_MS * 2 ** attempt);
+    }
   }
+  return false;
 }
 
-const allCandidates = [...candidatesByKey.values()].flat();
+// Verification is advisory only. Some hosts (Wikimedia among them) block this
+// network but serve ImageKit fine, so a failed check annotates the candidate
+// rather than discarding it. The upload step is the real gate: it fails loudly
+// per item without aborting the batch.
 const verdicts = new Map();
 
-for (let i = 0; i < allCandidates.length; i += MAX_CONCURRENT_CHECKS) {
-  const batch = allCandidates.slice(i, i + MAX_CONCURRENT_CHECKS);
-  const results = await Promise.all(batch.map((c) => isReachableImage(c.url)));
-  batch.forEach((c, index) => verdicts.set(c.url, results[index]));
-  process.stdout.write(`\r  verified ${Math.min(i + batch.length, allCandidates.length)}/${allCandidates.length}`);
-}
-console.log();
+if (process.argv.includes('--verify')) {
+  const allCandidates = [...candidatesByKey.values()].flat();
+  const unique = [...new Map(allCandidates.map((c) => [c.url, c])).values()];
 
-const dead = [...verdicts.values()].filter((ok) => !ok).length;
-console.log(`  ${verdicts.size - dead} reachable, ${dead} dropped as unreachable or non-image`);
+  for (let i = 0; i < unique.length; i += MAX_CONCURRENT_CHECKS) {
+    const batch = unique.slice(i, i + MAX_CONCURRENT_CHECKS);
+    const results = await Promise.all(batch.map((c) => isReachableImage(c.url)));
+    batch.forEach((c, index) => verdicts.set(c.url, results[index]));
+    process.stdout.write(`\r  checked ${Math.min(i + batch.length, unique.length)}/${unique.length}`);
+    await sleep(PER_REQUEST_DELAY_MS);
+  }
+  console.log();
+  const unreachable = [...verdicts.values()].filter((ok) => !ok).length;
+  console.log(`  ${verdicts.size - unreachable} confirmed reachable, ${unreachable} unverified (kept)`);
+}
 
 const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
 const next = manifest.map((entry) => {
   if (entry.status === 'uploaded') return entry;
-  const found = (candidatesByKey.get(entry.key) ?? []).filter((c) => verdicts.get(c.url));
+  const found = (candidatesByKey.get(entry.key) ?? []).map((c) => ({
+    ...c,
+    ...(verdicts.has(c.url) ? { verified: verdicts.get(c.url) } : {}),
+  }));
   return withCandidates(entry, found);
 });
 
