@@ -163,3 +163,42 @@ describe('buildOrderItemRows', () => {
     expect(rows[0].variation).toBeNull();
   });
 });
+
+describe('buildCreateOrderInput', () => {
+  it('builds the create_order RPC payload with camelCase keys and item subtotals', () => {
+    const input = buildCreateOrderInput(baseOrder);
+
+    expect(input.merchantId).toBe('m-1');
+    expect(input.customerName).toBe('Juan Dela Cruz');
+    expect(input.serviceType).toBe('delivery');
+    expect(input.deliveryFee).toBe(49);
+    expect(input.deliveryMode).toBe('priority');
+    expect(input.total).toBe(489);
+    expect(input.items).toHaveLength(1);
+    expect(input.items[0]).toMatchObject({
+      itemId: 'i-1',
+      name: 'Sisig',
+      unitPrice: 220,
+      quantity: 2,
+      subtotal: 440,
+    });
+  });
+
+  it('keeps total consistent with item subtotals plus delivery fee (server validates this)', () => {
+    const input = buildCreateOrderInput(baseOrder);
+    const itemsTotal = input.items.reduce((sum, i) => sum + i.subtotal, 0);
+    expect(itemsTotal + (input.deliveryFee ?? 0)).toBe(input.total);
+  });
+
+  it('omits delivery-only fields for pickup orders without sending undefined', () => {
+    const input = buildCreateOrderInput({
+      ...baseOrder,
+      serviceType: 'pickup',
+      address: undefined,
+      deliveryFee: undefined,
+    });
+    expect(input.address).toBeNull();
+    expect(input.deliveryFee).toBeNull();
+    expect(Object.values(input)).not.toContain(undefined);
+  });
+});
