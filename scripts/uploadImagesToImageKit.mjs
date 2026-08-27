@@ -24,8 +24,11 @@ const env = loadEnv();
 const { IMAGEKIT_PRIVATE_KEY } = requireEnv(env, ['IMAGEKIT_PRIVATE_KEY']);
 const authHeader = `Basic ${Buffer.from(`${IMAGEKIT_PRIVATE_KEY}:`).toString('base64')}`;
 
+const limitIndex = process.argv.indexOf('--limit');
+const limit = limitIndex >= 0 ? Number(process.argv[limitIndex + 1]) : Infinity;
+
 const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
-const pending = selectPendingUploads(manifest);
+const pending = selectPendingUploads(manifest).slice(0, limit);
 
 if (pending.length === 0) {
   console.log('Nothing to upload: no approved entries are awaiting upload.');

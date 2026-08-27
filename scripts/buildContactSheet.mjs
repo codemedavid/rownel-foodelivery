@@ -20,8 +20,11 @@ const OUTPUT_PATH = resolve(projectRoot, 'docs/images/review.html');
 const escapeHtml = (value) =>
   String(value).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
 
+const THUMBNAIL_TRANSFORM = '?tr=w-300,q-75,f-auto';
+
 const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
-const reviewable = manifest.filter((entry) => entry.chosenUrl);
+// Only entries that would actually be written, plus those held back for a decision.
+const reviewable = manifest.filter((e) => e.imagekitUrl || e.status === 'pending-review');
 
 const ORDER = { official: 0, likely: 1, generic: 2 };
 const sorted = [...reviewable].sort((a, b) => {
@@ -32,12 +35,18 @@ const sorted = [...reviewable].sort((a, b) => {
 const card = (entry) => {
   const confidence = entry.candidates[0]?.confidence ?? 'none';
   const rowCount = (entry.targetRowIds ?? entry.rowIds).length;
+  // Prefer the uploaded asset: it is what customers will actually see, and some
+  // original hosts refuse requests that ImageKit itself handles fine.
+  const src = entry.imagekitUrl ? `${entry.imagekitUrl}${THUMBNAIL_TRANSFORM}` : entry.chosenUrl;
+  const held = entry.status === 'pending-review' ? '<span class="held">HELD — needs your call</span>' : '';
   return `<figure class="card ${confidence}" data-key="${escapeHtml(entry.key)}">
-  <img src="${escapeHtml(entry.chosenUrl)}" alt="${escapeHtml(entry.productName)}" loading="lazy">
+  <img src="${escapeHtml(src)}" alt="${escapeHtml(entry.productName)}" loading="lazy">
   <figcaption>
     <strong>${escapeHtml(entry.productName)}</strong>
     <span class="brand">${escapeHtml(entry.brand)}</span>
-    <span class="meta"><em class="tag">${confidence}</em> · ${rowCount} row(s) · ${escapeHtml(entry.status)}</span>
+    <span class="meta"><em class="tag">${confidence}</em> · ${rowCount} row(s)</span>
+    ${held}
+    <a class="key" href="${escapeHtml(entry.chosenUrl ?? '#')}" target="_blank" rel="noreferrer">${escapeHtml(entry.key)}</a>
   </figcaption>
 </figure>`;
 };
@@ -63,11 +72,17 @@ const html = `<!doctype html>
   .official .tag { background: #d8f5dd; color: #16643a; }
   .likely   .tag { background: #fff2cc; color: #7a5b00; }
   .generic  .tag { background: #ffe0e0; color: #8a1f1f; }
+  .held { display: block; margin-top: .3rem; font-weight: 700; color: #8a1f1f; font-size: .72rem; }
+  .key { display: block; margin-top: .3rem; color: #aaa; font-size: .68rem; text-decoration: none; word-break: break-all; }
+  .key:hover { color: #555; text-decoration: underline; }
 </style></head>
 <body>
 <h1>Catalog image review</h1>
-<p class="summary">${sorted.length} entries with a chosen image — ${JSON.stringify(counts)}.
-Green is brand-official, red is generic stock. Scan for any photo that does not match its label.</p>
+<p class="summary">${sorted.length} entries — ${JSON.stringify(counts)} — covering
+${sorted.reduce((n, e) => n + (e.targetRowIds ?? e.rowIds).length, 0)} catalog rows.
+Thumbnails are served from ImageKit, so this is exactly what customers would see.
+Green is brand-official, red is generic stock. Scan for any photo that does not match its label;
+click the grey key under a card to open the original source image.</p>
 <div class="grid">
 ${sorted.map(card).join('\n')}
 </div>
