@@ -225,6 +225,30 @@ export const autoApprove = (manifest: ManifestEntry[], items: CatalogItemRow[]):
 };
 
 /**
+ * Reopens entries that were set aside on the assumption their rows already had a
+ * usable photo. When that photo turns out to be on a disabled host, the reason
+ * for setting them aside is gone: the row is now blank, and a candidate already
+ * in hand beats nothing. Only entries that still hold a candidate are reopened,
+ * and an uploaded entry is never disturbed.
+ */
+export const reconsiderStranded = (
+  manifest: ManifestEntry[],
+  items: CatalogItemRow[],
+): ManifestEntry[] => {
+  const isLiveByRowId = new Map(items.map((item) => [item.id, isLiveImageUrl(item.imageUrl)]));
+
+  return manifest.map((entry) => {
+    if (entry.status !== 'rejected' && entry.status !== 'withheld') return entry;
+    if (entry.candidates.length === 0) return entry;
+
+    const hasStrandedRow = entry.rowIds.some((rowId) => isLiveByRowId.get(rowId) === false);
+    if (!hasStrandedRow) return entry;
+
+    return { ...entry, status: 'pending-review', targetRowIds: undefined };
+  });
+};
+
+/**
  * Holds uploaded generic-tier entries back from the database write. The asset
  * stays on the CDN and the URL is kept, so re-approving one later costs nothing.
  */

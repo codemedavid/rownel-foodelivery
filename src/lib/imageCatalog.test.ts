@@ -12,6 +12,7 @@ import {
   buildRowUpdates,
   buildRollback,
   isLiveImageUrl,
+  reconsiderStranded,
   parseMerchantRowId,
   buildMerchantRowUpdates,
   type CatalogItemRow,
@@ -291,6 +292,55 @@ describe('autoApprove', () => {
     const input = [pendingWith('official')];
     autoApprove(input, items);
     expect(input[0].status).toBe('pending-review');
+  });
+});
+
+describe('reconsiderStranded', () => {
+  const dead = 'https://res.cloudinary.com/dnxwoqezb/image/upload/v1/menu-items/x.jpg';
+  const stranded: CatalogItemRow[] = items.map((item) => ({ ...item, imageUrl: dead }));
+
+  const entryWith = (status: ManifestEntry['status'], candidates: ImageCandidate[]): ManifestEntry => ({
+    key: 'jollibee::1pc-chickenjoy',
+    brand: 'Jollibee',
+    productName: '1pc Chickenjoy',
+    rowIds: ['i1', 'i2'],
+    candidates,
+    chosenUrl: candidates[0]?.url ?? null,
+    imagekitUrl: null,
+    status,
+    targetRowIds: [],
+  });
+
+  const generic = [candidate('https://src.example/x.jpg', 'generic')];
+
+  it('returns a rejected entry to review when its rows lost their image', () => {
+    const [entry] = reconsiderStranded([entryWith('rejected', generic)], stranded);
+    expect(entry.status).toBe('pending-review');
+    expect(entry.targetRowIds).toBeUndefined();
+  });
+
+  it('returns a withheld entry to review when its rows lost their image', () => {
+    expect(reconsiderStranded([entryWith('withheld', generic)], stranded)[0].status).toBe('pending-review');
+  });
+
+  it('leaves a rejected entry alone while its rows still render', () => {
+    const alive = items.map((item) => ({ ...item, imageUrl: 'https://ik.imagekit.io/x/a.jpg' }));
+    expect(reconsiderStranded([entryWith('rejected', generic)], alive)[0].status).toBe('rejected');
+  });
+
+  it('leaves a rejected entry alone when it has no candidate to offer', () => {
+    expect(reconsiderStranded([entryWith('rejected', [])], stranded)[0].status).toBe('rejected');
+  });
+
+  it('never disturbs an already uploaded entry', () => {
+    const uploaded = { ...entryWith('uploaded', generic), imagekitUrl: 'https://ik.imagekit.io/x/c.jpg' };
+    expect(reconsiderStranded([uploaded], stranded)[0].status).toBe('uploaded');
+  });
+
+  it('does not mutate the input manifest', () => {
+    const input = [entryWith('rejected', generic)];
+    reconsiderStranded(input, stranded);
+    expect(input[0].status).toBe('rejected');
   });
 });
 
