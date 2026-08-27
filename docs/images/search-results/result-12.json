@@ -1,0 +1,148 @@
+[
+  {
+    "key": "pareng-jay-s-lechon::logo",
+    "candidates": []
+  },
+  {
+    "key": "pareng-jay-s-lechon::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "elyucano-pares::logo",
+    "candidates": []
+  },
+  {
+    "key": "elyucano-pares::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "ilocos-empanada::logo",
+    "candidates": []
+  },
+  {
+    "key": "ilocos-empanada::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "almurad-restaurant::logo",
+    "candidates": [
+      {
+        "url": "https://graph.facebook.com/almuradrestaurant/picture?width=1000&height=1000",
+        "source": "Official Facebook page facebook.com/almuradrestaurant — 'Almurad Restaurant | Balaoan, La Union' (halal restaurant). Graph profile-picture endpoint; 302-redirects to fbcdn and serves Content-Type: image/jpeg.",
+        "confidence": "official"
+      },
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/304001919_534523431808449_560038183244489902_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=08baa4&_nc_ohc=BWL4kigdkrkQ7kNvwEi3Brh&_nc_oc=Adou9l9nsUwhnMKMzqYa_ljwD_sbpiPo31gL5ow0XTCgFe36WNI43d0BbtDgCgkjaxw&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=AKbeu0YEAAAA&_nc_gid=5voWG6dfSq_5UXO8WMRw8A&oh=00_AQFKP7gdJ-aG2bpdvJPqHdxjkvT8I2XzyA6SBYQWFuNdmA&oe=6A95E7C3",
+        "source": "Resolved signed fbcdn URL for the same Almurad Restaurant (Balaoan) Facebook profile photo. Short-lived — use the graph URL above if this expires.",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "almurad-restaurant::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "papag-resto-bar::logo",
+    "candidates": [
+      {
+        "url": "https://graph.facebook.com/papagrestobar/picture?width=1000&height=1000",
+        "source": "Official Facebook page facebook.com/papagrestobar — 'PaPag Restobar + Art Cafe | Bangar, La Union' (zip 2519 matches). Graph profile-picture endpoint; 302-redirects to fbcdn, Content-Type: image/jpeg (147 KB).",
+        "confidence": "official"
+      },
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/305024925_477200204423672_1421764039704424931_n.jpg?stp=c88.0.904.904a_dst-jpg_s904x904_tt6&_nc_cat=106&ccb=1-7&_nc_sid=08baa4&_nc_ohc=t_gxNiJjnSYQ7kNvwFJp8X0&_nc_oc=AdpD5BCsjUHvxs-v2cprUNnlLarZ6RI1o9p92kdN26pvplTdvUbRvbzq5gJejw5iC-E&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=AKbeu0YEAAAA&_nc_gid=P14wD4PAiHuV8H2lQJ7dwQ&oh=00_AQHbOpYXTVNG3aSJ_PtF_UqezS6_I2upY0eENeADVcN98A&oe=6A95E09F",
+        "source": "Resolved signed fbcdn URL for the same PaPag Restobar + Art Cafe (Bangar) Facebook profile photo. Short-lived — use the graph URL above if this expires.",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "papag-resto-bar::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "chi-x-neh-broh-bangar::logo",
+    "candidates": [
+      {
+        "url": "https://img1.wsimg.com/isteam/ip/232cb99e-8166-45de-b978-cf28b9646061/blob-ce67801.png",
+        "source": "Official brand website chixneybrohinasal.com header logo. Site's /our-branches page explicitly lists 'BANGAR BRANCH — CENTRAL EAST NO.1, BANGAR, LA UNION'. Verified GET 200, Content-Type: image/png, 1077x1280.",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "chi-x-neh-broh-bangar::cover-image",
+    "candidates": [
+      {
+        "url": "https://img1.wsimg.com/isteam/ip/232cb99e-8166-45de-b978-cf28b9646061/Bangar.png",
+        "source": "Official brand website chixneybrohinasal.com /our-branches — the photo captioned as the BANGAR BRANCH (Central East No.1, Bangar, La Union). Verified GET 200, Content-Type: image/jpeg, 1024x1536.",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "balaoan-streetfoods::logo",
+    "candidates": []
+  },
+  {
+    "key": "balaoan-streetfoods::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "m-m-bulaluhan::logo",
+    "candidates": []
+  },
+  {
+    "key": "m-m-bulaluhan::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "castillo-s-panciteria::logo",
+    "candidates": []
+  },
+  {
+    "key": "castillo-s-panciteria::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "deodatos-tres-ermanos-pizza::logo",
+    "candidates": []
+  },
+  {
+    "key": "deodatos-tres-ermanos-pizza::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "guji-cafe-balaoan::logo",
+    "candidates": []
+  },
+  {
+    "key": "guji-cafe-balaoan::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "gian-s-paciteria::logo",
+    "candidates": []
+  },
+  {
+    "key": "gian-s-paciteria::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "mita-s-fried-chicken::logo",
+    "candidates": []
+  },
+  {
+    "key": "mita-s-fried-chicken::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "papa-gee-s-pizza::logo",
+    "candidates": []
+  },
+  {
+    "key": "papa-gee-s-pizza::cover-image",
+    "candidates": []
+  }
+]
