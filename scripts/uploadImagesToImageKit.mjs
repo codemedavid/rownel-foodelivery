@@ -10,15 +10,22 @@
 // Usage:
 //   IMAGEKIT_PRIVATE_KEY=private_xxx \
 //     node --experimental-strip-types scripts/uploadImagesToImageKit.mjs
+//   ... --manifest docs/images/merchant-manifest.json --folder merchants
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { loadEnv, requireEnv, projectRoot } from './loadEnv.mjs';
 import { selectPendingUploads, withUpload } from '../src/lib/imageCatalog.ts';
 
-const MANIFEST_PATH = resolve(projectRoot, 'docs/images/image-manifest.json');
 const UPLOAD_URL = 'https://upload.imagekit.io/api/v1/files/upload';
-const TARGET_FOLDER = 'menu-items';
+
+const flag = (name, fallback) => {
+  const index = process.argv.indexOf(`--${name}`);
+  return index >= 0 ? process.argv[index + 1] : fallback;
+};
+
+const MANIFEST_PATH = resolve(projectRoot, flag('manifest', 'docs/images/image-manifest.json'));
+const TARGET_FOLDER = flag('folder', 'menu-items');
 
 const env = loadEnv();
 const { IMAGEKIT_PRIVATE_KEY } = requireEnv(env, ['IMAGEKIT_PRIVATE_KEY']);

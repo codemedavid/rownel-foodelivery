@@ -17,8 +17,14 @@ import { projectRoot } from './loadEnv.mjs';
 import { autoApprove, withholdGeneric, buildRowUpdates } from '../src/lib/imageCatalog.ts';
 
 const IMAGES_DIR = resolve(projectRoot, 'docs/images');
-const MANIFEST_PATH = resolve(IMAGES_DIR, 'image-manifest.json');
-const CATALOG_PATH = resolve(IMAGES_DIR, 'catalog-snapshot.json');
+
+const flag = (name, fallback) => {
+  const index = process.argv.indexOf(`--${name}`);
+  return index >= 0 ? process.argv[index + 1] : fallback;
+};
+
+const MANIFEST_PATH = resolve(IMAGES_DIR, flag('manifest', 'image-manifest.json'));
+const CATALOG_PATH = resolve(IMAGES_DIR, flag('snapshot', 'catalog-snapshot.json'));
 
 /** Reported by the sourcing agent as approximate matches — official asset, wrong item. */
 const HOLD_FOR_HUMAN = new Set([

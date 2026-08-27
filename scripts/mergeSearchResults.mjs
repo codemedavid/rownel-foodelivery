@@ -8,13 +8,19 @@
 //
 // Usage:
 //   node --experimental-strip-types scripts/mergeSearchResults.mjs <results-dir>
+//   node --experimental-strip-types scripts/mergeSearchResults.mjs <results-dir> \
+//     --manifest docs/images/merchant-manifest.json
 
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { projectRoot } from './loadEnv.mjs';
 import { withCandidates } from '../src/lib/imageCatalog.ts';
 
-const MANIFEST_PATH = resolve(projectRoot, 'docs/images/image-manifest.json');
+const manifestIndex = process.argv.indexOf('--manifest');
+const MANIFEST_PATH = resolve(
+  projectRoot,
+  manifestIndex >= 0 ? process.argv[manifestIndex + 1] : 'docs/images/image-manifest.json',
+);
 const REACHABILITY_TIMEOUT_MS = 20000;
 // Wikimedia throttles aggressively; verify one host at a time, paced and retried,
 // so a 429 is never mistaken for a dead image.
