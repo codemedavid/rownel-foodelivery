@@ -813,10 +813,16 @@
       "e65d4247-4af4-4bea-ad31-6ef57c61bab3::cover",
       "64a96c29-28a4-4dc7-b459-3f692626ce72::cover"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/McDonaldsSagayCity.jpg/1280px-McDonaldsSagayCity.jpg",
+        "source": "Wikimedia Commons - File:McDonaldsSagayCity.jpg; verified exterior storefront of a real McDonald's Philippines 'Fries & Sundae' outlet (Sagay City). Not the La Union branch, used as a generic real McDonald's PH storefront per instruction. Freely licensed, no signature expiry.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/McDonaldsSagayCity.jpg/1280px-McDonaldsSagayCity.jpg",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "row-nel-online-store-services::logo",
@@ -825,10 +831,16 @@
     "rowIds": [
       "b9f90fa7-f46d-4d72-932d-dda5f3f88141::logo"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/509664053_1490592639041436_4787345156674924657_n.jpg?stp=c13.0.431.431a_dst-jpg_s200x200_tt6&_nc_cat=100&ccb=1-7&_nc_sid=fe59b0&_nc_ohc=P8Jk80cFZkwQ7kNvwFi9nJs&_nc_oc=AdrWCBmc-8PauQq6cYYx6noDfTSF0R4FdkUbovF4Etvcij3mgtoTn2ruuploELWK4enTV-6jkBWJFjivJobBj3FT&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=LBLOftXvHoCxr17nZJ9hLg&oh=00_AQGCw4vZP8-pwdGOhsz-uSE3RslYeAYVjRPIHhDxjS8JxA&oe=6A95DACC",
+        "source": "Profile photo of the official Facebook page facebook.com/RowNelFooDelivery (Row-Nel FooDelivery, Balaoan, La Union - the operator of row-nel.com, i.e. 'Row-Nel Online Store & Services'). Extracted via the public Facebook Page plugin. 200x200. SHORT-LIVED SIGNED URL - download immediately.",
+        "confidence": "official"
+      }
+    ],
+    "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/509664053_1490592639041436_4787345156674924657_n.jpg?stp=c13.0.431.431a_dst-jpg_s200x200_tt6&_nc_cat=100&ccb=1-7&_nc_sid=fe59b0&_nc_ohc=P8Jk80cFZkwQ7kNvwFi9nJs&_nc_oc=AdrWCBmc-8PauQq6cYYx6noDfTSF0R4FdkUbovF4Etvcij3mgtoTn2ruuploELWK4enTV-6jkBWJFjivJobBj3FT&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=LBLOftXvHoCxr17nZJ9hLg&oh=00_AQGCw4vZP8-pwdGOhsz-uSE3RslYeAYVjRPIHhDxjS8JxA&oe=6A95DACC",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "row-nel-online-store-services::cover-image",
@@ -850,10 +862,16 @@
       "06b65283-c814-412f-b0bd-90b5fcab4e92::logo",
       "a45832ec-510a-4dc1-bd40-8d5aae17d1a1::logo"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://graph.facebook.com/KAPYEMCoffee/picture?width=1200&height=1200",
+        "source": "Official Facebook page facebook.com/KAPYEMCoffee - bio confirms 'KAPYEM 2517-Balaoan ELYU' and 'KAPYEM KM Zero-Luna ELYU' (2 branches, matches branchCount 2 and zip 2517). Stable Graph endpoint that 302-redirects to the full-size profile photo (image/jpeg verified).",
+        "confidence": "official"
+      }
+    ],
+    "chosenUrl": "https://graph.facebook.com/KAPYEMCoffee/picture?width=1200&height=1200",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "kapyem-coffee::cover-image",
@@ -886,10 +904,16 @@
     "rowIds": [
       "b0aaef7e-1cc1-4220-8178-d0f4a4b56635::logo"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://graph.facebook.com/jorences28/picture?width=1200&height=1200",
+        "source": "Official Facebook page facebook.com/jorences28 - 'Jorences Bake Shop', Google-indexed snippet states 'Jorences Bake Shop is in Naguilian, Philippines' and its posts are pizza (pizza sauce/cheese/dough). Same merchant as the 'Jorences Pizza' bakery listing in Naguilian. Graph endpoint 302s to a 1080x1080 JPEG (verified image/jpeg 200).",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://graph.facebook.com/jorences28/picture?width=1200&height=1200",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "jorences-pizza::cover-image",
@@ -910,10 +934,16 @@
     "rowIds": [
       "70037181-e6ab-4ef7-809a-117da47a3bc9::logo"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/472613437_523690914019452_4840923761603933795_n.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=104&ccb=1-7&_nc_sid=f907e8&_nc_ohc=K1uNNnGnj_sQ7kNvwFUsfoq&_nc_oc=Adpzzk6j5mbz8RmFgrJ00EyLRSk9f3FjdfCFGXXwcad86xd5IzNHm2FyJ7rilE7u79M&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=wMY4d-F53Wf0D2AJW2TlfA&oh=00_AQFCstMySmPmEiSDBrywUdEobG05UIK_7VO5qybX8BO_Kg&oe=6A95D2FB",
+        "source": "Profile photo of the official Facebook page 'J&K Food and Beverages - B1T1 Coffee' (facebook.com/p/JK-Food-and-Beverages-B1T1-Coffee-61571775144026/). Page details on Facebook read 'Epic Mall, Naguilian, Philippines' - matches B1 T1 cafe in Naguilian (2511); Google Maps also lists 'B1T1 TAKEAWAY COFFEE' in Naguilian. Extracted via the public Facebook Page plugin. Only 100x100 available (page has no vanity username, so the higher-res Graph endpoint is unavailable). SHORT-LIVED SIGNED URL - download immediately.",
+        "confidence": "official"
+      }
+    ],
+    "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/472613437_523690914019452_4840923761603933795_n.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=104&ccb=1-7&_nc_sid=f907e8&_nc_ohc=K1uNNnGnj_sQ7kNvwFUsfoq&_nc_oc=Adpzzk6j5mbz8RmFgrJ00EyLRSk9f3FjdfCFGXXwcad86xd5IzNHm2FyJ7rilE7u79M&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=wMY4d-F53Wf0D2AJW2TlfA&oh=00_AQFCstMySmPmEiSDBrywUdEobG05UIK_7VO5qybX8BO_Kg&oe=6A95D2FB",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "b1-t1::cover-image",
@@ -934,10 +964,16 @@
     "rowIds": [
       "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0::logo"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/557603100_122096719311027009_7756877119197648134_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=106&ccb=1-7&_nc_sid=fe59b0&_nc_ohc=outTAvO-4D0Q7kNvwG8Givb&_nc_oc=AdphriiShvBxwqfXHUQNkx5zGKcjaVrFRJI5Yf-Lx8TK5clD8xwLZhpNN_3jQNCgGLR0NQpOFLHs94kd19TnfC1c&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=iWm8dupA_Pbl8a1w9B77YA&oh=00_AQF6g1dNWmXKU24LfuK4ZM19WoIcAUGipPMylCEFRSM7ww&oe=6A95DB60",
+        "source": "Profile photo of the official Facebook page 'Sweet Tooth Bangar' (page id 61580810283405, 3.5K followers). Posts read 'Visit us: Beside 7-Eleven, Bangar, La Union' - matches zip 2519 Bangar. Extracted via the public Facebook Page plugin. 200x200. SHORT-LIVED SIGNED URL - download immediately.",
+        "confidence": "official"
+      }
+    ],
+    "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/557603100_122096719311027009_7756877119197648134_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=106&ccb=1-7&_nc_sid=fe59b0&_nc_ohc=outTAvO-4D0Q7kNvwG8Givb&_nc_oc=AdphriiShvBxwqfXHUQNkx5zGKcjaVrFRJI5Yf-Lx8TK5clD8xwLZhpNN_3jQNCgGLR0NQpOFLHs94kd19TnfC1c&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=iWm8dupA_Pbl8a1w9B77YA&oh=00_AQF6g1dNWmXKU24LfuK4ZM19WoIcAUGipPMylCEFRSM7ww&oe=6A95DB60",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "sweet-tooth-bangar::cover-image",
@@ -946,10 +982,16 @@
     "rowIds": [
       "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0::cover"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkYo7-gvumifR-axqlTp2wcSsj5xGgqaRjEzygqRRndHqenEn8O8UuvHOIC08QQ1GC6c5JUpHxYuIElwbNY-dWrMe_YwJNLCwM2uDA87r1lq-U_yZsmBf1ot9o7vQRoOY42zPymrtIZluBZ=s1600",
+        "source": "Hero photo of the Google Maps place 'Sweet Tooth Bangar, La Union' (16.8937472,120.4237631). Visually verified: interior of a yellow-themed dessert/milkshake shop with milkshake and iced-coffee posters. Portrait orientation. Size can be changed via the trailing =s1600 parameter.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkYo7-gvumifR-axqlTp2wcSsj5xGgqaRjEzygqRRndHqenEn8O8UuvHOIC08QQ1GC6c5JUpHxYuIElwbNY-dWrMe_YwJNLCwM2uDA87r1lq-U_yZsmBf1ot9o7vQRoOY42zPymrtIZluBZ=s1600",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "cj-s-foodies-corner::logo",
@@ -958,10 +1000,16 @@
     "rowIds": [
       "c5ba915d-4a49-4751-a90f-923b4b350700::logo"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/354912028_113085955152012_2486824670723999832_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=109&ccb=1-7&_nc_sid=f907e8&_nc_ohc=DJoaA7VrdD0Q7kNvwE6Vtax&_nc_oc=Adq9YPH-y-JLpK1pLbV1UvSxQbDeTRRevD8i62EjrUe07tQvkIuuM6xe3lkPC5E2PNQ&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=BffR7Ikp4_i-u5Xzjbicqg&oh=00_AQHz-u8xsoqkY56v1Nc5rBed8jYeH0fSjhnqvijS8KlGNw&oe=6A95CC29",
+        "source": "Profile photo of the official Facebook page 'Cj's Foodies Corner - Balaoan' (facebook.com/p/Cjs-Foodies-Corner-Balaoan-100093518240082/, 2.9K followers, 'Nasa Balaoan, Pilipinas'). Visually verified: takoyaki + branded drink with 'Balaoan' caption. Extracted via the public Facebook Page plugin. 200x200. SHORT-LIVED SIGNED URL - download immediately.",
+        "confidence": "official"
+      }
+    ],
+    "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/354912028_113085955152012_2486824670723999832_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=109&ccb=1-7&_nc_sid=f907e8&_nc_ohc=DJoaA7VrdD0Q7kNvwE6Vtax&_nc_oc=Adq9YPH-y-JLpK1pLbV1UvSxQbDeTRRevD8i62EjrUe07tQvkIuuM6xe3lkPC5E2PNQ&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=BffR7Ikp4_i-u5Xzjbicqg&oh=00_AQHz-u8xsoqkY56v1Nc5rBed8jYeH0fSjhnqvijS8KlGNw&oe=6A95CC29",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "cj-s-foodies-corner::cover-image",
@@ -970,10 +1018,16 @@
     "rowIds": [
       "c5ba915d-4a49-4751-a90f-923b4b350700::cover"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmiKcAyGie01C00wnvfzMzA_QwDZe0hEjLkU3S3WC9KqC5f24X7vExfi1zwALBzHPTNI-mte3lION66zcExGKGHpVPEA4VWt7--9uhRRCEoUtErGZksS2ThA_LCtDP5yDRRzKU2Ww=s1600",
+        "source": "Photo from the Google Maps place 'Cj's Foodies Corner- Balaoan' (16.8261837,120.404812). Visually verified: the merchant's own branded 'Premium Milk Tea' promo image, cups carry the Premium Tea wolf logo and the caption 'Fb page: Cj's Foodies Corner' / 'ORDER NOW - Cj's Foodies Corner'. Square 1:1. Size can be changed via the trailing =s1600 parameter.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmiKcAyGie01C00wnvfzMzA_QwDZe0hEjLkU3S3WC9KqC5f24X7vExfi1zwALBzHPTNI-mte3lION66zcExGKGHpVPEA4VWt7--9uhRRCEoUtErGZksS2ThA_LCtDP5yDRRzKU2Ww=s1600",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "five-star-chicken::logo",
