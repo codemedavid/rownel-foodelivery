@@ -18,6 +18,7 @@ import StaffManager from './StaffManager';
 import RiderManager from './RiderManager';
 import DispatchSettingsManager from './DispatchSettingsManager';
 import EarningsManager from './EarningsManager';
+import AdminMobileNav from './AdminMobileNav';
 
 const AdminDashboard: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -1128,18 +1129,18 @@ const AdminDashboard: React.FC = () => {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Coffee className="h-8 w-8 text-black" />
-              <h1 className="text-2xl font-noto font-semibold text-black">WebNegosyo Admin</h1>
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+              <Coffee className="h-8 w-8 text-black flex-shrink-0" />
+              <h1 className="text-lg sm:text-2xl font-noto font-semibold text-black truncate">WebNegosyo Admin</h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4 flex-shrink-0">
               <a
                 href="/"
-                className="text-gray-600 hover:text-black transition-colors duration-200"
+                className="hidden sm:inline text-gray-600 hover:text-black transition-colors duration-200"
               >
                 View Website
               </a>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-600">
                 <span>Welcome, {user?.email}</span>
               </div>
               <button
@@ -1153,6 +1154,8 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <AdminMobileNav currentView={currentView} onSelect={(section) => setCurrentView(section)} />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Cards */}
