@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { reverseGeocode } from '../lib/osm';
 import { Coordinates } from '../utils/geolocation';
 import { hasMovedBeyondThreshold } from '../utils/merchantDistance';
@@ -106,6 +106,10 @@ export function LocationProvider({ children }: LocationProviderProps) {
   const [locationDisplayName, setLocationDisplayName] = useState<string>('');
   const [isManualPromptRequested, setIsManualPromptRequested] = useState(false);
 
+  // Each geolocation request gets a generation id; callbacks from an older
+  // generation are ignored so a slow, stale fix can never overwrite a newer one.
+  const requestGenerationRef = useRef(0);
+
   const applyLocation = useCallback((location: StoredUserLocation, save = true) => {
     setUserLocation({ latitude: location.latitude, longitude: location.longitude });
     setLocationStreet(location.street);
@@ -132,13 +136,17 @@ export function LocationProvider({ children }: LocationProviderProps) {
       setLocationStatus('locating');
       setLocationError(null);
 
+      const requestId = ++requestGenerationRef.current;
+
       navigator.geolocation.getCurrentPosition(
         async ({ coords }) => {
           const resolved = await resolveLocationFromCoords(coords);
+          if (requestId !== requestGenerationRef.current) return;
           applyLocation(resolved, true);
           setIsManualPromptRequested(false);
         },
         (error) => {
+          if (requestId !== requestGenerationRef.current) return;
           setLocationStatus('error');
           setLocationError(error.message || 'Unable to get your location.');
 
@@ -159,12 +167,18 @@ export function LocationProvider({ children }: LocationProviderProps) {
     (savedLocation: StoredUserLocation) => {
       if (!navigator.geolocation) return;
 
+      const requestId = ++requestGenerationRef.current;
+
       navigator.geolocation.getCurrentPosition(
         async ({ coords }) => {
-          if (!hasMovedBeyondThreshold(savedLocation, coords)) {
+          // A poor-accuracy fix widens the "not actually moved" band so GPS
+          // noise can't silently relocate the user.
+          const accuracySlackKm = (coords.accuracy ?? 0) / 1000;
+          if (!hasMovedBeyondThreshold(savedLocation, coords, accuracySlackKm)) {
             return;
           }
           const resolved = await resolveLocationFromCoords(coords);
+          if (requestId !== requestGenerationRef.current) return;
           applyLocation(resolved, true);
         },
         () => {
@@ -182,10 +196,14 @@ export function LocationProvider({ children }: LocationProviderProps) {
     if (savedLocation) {
       applyLocation(savedLocation, false);
       refreshLocationInBackground(savedLocation);
-      return;
+    } else {
+      requestLocation(true);
     }
 
-    requestLocation(true);
+    // Invalidate in-flight geolocation callbacks on unmount.
+    return () => {
+      requestGenerationRef.current += 1;
+    };
   }, [applyLocation, refreshLocationInBackground, requestLocation]);
 
   const dismissManualPrompt = useCallback(() => {

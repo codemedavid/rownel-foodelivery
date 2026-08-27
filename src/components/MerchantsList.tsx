@@ -67,10 +67,20 @@ const MerchantsList: React.FC = () => {
     setIsLocationEditorOpen(true);
   };
 
+  // True only while a "Use current GPS" request started inside the editor is in
+  // flight — an unrelated location resolution must not yank the editor shut.
+  const isGpsRequestFromEditorRef = React.useRef(false);
+
   const closeLocationEditor = useCallback(() => {
+    isGpsRequestFromEditorRef.current = false;
     setIsLocationEditorOpen(false);
     dismissManualPrompt();
   }, [dismissManualPrompt]);
+
+  const requestGpsFromEditor = useCallback(() => {
+    isGpsRequestFromEditorRef.current = true;
+    requestLocation(false);
+  }, [requestLocation]);
 
   // The provider asks for the manual editor when geolocation fails with no saved location.
   useEffect(() => {
@@ -79,9 +89,10 @@ const MerchantsList: React.FC = () => {
     }
   }, [isManualPromptRequested]);
 
-  // A successful GPS request (e.g. "Use current GPS" in the editor) closes the editor.
+  // Only a successful GPS request initiated from the editor closes the editor.
   useEffect(() => {
-    if (locationStatus === 'ready') {
+    if (locationStatus === 'ready' && isGpsRequestFromEditorRef.current) {
+      isGpsRequestFromEditorRef.current = false;
       setIsLocationEditorOpen(false);
     }
   }, [locationStatus]);
@@ -882,11 +893,12 @@ const MerchantsList: React.FC = () => {
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => requestLocation(false)}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                onClick={requestGpsFromEditor}
+                disabled={locationStatus === 'locating'}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Navigation className="h-4 w-4" />
-                Use current GPS
+                {locationStatus === 'locating' ? 'Locating…' : 'Use current GPS'}
               </button>
               <button
                 type="button"

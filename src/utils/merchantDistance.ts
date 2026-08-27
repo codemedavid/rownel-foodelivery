@@ -34,6 +34,10 @@ export const decorateAndFilterMerchantsByDistance = (
     });
 };
 
-export const hasMovedBeyondThreshold = (from: Coordinates, to: Coordinates): boolean =>
+export const hasMovedBeyondThreshold = (
+  from: Coordinates,
+  to: Coordinates,
+  accuracySlackKm = 0
+): boolean =>
   calculateDistance(from.latitude, from.longitude, to.latitude, to.longitude) >
-  LOCATION_REFRESH_THRESHOLD_KM;
+  LOCATION_REFRESH_THRESHOLD_KM + accuracySlackKm;
