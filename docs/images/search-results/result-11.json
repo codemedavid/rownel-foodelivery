@@ -1,0 +1,206 @@
+[
+  {
+    "key": "sandace-pizza::logo",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/471858064_122217502148068014_8838654937519099480_n.jpg?stp=dst-jpg_tt6&cstp=mx960x960&ctp=s720x720&_nc_cat=104&ccb=1-7&_nc_sid=3ab345&_nc_ohc=MtVTqAL0Ik8Q7kNvwF47TOC&_nc_oc=AdoQxSeBhkRbLKnkdHQBdzLzLTTfo4Z-UZGQ5YbIv5uLwz8P_QWGHMTDJS1DgTaLVNbMFuOTFgq46YC6NzbGuMxj&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=nwytnRyMRTTP-AauRjTmHw&_nc_ss=70289&oh=00_AQFY2wBFUqNpuKFdycOHdgATFRWtKzczDZXOJptnyNNsNg&oe=6A95C6EA",
+        "source": "Facebook page profile photo - facebook.com/61552040440389 (Sandace PIZZA, Naguilian, La Union)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "sandace-pizza::cover-image",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/473348783_122220268490068014_5157329259333707019_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1080&ctp=s1080x1080&_nc_cat=103&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=i8jbjBaEploQ7kNvwHTUQmJ&_nc_oc=AdqMSnh3YXfJ9yaW3M7kiBsdQPQFNqh0PJE1GIjbZg_hsrubcAt_T9oxIvwzY4knP0ioVjbvb-0gMXvLrahHGbK_&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=dzFY-tNZqljwE5VlTAUwrw&_nc_ss=70289&oh=00_AQFb9Y_UES63Pauxh4siLgjNbC-RDCs2-TqFBvp9080t0w&oe=6A95E856",
+        "source": "Facebook page cover photo - facebook.com/61552040440389 (Sandace PIZZA, Naguilian, La Union)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "choylin::logo",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/323157005_702690911528012_7853282954158037524_n.jpg?stp=dst-jpg_tt6&cstp=mx960x955&ctp=s720x720&_nc_cat=109&ccb=1-7&_nc_sid=3ab345&_nc_ohc=6puZVwZyUsEQ7kNvwHXyv0i&_nc_oc=Adq7WT8PQJZC4BGtiPlaYNsX9nnFd_nxst2iXhACvNq4eQXHKqZJTqAePJo_u5v_n5j5nlWMX4_BRC4369PCaEpF&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=r8DImTRYRA_kMSw5Oej28A&_nc_ss=70289&oh=00_AQFDHr9C5LhPk-5iJHDH_DHXfMpnwKbA9pYdovjrOgCNZw&oe=6A95E4FB",
+        "source": "Facebook brand page profile photo - facebook.com/ChoylinFriedStation (Choylin Fried Station; brand page announces its Bangued, Abra branch and posts addressed to Abrenians)",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "choylin::cover-image",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/482213451_1089167609889326_6497414481773631430_n.jpg?stp=dst-jpg_tt6&cstp=mx3344x1254&ctp=p720x720&_nc_cat=105&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=Vm2MRTHn-_kQ7kNvwHheaQ2&_nc_oc=AdppIueuK1FX_bU-2B6xcg1F2lqXRyalqjvP0cVXZYSS5NpGMOp_JtarQPwumjSWvU09PcrwIQQKmzTCq81xttZA&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=-hhNZ5WF8SVmR47-WBipXA&_nc_ss=70289&oh=00_AQGagSTVn6z6JEoBj2OZeovH9aTTX6dmogB8EfkchSYu6w&oe=6A95C3B2",
+        "source": "Facebook brand page cover photo - facebook.com/ChoylinFriedStation (Choylin Fried Station)",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "chef-raysies-kitchen::logo",
+    "candidates": []
+  },
+  {
+    "key": "chef-raysies-kitchen::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "jay-ar-sisigan-pares::logo",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/590753597_122097219645145517_179109654255349920_n.jpg?stp=dst-jpg_tt6&cstp=mx957x960&ctp=s720x720&_nc_cat=102&ccb=1-7&_nc_sid=3ab345&_nc_ohc=xpA1EPn2BdUQ7kNvwHxATKQ&_nc_oc=AdpgkMkOjB8SNc6gFPET1_R-87bHkPbHaqb0RCgohiWRz__BhsdnAiEqyh2VNVSa_bQTFrTBfmFCWey2ZVnXTNQo&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=PJxw_pCb0RwTwXmAZZ-r8w&_nc_ss=70289&oh=00_AQGdSl9cgd6hSpzWUqSEe3Sa4UX5BLjsKvOL7EfecUhzBw&oe=6A95E59F",
+        "source": "Facebook page profile photo - facebook.com/profile.php?id=61584365523539 (Jay-Ar Sisigan; located Villamor Townhouse, Partelo St., Zone 4, Bangued, Abra per linked local coverage)",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "jay-ar-sisigan-pares::cover-image",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/590851585_122097219867145517_97468900582992401_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x1536&ctp=s2048x1536&_nc_cat=104&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=aLq6SmzRBu0Q7kNvwEXw1cu&_nc_oc=AdorVNOfKDp_3F2ZMP0RJIWYlP-yZkJWRepehnUd22KsI5DJ-OWfGIDhi1upjfMyKc1cwyLM8r1Lk7BcUu9Kj3J4&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=Cnmnve1npnrksN6DN1Fu-Q&_nc_ss=70289&oh=00_AQH2lRpHBYPTpiCZY7OPOwvctVRYE1p9-07Fokx_rRZQXQ&oe=6A95C17B",
+        "source": "Facebook page cover photo - facebook.com/profile.php?id=61584365523539 (Jay-Ar Sisigan, Bangued, Abra)",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "kusina-ni-maria::logo",
+    "candidates": []
+  },
+  {
+    "key": "kusina-ni-maria::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "mrs-g::cover-image",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/716410691_1122535456953756_134970740847495087_n.jpg?stp=dst-jpg_tt6&cstp=mx3079x1179&ctp=s2048x2048&_nc_cat=102&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=oJcdcmpvZ_YQ7kNvwGCPBvU&_nc_oc=AdoaC1NCjerG3HgQq3-7bMRIHU_i5cxvOqIF53GJunIPPGWlfCZjOd-wgHpbMZiH3-tJ_cRU0zP9HPnB-PaKF4AK&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=uKvJ3kFF9_IcGOoeiWL4IA&_nc_ss=70289&oh=00_AQHKxMCcTWRGqx9ki5r6vbY5QQE8xjh5QXVFDVBZnUXuJw&oe=6A95E684",
+        "source": "Facebook brand page cover photo - facebook.com/MrsGcakeshop (Mrs. G Cakeshop, North Luzon chain with La Union branches)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "inihaw::logo",
+    "candidates": []
+  },
+  {
+    "key": "inihaw::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "j-c-cagayan-batil-patong-eatery::logo",
+    "candidates": []
+  },
+  {
+    "key": "j-c-cagayan-batil-patong-eatery::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "don-benitos::logo",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/547546850_1248794713954091_1213058667522986289_n.jpg?stp=dst-jpg_tt6&cstp=mx667x667&ctp=s667x667&_nc_cat=104&ccb=1-7&_nc_sid=3ab345&_nc_ohc=_ArJrF9cJvQQ7kNvwEDiGt4&_nc_oc=AdqX2NtTWh4zp1K-xI74aSnXgw0r7_yplSTsfUZnOucXstUuaLcrSwE4Fxrn5ega28-F53Tb_UPpWN1VNBE96aBx&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=TWOqnvcY0pdh8zp_drNlFQ&_nc_ss=70289&oh=00_AQEJ0_ow61RL5760fdNjxJQ_nFz6BK-CRDTe9kHTihIuRQ&oe=6A95F379",
+        "source": "Facebook brand page profile photo - facebook.com/donbenitoscassava (Don Benito's Cassava Cake, nationwide franchise chain; matches 'bakery' category)",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "don-benitos::cover-image",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/545605009_1248790710621158_2364278435475397284_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x1238&ctp=s2048x1238&_nc_cat=105&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=CYL3DHcoAyAQ7kNvwFOXHp_&_nc_oc=AdqJbi4hLQNutUbCkqQ9B3CnLCOxi6QWqTYtpHWbVblTeocKD7pgbzQgY_NH4KUBH9A&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=A9BZjiUG83QMUjfMhEjFkg&_nc_ss=70289&oh=00_AQGvR840qFFy8f56W5pnnAlTL0Sy1Bw-iJPPTacIePVlXw&oe=6A95CDCF",
+        "source": "Facebook brand page cover photo - facebook.com/donbenitoscassava (Don Benito's Cassava Cake)",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "bontea::logo",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/309397570_136781689101233_2840108539722190935_n.jpg?stp=dst-jpg_tt6&cstp=mx720x720&ctp=s720x720&_nc_cat=109&ccb=1-7&_nc_sid=3ab345&_nc_ohc=ZY6wcwj2G6sQ7kNvwEc0xK0&_nc_oc=AdqzNdDmpnB80SaSbdxO4BeTm_1eHWO0VQEH4vhOxqzVQLswdz6IvC8cWg92Zp2Ia_I&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=-iHA1lApya3aRssjG2zS9Q&_nc_ss=70289&oh=00_AQGSu6K6xy_uwAjzTEeFJKLP-AghSbi5MWmFMzI-yuynRw&oe=6A95C1D6",
+        "source": "Facebook page profile photo - facebook.com/bonteasfclaunion (BonTea Cafe SFC La Union, Zone 1 Cabaroan, San Fernando, La Union)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "bontea::cover-image",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/470780419_989457309624496_1113728053440748242_n.jpg?stp=dst-jpg_tt6&cstp=mx1195x1301&ctp=s1195x1301&_nc_cat=109&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=VqpvFClCGV8Q7kNvwHGfMlB&_nc_oc=AdpTnxolqsBO5bNJ0MN0vnZa-4Ci2OmSs-HkMowZsaVS7jYNAeeQ6BVoVPhOSiXlmqg&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=-Hs2sbmdEOPyoV1VgKNvnA&_nc_ss=70289&oh=00_AQFz5obo1TEvG2tFfD0mwTNy1ZXv-VJyE7IRgcORo0ESlA&oe=6A95CD86",
+        "source": "Facebook page cover photo - facebook.com/bonteasfclaunion (BonTea Cafe SFC La Union)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "asherep-food-hauz::logo",
+    "candidates": []
+  },
+  {
+    "key": "asherep-food-hauz::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "bean-addicted-elyu::logo",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/492156642_122097970622854208_6922582658821971738_n.jpg?stp=dst-jpg_tt6&cstp=mx1000x1000&ctp=s720x720&_nc_cat=101&ccb=1-7&_nc_sid=3ab345&_nc_ohc=YaGpJEl7U2IQ7kNvwFU0b8C&_nc_oc=Adp8TWYwy2wpB2OOpYgjjfzwNtgYvHLzHrQD1k0YuaPWw4r_xHWsx_U_SgCZX7ZWJjY&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=x-31esI4WhkPrYTqF_Te6g&_nc_ss=70289&oh=00_AQFm9fvycB8H-gC_2YlTkZRYxbrkRhOjxvaaXtf0ILVtEg&oe=6A95E9D4",
+        "source": "Facebook page profile photo - facebook.com/p/Bean-Addicted-Elyu-61575626251677 (Bean Addicted Elyu, Bangar, La Union)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "bean-addicted-elyu::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "ytk-restaurant::logo",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/753798874_1350458603899618_1636771802803899218_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1080&ctp=s720x720&_nc_cat=102&ccb=1-7&_nc_sid=3ab345&_nc_ohc=O7SvFAOpsLAQ7kNvwEdYK6A&_nc_oc=Adqi56HekFRMnsP8z4c3n7AOM09OgFUoadPlKSE-Y5ubNae9wDep-m0toOKVHiHcSKBpk2DJ0UuZnnYp8sKUmj4H&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=kDIFWhCS_QF-RLF21RIiBQ&_nc_ss=70289&oh=00_AQFWKuEazv0mpAozrdAAFeOLgEd54wHscVCENGdiO-egvQ&oe=6A95E4F1",
+        "source": "Facebook page profile photo - facebook.com/p/YTK-Restaurant-100068064725483 (YTK Restaurant, Naguilian, La Union - Cabaritan Sur / Ortiz)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "ytk-restaurant::cover-image",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/480730005_955423723403110_7119414174775847843_n.jpg?stp=dst-jpg_tt6&cstp=mx1440x753&ctp=s1440x753&_nc_cat=101&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=-gKhVS4AJDcQ7kNvwHitZvH&_nc_oc=AdppZmmVT2ewQ4FHxWxW_rWqwtyTJEk3h5BN1IG78YrlRYp2CvO1I1zhIJ14wu3n0YZp8j7lVwt_tcvY_nefXmcB&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=YgbzjpP9q4mYaqrNR0uMSA&_nc_ss=70289&oh=00_AQFOVEbUfhuL5qiB1Ybfm-SVhCrxw5DXn7HctfxHTdEgDg&oe=6A95C846",
+        "source": "Facebook page cover photo - facebook.com/p/YTK-Restaurant-100068064725483 (YTK Restaurant, Naguilian, La Union)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "abra-miki-in-naguilian-elyu::logo",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/732353005_122136871503052097_7391853652941387516_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2048&ctp=s720x720&_nc_cat=110&ccb=1-7&_nc_sid=3ab345&_nc_ohc=5w8b2sASBiUQ7kNvwHcobKQ&_nc_oc=AdqK5xXH6oFSWm7Dt9teaXgg5XhB8bJl4m2vsp_jw0rCC8sBWugBVTsuC-WyCJTNFSIj-gjEu7mkUBXuLOX0P3k2&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=X2xQVRG-IRm8JRQiCmtPJg&_nc_ss=70289&oh=00_AQGMsQ3bXtc1o2BbeT7xvo4hHvGqJfGeuRjwE5hppGZ7pw&oe=6A95F536",
+        "source": "Facebook page profile photo - facebook.com/abramikiinnagelyu (Abra Miki in Naguilian Elyu, Naguilian, La Union)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "abra-miki-in-naguilian-elyu::cover-image",
+    "candidates": [
+      {
+        "url": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/557932648_122103559443052097_5172608366574358291_n.jpg?stp=cp6_dst-jpg_tt6&cstp=mx2048x820&ctp=s2048x820&_nc_cat=107&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=DUwhYRhvqhAQ7kNvwFU2yk-&_nc_oc=AdoByQS2g3JYNXkI3bVmpK4yFBNwmpBhyDRF0XTDvaa9EvVUdu_9kfHFFLw5o8FDbaHq4UBT57cQ5F9YhtYYr4XO&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=fCXvyLkRfvTJ7RwPJEzeQw&_nc_ss=70289&oh=00_AQFQtBEaJx3fBdb8KO7Ax9-F0CeXlf9h0gtoyxE6PoT8og&oe=6A95D991",
+        "source": "Facebook page cover photo - facebook.com/abramikiinnagelyu (Abra Miki in Naguilian Elyu, Naguilian, La Union)",
+        "confidence": "official"
+      }
+    ]
+  }
+]
