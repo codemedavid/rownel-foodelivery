@@ -1,0 +1,562 @@
+[
+  {
+    "merchantId": "ee0d1e43-df0c-4d1d-9a46-505c01f5f3db",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782955312/menu-items/menu_1782955310094.jpg"
+  },
+  {
+    "merchantId": "ee0d1e43-df0c-4d1d-9a46-505c01f5f3db",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782955318/menu-items/menu_1782955316579.jpg"
+  },
+  {
+    "merchantId": "1fc928ad-f1a6-4bb3-9718-ca4307fe9117",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772299581/menu-items/menu_1772299578070.jpg"
+  },
+  {
+    "merchantId": "1fc928ad-f1a6-4bb3-9718-ca4307fe9117",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772299591/menu-items/menu_1772299588741.jpg"
+  },
+  {
+    "merchantId": "5a89f142-eb45-43a1-8cc5-4196e761a2e0",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302154/menu-items/menu_1772302151163.jpg"
+  },
+  {
+    "merchantId": "a916920a-812f-4c10-bf93-c278323e365f",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302154/menu-items/menu_1772302151163.jpg"
+  },
+  {
+    "merchantId": "42c5df8f-809b-4db9-98f1-e47345e2d41c",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302154/menu-items/menu_1772302151163.jpg"
+  },
+  {
+    "merchantId": "b78f09a4-ecf3-4f11-9c09-b197df63f1f7",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302154/menu-items/menu_1772302151163.jpg"
+  },
+  {
+    "merchantId": "5a89f142-eb45-43a1-8cc5-4196e761a2e0",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302303/menu-items/menu_1772302300411.jpg"
+  },
+  {
+    "merchantId": "a916920a-812f-4c10-bf93-c278323e365f",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302303/menu-items/menu_1772302300411.jpg"
+  },
+  {
+    "merchantId": "42c5df8f-809b-4db9-98f1-e47345e2d41c",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302303/menu-items/menu_1772302300411.jpg"
+  },
+  {
+    "merchantId": "b78f09a4-ecf3-4f11-9c09-b197df63f1f7",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302303/menu-items/menu_1772302300411.jpg"
+  },
+  {
+    "merchantId": "015f7d45-e175-4690-b99f-cf69ce6ae435",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+  },
+  {
+    "merchantId": "afe8fe06-b9b1-40d1-b8d2-da5ccccbc26c",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+  },
+  {
+    "merchantId": "f1c7df6c-372d-49b9-a925-5f855bb7e8cb",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+  },
+  {
+    "merchantId": "b3b785e4-60b5-488b-aa7a-47a8a0f10c60",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+  },
+  {
+    "merchantId": "9d2985ca-2379-4f24-8d0f-2bf5ba72b64c",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+  },
+  {
+    "merchantId": "015f7d45-e175-4690-b99f-cf69ce6ae435",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+  },
+  {
+    "merchantId": "afe8fe06-b9b1-40d1-b8d2-da5ccccbc26c",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+  },
+  {
+    "merchantId": "f1c7df6c-372d-49b9-a925-5f855bb7e8cb",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+  },
+  {
+    "merchantId": "b3b785e4-60b5-488b-aa7a-47a8a0f10c60",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+  },
+  {
+    "merchantId": "9d2985ca-2379-4f24-8d0f-2bf5ba72b64c",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+  },
+  {
+    "merchantId": "50ba6646-0345-4a14-bb8f-eddda895c47d",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772873887/menu-items/menu_1772873884421.jpg"
+  },
+  {
+    "merchantId": "50ba6646-0345-4a14-bb8f-eddda895c47d",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772873894/menu-items/menu_1772873891721.jpg"
+  },
+  {
+    "merchantId": "1c0e0dbf-fa34-4692-9690-603b96a76108",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778347992/menu-items/menu_1778347990282.jpg"
+  },
+  {
+    "merchantId": "239de732-92d3-4291-bf26-cf955f3c231a",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778347992/menu-items/menu_1778347990282.jpg"
+  },
+  {
+    "merchantId": "c1a9a887-abf0-43f7-a002-1cbbe42ed0cd",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778347992/menu-items/menu_1778347990282.jpg"
+  },
+  {
+    "merchantId": "1c0e0dbf-fa34-4692-9690-603b96a76108",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778348001/menu-items/menu_1778347999651.jpg"
+  },
+  {
+    "merchantId": "239de732-92d3-4291-bf26-cf955f3c231a",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778348001/menu-items/menu_1778347999651.jpg"
+  },
+  {
+    "merchantId": "c1a9a887-abf0-43f7-a002-1cbbe42ed0cd",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778348001/menu-items/menu_1778347999651.jpg"
+  },
+  {
+    "merchantId": "edcfc212-2252-4950-88b0-7267ba4e2085",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779614759/menu-items/menu_1779614757645.jpg"
+  },
+  {
+    "merchantId": "7234b262-6a8e-469e-8cc5-f74b9fb79baf",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779614759/menu-items/menu_1779614757645.jpg"
+  },
+  {
+    "merchantId": "edcfc212-2252-4950-88b0-7267ba4e2085",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779614766/menu-items/menu_1779614764338.jpg"
+  },
+  {
+    "merchantId": "7234b262-6a8e-469e-8cc5-f74b9fb79baf",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779614766/menu-items/menu_1779614764338.jpg"
+  },
+  {
+    "merchantId": "8555ef57-9de6-4888-a994-c0083137d4b0",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787136202/menu-items/menu_1787136200744.jpg"
+  },
+  {
+    "merchantId": "cc49d928-af4d-48ad-8629-47913600e777",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787136202/menu-items/menu_1787136200744.jpg"
+  },
+  {
+    "merchantId": "8555ef57-9de6-4888-a994-c0083137d4b0",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787136269/menu-items/menu_1787136268015.jpg"
+  },
+  {
+    "merchantId": "cc49d928-af4d-48ad-8629-47913600e777",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787136269/menu-items/menu_1787136268015.jpg"
+  },
+  {
+    "merchantId": "38d29cc8-7081-42f2-a407-e95f661711c1",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780016238/menu-items/menu_1780016235507.jpg"
+  },
+  {
+    "merchantId": "3d1c67c7-3bb7-4a74-afd1-cbee193efcbf",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780016238/menu-items/menu_1780016235507.jpg"
+  },
+  {
+    "merchantId": "38d29cc8-7081-42f2-a407-e95f661711c1",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780016241/menu-items/menu_1780016239326.jpg"
+  },
+  {
+    "merchantId": "3d1c67c7-3bb7-4a74-afd1-cbee193efcbf",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780016241/menu-items/menu_1780016239326.jpg"
+  },
+  {
+    "merchantId": "98d98df7-5063-4f19-b728-29164b9f27c4",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781909454/menu-items/menu_1781909452318.jpg"
+  },
+  {
+    "merchantId": "0756bdf3-5e6b-42c9-8d1a-9af00794d25c",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780568259/menu-items/menu_1780568257806.jpg"
+  },
+  {
+    "merchantId": "0756bdf3-5e6b-42c9-8d1a-9af00794d25c",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780568267/menu-items/menu_1780568265754.jpg"
+  },
+  {
+    "merchantId": "408ee1b1-0b30-4110-a738-5ebdc099b986",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783256037/menu-items/menu_1783256034781.jpg"
+  },
+  {
+    "merchantId": "408ee1b1-0b30-4110-a738-5ebdc099b986",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783256030/menu-items/menu_1783256028469.jpg"
+  },
+  {
+    "merchantId": "b4e5d164-27fa-437b-8727-5dfa07b01fda",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786092188/menu-items/menu_1786092187070.jpg"
+  },
+  {
+    "merchantId": "b4e5d164-27fa-437b-8727-5dfa07b01fda",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786092192/menu-items/menu_1786092190803.jpg"
+  },
+  {
+    "merchantId": "8f2ad6c4-bd4a-41ac-ab7a-387b016757f5",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119126/menu-items/menu_1779119124770.jpg"
+  },
+  {
+    "merchantId": "cbfef016-2d48-4382-88ac-a136dcf5515d",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119126/menu-items/menu_1779119124770.jpg"
+  },
+  {
+    "merchantId": "9e45f123-e7ac-4f4b-976a-fbbd54110007",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119126/menu-items/menu_1779119124770.jpg"
+  },
+  {
+    "merchantId": "04a48a93-5d92-4363-8da8-ae54f360eb4b",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119126/menu-items/menu_1779119124770.jpg"
+  },
+  {
+    "merchantId": "8f2ad6c4-bd4a-41ac-ab7a-387b016757f5",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119131/menu-items/menu_1779119129991.jpg"
+  },
+  {
+    "merchantId": "cbfef016-2d48-4382-88ac-a136dcf5515d",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119131/menu-items/menu_1779119129991.jpg"
+  },
+  {
+    "merchantId": "9e45f123-e7ac-4f4b-976a-fbbd54110007",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119131/menu-items/menu_1779119129991.jpg"
+  },
+  {
+    "merchantId": "04a48a93-5d92-4363-8da8-ae54f360eb4b",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119131/menu-items/menu_1779119129991.jpg"
+  },
+  {
+    "merchantId": "c3dc7997-9dea-4659-a890-dbbe8af18f0f",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780048055/menu-items/menu_1780048054370.jpg"
+  },
+  {
+    "merchantId": "06938ce2-c171-473a-b5d0-ce7eb99a1c81",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780048055/menu-items/menu_1780048054370.jpg"
+  },
+  {
+    "merchantId": "c3dc7997-9dea-4659-a890-dbbe8af18f0f",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780048050/menu-items/menu_1780048049377.jpg"
+  },
+  {
+    "merchantId": "06938ce2-c171-473a-b5d0-ce7eb99a1c81",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780048050/menu-items/menu_1780048049377.jpg"
+  },
+  {
+    "merchantId": "7aa9d469-c8c4-4991-90a3-4649f76310b4",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584528/menu-items/menu_1778584526619.jpg"
+  },
+  {
+    "merchantId": "e65d4247-4af4-4bea-ad31-6ef57c61bab3",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584528/menu-items/menu_1778584526619.jpg"
+  },
+  {
+    "merchantId": "64a96c29-28a4-4dc7-b459-3f692626ce72",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584528/menu-items/menu_1778584526619.jpg"
+  },
+  {
+    "merchantId": "7aa9d469-c8c4-4991-90a3-4649f76310b4",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584522/menu-items/menu_1778584520874.jpg"
+  },
+  {
+    "merchantId": "e65d4247-4af4-4bea-ad31-6ef57c61bab3",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584522/menu-items/menu_1778584520874.jpg"
+  },
+  {
+    "merchantId": "64a96c29-28a4-4dc7-b459-3f692626ce72",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584522/menu-items/menu_1778584520874.jpg"
+  },
+  {
+    "merchantId": "b9f90fa7-f46d-4d72-932d-dda5f3f88141",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786120613/menu-items/menu_1786120612046.jpg"
+  },
+  {
+    "merchantId": "06b65283-c814-412f-b0bd-90b5fcab4e92",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782818989/menu-items/menu_1782818985691.jpg"
+  },
+  {
+    "merchantId": "a45832ec-510a-4dc1-bd40-8d5aae17d1a1",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782818989/menu-items/menu_1782818985691.jpg"
+  },
+  {
+    "merchantId": "06b65283-c814-412f-b0bd-90b5fcab4e92",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782819018/menu-items/menu_1782819015413.jpg"
+  },
+  {
+    "merchantId": "a45832ec-510a-4dc1-bd40-8d5aae17d1a1",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782819018/menu-items/menu_1782819015413.jpg"
+  },
+  {
+    "merchantId": "b0aaef7e-1cc1-4220-8178-d0f4a4b56635",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779599251/menu-items/menu_1779599248691.jpg"
+  },
+  {
+    "merchantId": "70037181-e6ab-4ef7-809a-117da47a3bc9",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780417451/menu-items/menu_1780417449239.jpg"
+  },
+  {
+    "merchantId": "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780391387/menu-items/menu_1780391384161.jpg"
+  },
+  {
+    "merchantId": "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780391428/menu-items/menu_1780391424890.jpg"
+  },
+  {
+    "merchantId": "c5ba915d-4a49-4751-a90f-923b4b350700",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780490908/menu-items/menu_1780490905991.jpg"
+  },
+  {
+    "merchantId": "c5ba915d-4a49-4751-a90f-923b4b350700",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780490916/menu-items/menu_1780490914372.jpg"
+  },
+  {
+    "merchantId": "536b1769-fab8-437c-94c1-447392c55970",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783682551/menu-items/menu_1783682548799.jpg"
+  },
+  {
+    "merchantId": "536b1769-fab8-437c-94c1-447392c55970",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783682558/menu-items/menu_1783682555792.jpg"
+  },
+  {
+    "merchantId": "df8d8aae-1a2c-4e97-8d9d-9d42cba9de0e",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779205187/menu-items/menu_1779205182714.jpg"
+  },
+  {
+    "merchantId": "df8d8aae-1a2c-4e97-8d9d-9d42cba9de0e",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779205190/menu-items/menu_1779205187962.jpg"
+  },
+  {
+    "merchantId": "710009e1-b8f0-4f08-84ad-04dd2e6d85c4",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+  },
+  {
+    "merchantId": "9f65ebda-5efd-4f4b-b59d-40c3478d8304",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+  },
+  {
+    "merchantId": "4be3b239-76b5-4759-8854-99a06d7f5442",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+  },
+  {
+    "merchantId": "8f327d17-a9b8-4a5b-8f11-053720e0cc2e",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+  },
+  {
+    "merchantId": "12df59ce-b2e1-4317-82ba-1f21fe693a4b",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+  },
+  {
+    "merchantId": "710009e1-b8f0-4f08-84ad-04dd2e6d85c4",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+  },
+  {
+    "merchantId": "9f65ebda-5efd-4f4b-b59d-40c3478d8304",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+  },
+  {
+    "merchantId": "4be3b239-76b5-4759-8854-99a06d7f5442",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+  },
+  {
+    "merchantId": "8f327d17-a9b8-4a5b-8f11-053720e0cc2e",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+  },
+  {
+    "merchantId": "12df59ce-b2e1-4317-82ba-1f21fe693a4b",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+  },
+  {
+    "merchantId": "58edcf17-bf5b-42a3-a185-b77107a1d5a6",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778861583/menu-items/menu_1778861581160.jpg"
+  },
+  {
+    "merchantId": "6b974a9f-c2fa-44ce-98f8-7d983a0a6b1f",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782433237/menu-items/menu_1782433234736.jpg"
+  },
+  {
+    "merchantId": "6b974a9f-c2fa-44ce-98f8-7d983a0a6b1f",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782433255/menu-items/menu_1782433253663.jpg"
+  },
+  {
+    "merchantId": "c18b1fb8-8d54-4f23-92b5-b27014d121df",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782694894/menu-items/menu_1782694892217.jpg"
+  },
+  {
+    "merchantId": "3070eb3d-ceef-4253-8289-f6ef26757dcc",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783789472/menu-items/menu_1783789470328.jpg"
+  },
+  {
+    "merchantId": "3070eb3d-ceef-4253-8289-f6ef26757dcc",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783789566/menu-items/menu_1783789564499.jpg"
+  },
+  {
+    "merchantId": "19bf0410-17c4-412a-bd27-04b5f30f6e4a",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435346/menu-items/menu_1772435343713.jpg"
+  },
+  {
+    "merchantId": "a9c48bc7-ac03-4965-9a82-5df7e3435c72",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435346/menu-items/menu_1772435343713.jpg"
+  },
+  {
+    "merchantId": "aff2ecdc-7818-4206-85ea-c40fdbe01ef7",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435346/menu-items/menu_1772435343713.jpg"
+  },
+  {
+    "merchantId": "965a92e2-c0d9-432c-9473-1e03d7ac4c18",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435346/menu-items/menu_1772435343713.jpg"
+  },
+  {
+    "merchantId": "19bf0410-17c4-412a-bd27-04b5f30f6e4a",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435358/menu-items/menu_1772435356574.jpg"
+  },
+  {
+    "merchantId": "a9c48bc7-ac03-4965-9a82-5df7e3435c72",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435358/menu-items/menu_1772435356574.jpg"
+  },
+  {
+    "merchantId": "aff2ecdc-7818-4206-85ea-c40fdbe01ef7",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435358/menu-items/menu_1772435356574.jpg"
+  },
+  {
+    "merchantId": "965a92e2-c0d9-432c-9473-1e03d7ac4c18",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435358/menu-items/menu_1772435356574.jpg"
+  },
+  {
+    "merchantId": "c677afa2-ebf0-41b7-8efd-cb8556b778b1",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786282250/menu-items/menu_1786282250036.jpg"
+  },
+  {
+    "merchantId": "d5a674c5-dac4-4ac7-a2a2-c2734702933a",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786282250/menu-items/menu_1786282250036.jpg"
+  },
+  {
+    "merchantId": "c677afa2-ebf0-41b7-8efd-cb8556b778b1",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786282256/menu-items/menu_1786282255091.jpg"
+  },
+  {
+    "merchantId": "d5a674c5-dac4-4ac7-a2a2-c2734702933a",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786282256/menu-items/menu_1786282255091.jpg"
+  },
+  {
+    "merchantId": "a154a279-44ff-4045-bc39-7f942f03d8f3",
+    "column": "logo_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787398280/menu-items/menu_1787398278494.jpg"
+  },
+  {
+    "merchantId": "a154a279-44ff-4045-bc39-7f942f03d8f3",
+    "column": "cover_image_url",
+    "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787398287/menu-items/menu_1787398285974.jpg"
+  }
+]
