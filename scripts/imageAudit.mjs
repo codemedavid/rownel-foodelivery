@@ -63,4 +63,4 @@ console.log(`merchants          ${merchants.length}`);
 console.log(`menu items         ${items.length} (${withImage} with an image, ${items.length - withImage} without)`);
 console.log(`distinct products  ${manifest.length}`);
 console.log(`\nwrote ${CATALOG_PATH}`);
-console.log(`wrote ${MANIFEST_PATH}`);
+console.log(isSnapshotOnly ? `kept ${MANIFEST_PATH} (--snapshot-only)` : `wrote ${MANIFEST_PATH}`);
