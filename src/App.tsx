@@ -25,6 +25,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { MerchantProvider, useMerchant } from './contexts/MerchantContext';
 import { CartProvider } from './contexts/CartContext';
 import { MenuProvider, useMenuContext } from './contexts/MenuContext';
+import { LocationProvider } from './contexts/LocationContext';
 
 function MerchantMenu() {
   const { selectedMerchant } = useMerchant();
@@ -82,6 +83,7 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
+        <LocationProvider>
         <MerchantProvider>
           <MenuProvider>
             <Router>
@@ -141,6 +143,7 @@ function App() {
             </Router>
           </MenuProvider>
         </MerchantProvider>
+        </LocationProvider>
       </CartProvider>
     </AuthProvider>
   );

@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, MapPin, PackageSearch, Search, ChevronRight, ChevronDown, ChevronLeft, Navigation, X } from 'lucide-react';
 import { useMerchant } from '../contexts/MerchantContext';
-import { calculateDistance } from '../utils/geolocation';
-import { MenuItem, Merchant } from '../types';
+import { useUserLocation } from '../contexts/LocationContext';
+import { decorateAndFilterMerchantsByDistance, type MerchantWithDistance } from '../utils/merchantDistance';
+import { MenuItem } from '../types';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
 import MapLocationPicker from './MapLocationPicker';
-import { reverseGeocode, type OSMAddressSuggestion } from '../lib/osm';
+import { type OSMAddressSuggestion } from '../lib/osm';
 import { useMenu } from '../hooks/useMenu';
 import { usePromotions } from '../hooks/usePromotions';
 import { isMerchantOpen } from '../lib/timeUtils';
@@ -17,18 +18,9 @@ const BANNER_WIDTH = 900;
 const THUMBNAIL_WIDTH = 160;
 const LOGO_WIDTH = 120;
 
-const USER_LOCATION_STORAGE_KEY = 'userDeliveryLocation';
 const MAX_SEARCH_RESULTS = 20;
 const NEAR_ME_VISIBLE_LIMIT = 5;
 
-interface StoredUserLocation {
-  latitude: number;
-  longitude: number;
-  displayName: string;
-  street: string;
-}
-
-type MerchantWithDistance = Merchant & { distanceKm?: number };
 type MenuSearchResult = MenuItem & { merchant: MerchantWithDistance };
 
 const MerchantsList: React.FC = () => {
@@ -41,11 +33,17 @@ const MerchantsList: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const exploreSectionRef = React.useRef<HTMLDivElement | null>(null);
 
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'ready' | 'error'>('idle');
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [locationStreet, setLocationStreet] = useState<string>('Set your location');
-  const [locationDisplayName, setLocationDisplayName] = useState<string>('');
+  const {
+    userLocation,
+    locationStatus,
+    locationError,
+    locationStreet,
+    locationDisplayName,
+    isManualPromptRequested,
+    dismissManualPrompt,
+    requestLocation,
+    applyLocation,
+  } = useUserLocation();
 
   const [isLocationEditorOpen, setIsLocationEditorOpen] = useState(false);
   const [manualLocationInput, setManualLocationInput] = useState('');
@@ -62,27 +60,6 @@ const MerchantsList: React.FC = () => {
     navigate(`/merchant/${item.merchantId}/item/${item.id}`);
   };
 
-  const persistLocation = (location: StoredUserLocation | null) => {
-    if (!location) {
-      localStorage.removeItem(USER_LOCATION_STORAGE_KEY);
-      return;
-    }
-
-    localStorage.setItem(USER_LOCATION_STORAGE_KEY, JSON.stringify(location));
-  };
-
-  const applyLocation = (location: StoredUserLocation, save = true) => {
-    setUserLocation({ latitude: location.latitude, longitude: location.longitude });
-    setLocationStreet(location.street);
-    setLocationDisplayName(location.displayName);
-    setLocationStatus('ready');
-    setLocationError(null);
-
-    if (save) {
-      persistLocation(location);
-    }
-  };
-
   const openLocationEditor = () => {
     setManualLocationInput(locationDisplayName || '');
     setSelectedManualLocation(null);
@@ -90,119 +67,29 @@ const MerchantsList: React.FC = () => {
     setIsLocationEditorOpen(true);
   };
 
-  const requestLocation = useCallback((openManualPromptOnError = false) => {
-    if (!navigator.geolocation) {
-      setLocationStatus('error');
-      setLocationError('Location is not supported by this browser.');
-      if (openManualPromptOnError) {
-        setIsLocationEditorOpen(true);
-      }
-      return;
-    }
+  const closeLocationEditor = useCallback(() => {
+    setIsLocationEditorOpen(false);
+    dismissManualPrompt();
+  }, [dismissManualPrompt]);
 
-    setLocationStatus('locating');
-    setLocationError(null);
-
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const reverse = await reverseGeocode(coords.latitude, coords.longitude);
-          applyLocation(
-            {
-              latitude: reverse.latitude,
-              longitude: reverse.longitude,
-              displayName: reverse.displayName,
-              street: reverse.street,
-            },
-            true
-          );
-        } catch {
-          applyLocation(
-            {
-              latitude: coords.latitude,
-              longitude: coords.longitude,
-              displayName: `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`,
-              street: 'Current location',
-            },
-            true
-          );
-        }
-
-        setIsLocationEditorOpen(false);
-      },
-      (error) => {
-        setLocationStatus('error');
-        setLocationError(error.message || 'Unable to get your location.');
-
-        const hasSavedLocation = Boolean(localStorage.getItem(USER_LOCATION_STORAGE_KEY));
-        if (openManualPromptOnError && !hasSavedLocation) {
-          setIsLocationEditorOpen(true);
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      }
-    );
-  }, []);
-
+  // The provider asks for the manual editor when geolocation fails with no saved location.
   useEffect(() => {
-    const savedLocationRaw = localStorage.getItem(USER_LOCATION_STORAGE_KEY);
-    if (savedLocationRaw) {
-      try {
-        const parsed = JSON.parse(savedLocationRaw) as Partial<StoredUserLocation>;
-        if (
-          typeof parsed.latitude === 'number' &&
-          typeof parsed.longitude === 'number' &&
-          typeof parsed.displayName === 'string' &&
-          typeof parsed.street === 'string'
-        ) {
-          applyLocation(
-            {
-              latitude: parsed.latitude,
-              longitude: parsed.longitude,
-              displayName: parsed.displayName,
-              street: parsed.street,
-            },
-            false
-          );
-          return;
-        }
-      } catch {
-        localStorage.removeItem(USER_LOCATION_STORAGE_KEY);
-      }
+    if (isManualPromptRequested) {
+      setIsLocationEditorOpen(true);
     }
+  }, [isManualPromptRequested]);
 
-    requestLocation(true);
-  }, [requestLocation]);
-
-  const merchantsWithDistance = useMemo(() => {
-    const base = merchants;
-
-    if (!userLocation) {
-      return base as MerchantWithDistance[];
+  // A successful GPS request (e.g. "Use current GPS" in the editor) closes the editor.
+  useEffect(() => {
+    if (locationStatus === 'ready') {
+      setIsLocationEditorOpen(false);
     }
+  }, [locationStatus]);
 
-    return base
-      .map((m) => {
-        if (typeof m.latitude === 'number' && typeof m.longitude === 'number') {
-          const dist = calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            m.latitude,
-            m.longitude
-          );
-          return { ...m, distanceKm: dist } as MerchantWithDistance;
-        }
-        return m as MerchantWithDistance;
-      })
-      .filter((m) => {
-        if (typeof m.distanceKm !== 'number') return false;
-        const maxDistanceKm = m.maxDeliveryDistanceKm ?? null;
-        return maxDistanceKm == null || m.distanceKm <= maxDistanceKm;
-      });
-  }, [merchants, userLocation]);
+  const merchantsWithDistance = useMemo(
+    () => decorateAndFilterMerchantsByDistance(merchants, userLocation),
+    [merchants, userLocation]
+  );
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const searchTokens = useMemo(
@@ -385,7 +272,7 @@ const MerchantsList: React.FC = () => {
     );
 
     setManualLocationError(null);
-    setIsLocationEditorOpen(false);
+    closeLocationEditor();
   };
 
   const openPromotionLink = (link: string | null) => {
@@ -937,7 +824,7 @@ const MerchantsList: React.FC = () => {
               <h2 className="text-xl font-bold text-gray-900">Set delivery location</h2>
               <button
                 type="button"
-                onClick={() => setIsLocationEditorOpen(false)}
+                onClick={closeLocationEditor}
                 className="rounded-full p-2 text-gray-600 hover:bg-gray-100"
                 aria-label="Close"
               >
