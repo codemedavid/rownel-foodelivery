@@ -130,3 +130,73 @@ export const buildOrderItemRows = (
       subtotal: line.totalPrice * line.quantity,
     };
   });
+
+export interface CreateOrderItemInput {
+  itemId: string;
+  name: string;
+  variation: { id: string; name: string; price: number } | null;
+  addOns: Array<{ id: string; name: string; price: number; quantity: number }> | null;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export interface CreateOrderInput {
+  merchantId: string;
+  customerName: string;
+  contactNumber: string;
+  serviceType: ServiceType;
+  address: string | null;
+  deliveryLatitude: number | null;
+  deliveryLongitude: number | null;
+  distanceKm: number | null;
+  deliveryFee: number | null;
+  deliveryFeeBreakdown: Record<string, unknown> | null;
+  deliveryMode: DeliveryMode;
+  pickupTime: string | null;
+  partySize: number | null;
+  dineInTime: string | null;
+  paymentMethod: string;
+  referenceNumber: string | null;
+  notes: string | null;
+  total: number;
+  items: CreateOrderItemInput[];
+}
+
+/**
+ * Payload for the create_order(p jsonb) RPC — the same server path the web app
+ * uses (validates pricing, decrements inventory, triggers rider dispatch, and
+ * stamps customer_user_id for signed-in customers).
+ */
+export const buildCreateOrderInput = (order: OrderData): CreateOrderInput => {
+  const itemRows = buildOrderItemRows('pending', order.items);
+  return {
+    merchantId: order.merchantId,
+    customerName: order.customerName.trim(),
+    contactNumber: order.contactNumber.trim(),
+    serviceType: order.serviceType,
+    address: order.address ?? null,
+    deliveryLatitude: order.deliveryLatitude ?? null,
+    deliveryLongitude: order.deliveryLongitude ?? null,
+    distanceKm: order.distanceKm ?? null,
+    deliveryFee: order.deliveryFee ?? null,
+    deliveryFeeBreakdown: order.deliveryFeeBreakdown ?? null,
+    deliveryMode: order.deliveryMode ?? 'priority',
+    pickupTime: order.pickupTime ?? null,
+    partySize: order.partySize ?? null,
+    dineInTime: order.dineInTime ? new Date(order.dineInTime).toISOString() : null,
+    paymentMethod: order.paymentMethod ?? 'cash',
+    referenceNumber: order.referenceNumber ?? null,
+    notes: order.notes ?? null,
+    total: order.total,
+    items: itemRows.map((row) => ({
+      itemId: row.item_id,
+      name: row.name,
+      variation: row.variation,
+      addOns: row.add_ons,
+      unitPrice: row.unit_price,
+      quantity: row.quantity,
+      subtotal: row.subtotal,
+    })),
+  };
+};
