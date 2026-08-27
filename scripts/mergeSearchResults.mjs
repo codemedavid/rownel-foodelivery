@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { projectRoot } from './loadEnv.mjs';
-import { withCandidates } from '../src/lib/imageCatalog.ts';
+import { mergeCandidates } from '../src/lib/imageCatalog.ts';
 
 const manifestIndex = process.argv.indexOf('--manifest');
 const MANIFEST_PATH = resolve(
@@ -107,12 +107,11 @@ if (process.argv.includes('--verify')) {
 
 const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
 const next = manifest.map((entry) => {
-  if (entry.status === 'uploaded') return entry;
   const found = (candidatesByKey.get(entry.key) ?? []).map((c) => ({
     ...c,
     ...(verdicts.has(c.url) ? { verified: verdicts.get(c.url) } : {}),
   }));
-  return withCandidates(entry, found);
+  return mergeCandidates(entry, found);
 });
 
 writeFileSync(MANIFEST_PATH, `${JSON.stringify(next, null, 2)}\n`);

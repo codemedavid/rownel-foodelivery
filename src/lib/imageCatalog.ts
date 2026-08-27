@@ -192,6 +192,19 @@ export const withCandidates = (entry: ManifestEntry, candidates: ImageCandidate[
   return { ...entry, candidates: ranked, chosenUrl: ranked[0].url, status: 'pending-review' };
 };
 
+/**
+ * Folds one search pass's results into an entry. Sourcing happens in rounds, so
+ * "this pass found nothing" must not be confused with "nothing exists": only an
+ * entry still awaiting its first candidates is downgraded to no-candidate. An
+ * entry that has already been decided keeps that decision, and an uploaded one
+ * is never touched.
+ */
+export const mergeCandidates = (entry: ManifestEntry, found: ImageCandidate[]): ManifestEntry => {
+  if (entry.status === 'uploaded') return entry;
+  if (found.length > 0) return withCandidates(entry, found);
+  return entry.status === 'needs-candidates' ? withCandidates(entry, []) : entry;
+};
+
 /** Records the CDN URL for an approved entry. Approval is the gate; this enforces it. */
 export const withUpload = (entry: ManifestEntry, imagekitUrl: string): ManifestEntry => {
   if (entry.status !== 'approved') {

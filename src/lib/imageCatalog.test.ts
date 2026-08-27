@@ -12,6 +12,7 @@ import {
   buildRowUpdates,
   buildRollback,
   isLiveImageUrl,
+  mergeCandidates,
   reconsiderStranded,
   parseMerchantRowId,
   buildMerchantRowUpdates,
@@ -292,6 +293,56 @@ describe('autoApprove', () => {
     const input = [pendingWith('official')];
     autoApprove(input, items);
     expect(input[0].status).toBe('pending-review');
+  });
+});
+
+describe('mergeCandidates', () => {
+  const base = (status: ManifestEntry['status'], overrides: Partial<ManifestEntry> = {}): ManifestEntry => ({
+    key: 'jollibee::1pc-chickenjoy',
+    brand: 'Jollibee',
+    productName: '1pc Chickenjoy',
+    rowIds: ['i1', 'i2'],
+    candidates: [],
+    chosenUrl: null,
+    imagekitUrl: null,
+    status,
+    ...overrides,
+  });
+
+  const found = [candidate('https://src.example/new.jpg', 'official')];
+
+  it('attaches new candidates to an entry awaiting them', () => {
+    const result = mergeCandidates(base('needs-candidates'), found);
+    expect(result.status).toBe('pending-review');
+    expect(result.chosenUrl).toBe('https://src.example/new.jpg');
+  });
+
+  it('marks an entry still awaiting candidates as no-candidate when the search found none', () => {
+    expect(mergeCandidates(base('needs-candidates'), []).status).toBe('no-candidate');
+  });
+
+  it('leaves an approved entry untouched when this pass found nothing for it', () => {
+    const approved = base('approved', {
+      candidates: found,
+      chosenUrl: 'https://src.example/old.jpg',
+      targetRowIds: ['i1'],
+    });
+    expect(mergeCandidates(approved, [])).toEqual(approved);
+  });
+
+  it('leaves a rejected entry untouched when this pass found nothing for it', () => {
+    const rejected = base('rejected', { candidates: found, targetRowIds: [] });
+    expect(mergeCandidates(rejected, [])).toEqual(rejected);
+  });
+
+  it('never disturbs an uploaded entry, even when new candidates arrive', () => {
+    const uploaded = base('uploaded', { imagekitUrl: 'https://ik.imagekit.io/x/c.jpg', candidates: found });
+    expect(mergeCandidates(uploaded, found)).toEqual(uploaded);
+  });
+
+  it('re-opens a no-candidate entry when a later pass does find something', () => {
+    const result = mergeCandidates(base('no-candidate'), found);
+    expect(result.status).toBe('pending-review');
   });
 });
 
