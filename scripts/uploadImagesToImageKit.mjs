@@ -44,9 +44,14 @@ if (pending.length === 0) {
 
 console.log(`Uploading ${pending.length} image(s) to ImageKit folder "${TARGET_FOLDER}"...\n`);
 
-async function uploadFromUrl(entry) {
+// Wikimedia (and some other hosts) refuse ImageKit's server-side fetcher, which
+// sends no descriptive User-Agent. Their policy wants one, so when the remote
+// fetch is rejected we download the bytes ourselves and upload those instead.
+const USER_AGENT = 'rownel-foodelivery-image-audit/1.0 (catalog image re-hosting)';
+
+async function postToImageKit(file, entry) {
   const form = new FormData();
-  form.append('file', entry.chosenUrl);
+  form.append('file', file);
   form.append('fileName', `${entry.key.replace('::', '_')}`);
   form.append('folder', TARGET_FOLDER);
   form.append('useUniqueFileName', 'true');
@@ -62,6 +67,26 @@ async function uploadFromUrl(entry) {
     throw new Error(body?.message ?? `upload failed with status ${response.status}`);
   }
   return body.url;
+}
+
+async function uploadFromUrl(entry) {
+  try {
+    return await postToImageKit(entry.chosenUrl, entry);
+  } catch (error) {
+    if (!/not able to download file/i.test(error.message)) throw error;
+
+    const source = await fetch(entry.chosenUrl, {
+      headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!source.ok) throw new Error(`${error.message} (re-fetch got ${source.status})`);
+
+    const type = source.headers.get('content-type') ?? '';
+    if (!type.startsWith('image/')) throw new Error(`${error.message} (re-fetch served ${type})`);
+
+    const blob = new Blob([await source.arrayBuffer()], { type });
+    return await postToImageKit(blob, entry);
+  }
 }
 
 const uploaded = new Map();
