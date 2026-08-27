@@ -1,0 +1,128 @@
+[
+  {
+    "key": "shawarma-sa-market::logo",
+    "candidates": []
+  },
+  {
+    "key": "shawarma-sa-market::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "chowking::logo",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/en/thumb/d/d6/Chowking_logo.svg/250px-Chowking_logo.svg.png",
+        "source": "Official Chowking corporate logo as used in the Chowking Wikipedia infobox (en.wikipedia.org/wiki/Chowking); verified returns Content-Type image/png",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "chowking::cover-image",
+    "candidates": [
+      {
+        "url": "https://ifranchise.ph/wp-content/uploads/2017/03/Chowking-Fastood-Franchise-Philippines-2.jpg",
+        "source": "Official Chowking 'Pork Chao Fan Toppings' brand marketing creative, hosted on ifranchise.ph Chowking franchise page; verified image/jpeg 1024x664",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "big-brew::logo",
+    "candidates": [
+      {
+        "url": "https://bigbrew.com.ph/webimage/bb.png",
+        "source": "Official BigBrew Philippines website (bigbrew.com.ph) brand mark asset; verified image/png 2400x2401 square",
+        "confidence": "official"
+      },
+      {
+        "url": "https://bigbrew.com.ph/webimage/logo.png",
+        "source": "Official BigBrew Philippines website header wordmark (white on transparent); verified image/png 500x100",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "big-brew::cover-image",
+    "candidates": [
+      {
+        "url": "https://franchise.ph/wp-content/uploads/2025/01/img-big-brew-.jpg",
+        "source": "BigBrew branded product lineup creative on franchise.ph BigBrew franchise page; verified image/jpeg 1439x1053",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "mcdo::logo",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/250px-McDonald%27s_Golden_Arches.svg.png",
+        "source": "Official McDonald's Golden Arches corporate logo from the McDonald's Wikipedia infobox / Wikimedia Commons; verified returns Content-Type image/png",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "mcdo::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "row-nel-online-store-services::logo",
+    "candidates": []
+  },
+  {
+    "key": "row-nel-online-store-services::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "kapyem-coffee::logo",
+    "candidates": []
+  },
+  {
+    "key": "kapyem-coffee::cover-image",
+    "candidates": [
+      {
+        "url": "https://cdn.wegic.ai/assets/onepage/img/e7d2baea-a16e-4501-bd1b-c67fa50650b6.jpeg",
+        "source": "Storefront photo from KAPYEM COFFEE's own website (kapyemcoffee.wegic.app); visually verified as the KAPYEM kiosk with 'Kape iti Aggagayyem' branding and Ilocano signage; verified image/jpeg 3024x4032",
+        "confidence": "official"
+      },
+      {
+        "url": "https://cdn.wegic.ai/assets/onepage/img/b885ef34-ad61-40df-9037-ada481d58008.png",
+        "source": "KAPYEM COFFEE 'Signature' branded menu poster from the brand's own website (kapyemcoffee.wegic.app); verified image/png 1414x2000",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "jorences-pizza::logo",
+    "candidates": []
+  },
+  {
+    "key": "jorences-pizza::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "b1-t1::logo",
+    "candidates": []
+  },
+  {
+    "key": "b1-t1::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "sweet-tooth-bangar::logo",
+    "candidates": []
+  },
+  {
+    "key": "sweet-tooth-bangar::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "cj-s-foodies-corner::logo",
+    "candidates": []
+  },
+  {
+    "key": "cj-s-foodies-corner::cover-image",
+    "candidates": []
+  }
+]
