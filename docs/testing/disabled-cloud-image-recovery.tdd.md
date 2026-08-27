@@ -144,6 +144,28 @@ Two routes to a Facebook page's profile photo, each with a limit:
 with a vanity username (numeric-ID pages get the grey silhouette); the public
 page plugin works for any page but caps at 100-200px.
 
+## Final state (applied)
+
+Every image was re-hosted on ImageKit and written back. No row anywhere still
+points at the disabled cloud.
+
+| | ImageKit | Empty | Was broken |
+|---|---|---|---|
+| `merchants.logo_url` | 59 | 18 | 76 |
+| `merchants.cover_image_url` | 53 | 24 | 76 |
+| `menu_items.image_url` | 650 | 155 | 379 |
+
+345 images uploaded (58 merchant + 287 item), 762 column writes, 182 dead
+references nulled. Rollback snapshots for each stage are in `docs/images/`.
+
+Wikimedia refuses ImageKit's server-side fetcher, which failed 77 uploads. The
+uploader now falls back to downloading the bytes with a descriptive User-Agent
+and posting the binary, which recovered all of them.
+
+Dead references were nulled rather than left in place because the UI only tests
+that a URL is non-empty (`coverImageUrl || logoUrl`), so a dead URL rendered a
+broken-image icon; null lets the same UI reach its empty state.
+
 ## Known gaps
 
 - Uploads to ImageKit require `IMAGEKIT_PRIVATE_KEY`, which lives in Supabase

@@ -1,0 +1,1094 @@
+[
+  {
+    "table": "merchants",
+    "id": "68808990-8dbf-4add-b1b6-bfef823eb954",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787310347/menu-items/menu_1787310345688.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "68808990-8dbf-4add-b1b6-bfef823eb954",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784027951/menu-items/menu_1784027949016.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "82def8b2-63dd-4e2e-80ab-eb780ad3890d",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772733260/menu-items/menu_1772733256694.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "82def8b2-63dd-4e2e-80ab-eb780ad3890d",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772733266/menu-items/menu_1772733263909.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "126336d8-fc13-4c0b-acec-fdcd85c47e88",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782291744/menu-items/menu_1782291742599.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "126336d8-fc13-4c0b-acec-fdcd85c47e88",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782291751/menu-items/menu_1782291749585.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "de5dc586-8894-4420-a1c1-7265dae8efb5",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784723308/menu-items/menu_1784723306991.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "de5dc586-8894-4420-a1c1-7265dae8efb5",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784723313/menu-items/menu_1784723312312.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "98d98df7-5063-4f19-b728-29164b9f27c4",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781909460/menu-items/menu_1781909458730.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "de7d3a9c-3b44-4efb-acda-ace37d889c78",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779232572/menu-items/menu_1779232569963.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "de7d3a9c-3b44-4efb-acda-ace37d889c78",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779232575/menu-items/menu_1779232574744.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "ec832d38-d8d5-40ef-960b-58e1f1398696",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780147340/menu-items/menu_1780147338784.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "ec832d38-d8d5-40ef-960b-58e1f1398696",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780147346/menu-items/menu_1780147344457.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "2e682bd6-17f6-41f5-a469-341e64ca34bb",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784997593/menu-items/menu_1784997591990.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "2e682bd6-17f6-41f5-a469-341e64ca34bb",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784997602/menu-items/menu_1784997600450.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "5d2f8e2f-bc36-43f9-9e91-4c4ad58fcbc9",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780231439/menu-items/menu_1780231437311.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "5d2f8e2f-bc36-43f9-9e91-4c4ad58fcbc9",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780231432/menu-items/menu_1780231430070.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "b9f90fa7-f46d-4d72-932d-dda5f3f88141",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786120617/menu-items/menu_1786120616511.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "b0aaef7e-1cc1-4220-8178-d0f4a4b56635",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779599263/menu-items/menu_1779599260668.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "eb8c0119-5a8d-4b24-ad99-ca7e96dfdf82",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780147340/menu-items/menu_1780147338784.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "eb8c0119-5a8d-4b24-ad99-ca7e96dfdf82",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780147346/menu-items/menu_1780147344457.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "70037181-e6ab-4ef7-809a-117da47a3bc9",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780417455/menu-items/menu_1780417454425.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "58edcf17-bf5b-42a3-a185-b77107a1d5a6",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778861591/menu-items/menu_1778861588822.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "c18b1fb8-8d54-4f23-92b5-b27014d121df",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782694902/menu-items/menu_1782694900359.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "f0bb5f6a-33d9-4430-956c-c9f4853a81c8",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782292539/menu-items/menu_1782292536904.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "f0bb5f6a-33d9-4430-956c-c9f4853a81c8",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782292568/menu-items/menu_1782292566341.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "a68ebece-bfde-49ba-9c38-2d08ad5b9c9d",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787326049/menu-items/menu_1787326047879.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "a68ebece-bfde-49ba-9c38-2d08ad5b9c9d",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787234746/menu-items/menu_1787234744619.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "fff6ca4b-1db4-4a81-be7f-ca1bebe63dff",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787468387/menu-items/menu_1787468386392.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "fff6ca4b-1db4-4a81-be7f-ca1bebe63dff",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787468390/menu-items/menu_1787468389299.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "b987edba-70db-4452-b972-0d0b45bb6903",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787531136/menu-items/menu_1787531135381.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "b987edba-70db-4452-b972-0d0b45bb6903",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787531140/menu-items/menu_1787531140446.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "55174b87-c21d-4b29-8d32-2bc36742495b",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787545515/menu-items/menu_1787545513833.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "55174b87-c21d-4b29-8d32-2bc36742495b",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787545519/menu-items/menu_1787545518539.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "cf0622a4-8766-47b0-9929-3466004fff98",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787576039/menu-items/menu_1787576037860.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "cf0622a4-8766-47b0-9929-3466004fff98",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787576045/menu-items/menu_1787576043997.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "74982934-89a9-406d-a9f8-36649451a3e9",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787576098/menu-items/menu_1787576096959.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "74982934-89a9-406d-a9f8-36649451a3e9",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787576122/menu-items/menu_1787576121463.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "b39afe24-c915-4c46-8bad-5924fac06ffb",
+    "column": "logo_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787632804/menu-items/menu_1787632803136.jpg"
+  },
+  {
+    "table": "merchants",
+    "id": "b39afe24-c915-4c46-8bad-5924fac06ffb",
+    "column": "cover_image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787632808/menu-items/menu_1787632806524.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "0b4c9d6c-6d4d-427c-b902-2accda854dd6",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772477691/menu-items/menu_1772477689251.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "30dd7c29-c34a-471d-bd10-990fb61af8ca",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772477650/menu-items/menu_1772477647645.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "d4b718ac-7230-484a-8603-02c7145d36f0",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260751/menu-items/menu_1783260748367.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "8ca05c26-30c2-4504-b799-af266bd5a3e3",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260989/menu-items/menu_1783260987933.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "05d52d19-52d7-47f6-ae4c-bde2850a181f",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783261704/menu-items/menu_1783261702121.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "615da989-6271-4939-85ef-b347459cf62c",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772740527/menu-items/menu_1772740524417.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "9973d6b2-0d51-4cbe-bfe1-11737bd1f099",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772994015/menu-items/menu_1772994010909.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "01c65e0f-7bbc-46d5-8401-10c2be73c4d6",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260125/menu-items/menu_1783260123570.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "e2001e74-efa3-4357-8882-312636a64893",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260500/menu-items/menu_1783260497244.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "8944f050-b00b-441d-b145-bc4742b576cb",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260944/menu-items/menu_1783260942340.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "950c2dbd-74a6-40f6-918a-4249bb5ec96f",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780392551/menu-items/menu_1780392546780.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "ac38c71e-675b-4a1a-bf7c-ff878312cd0e",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772479442/menu-items/menu_1772479439894.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "de43b5e9-2008-4e6c-aa1a-8ccb7400620f",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780449417/menu-items/menu_1780449416213.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "174bd04b-8cc2-4f3a-8296-ee1986c1415c",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783261904/menu-items/menu_1783261901822.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "ab1dfea0-c73d-4149-b22a-ffd1f7d68617",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778344566/menu-items/menu_1778344555984.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "72eaf6be-0653-4145-a605-0a01521b31fa",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778344697/menu-items/menu_1778344689519.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "f7ebb297-34f1-4818-96e0-e1ba42b100c8",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781910363/menu-items/menu_1781910361174.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "fbb31b85-04b0-4230-9282-bdf417b0b22d",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780392785/menu-items/menu_1780392782495.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "0a81af93-72d1-47cc-9b16-d31d79481229",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783261956/menu-items/menu_1783261954602.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "40297072-fe2b-45f1-9b07-70b17967bc4a",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781150198/menu-items/menu_1781150195550.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "16cc86ea-8bc6-416f-89a8-d60c312813b4",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778348869/menu-items/menu_1778348867774.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "5da86698-9a22-4c69-a6e1-be13bd0c1e35",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778345632/menu-items/menu_1778345629808.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "a2a82f5c-7003-4318-b1c6-0b606abf070c",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778583498/menu-items/menu_1778583496074.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "22e34bd0-7fd6-427b-b09b-f82180d601ba",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778583636/menu-items/menu_1778583634201.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "9ae6b4cf-4122-452c-9156-219319da4d87",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584018/menu-items/menu_1778584017003.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "10da3308-fdf5-4033-9e41-547088ef5f0a",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778588186/menu-items/menu_1778588184568.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "e91a5161-3c9f-49be-adec-44a953cde520",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781910437/menu-items/menu_1781910435775.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "4b6355d7-0811-4a27-a073-f8c23e746291",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778588632/menu-items/menu_1778588630341.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "fb6d4724-89cf-42e8-9101-4e259207d3d8",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778589453/menu-items/menu_1778589451316.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "39053dde-5ac4-46cd-aed5-ec591727d4b1",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778591609/menu-items/menu_1778591607687.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "b5e78377-4210-47a5-9da5-e54a511ccfa9",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780450202/menu-items/menu_1780450201027.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "64f63d18-95f4-40a0-8861-54de6bee22a8",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780198034/menu-items/menu_1780198031534.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "5f9e55f7-3dd8-4011-96fb-dd55f324d85f",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780392831/menu-items/menu_1780392829340.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "0b3768d8-7021-4e4c-82f5-5501afac6704",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780450478/menu-items/menu_1780450476934.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "5e00f879-90fe-4b32-bfa3-a63be352e76b",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780198379/menu-items/menu_1780198376410.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "5202b853-ff78-4d12-b52b-ad5a48dd5bc4",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780392925/menu-items/menu_1780392922248.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "cfa749ba-7958-4f2d-8eb6-de7e3456ed47",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780450626/menu-items/menu_1780450625360.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "b81624a2-935f-4583-aafe-f1989af6d7bd",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781222680/menu-items/menu_1781222677558.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "1a04c434-e015-409c-9648-f1d132c24c84",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781911909/menu-items/menu_1781911906994.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "a30bb799-0c0e-489f-8bed-2486285fa15f",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782491248/menu-items/menu_1782491246467.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "969eb732-9c8c-4267-99bf-a661f296f689",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780194945/menu-items/menu_1780194943204.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "abd882ab-6da9-41b5-bbef-5843f60c9131",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197494/menu-items/menu_1780197491727.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "d17c8374-0080-4f94-937f-6704c83c5bf1",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780198034/menu-items/menu_1780198031534.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "57d6c3a2-6936-47d7-8948-e745f2faa7ec",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781222850/menu-items/menu_1781222848223.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "f225cf1f-969e-4cba-8f75-0378151ee537",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772479442/menu-items/menu_1772479439894.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "e3dda391-93e1-4422-b3d3-fae742be9a5b",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781912232/menu-items/menu_1781912230210.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "201241fb-5e5b-430d-a9d2-fdf615486eb3",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778588632/menu-items/menu_1778588630341.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "a98f1825-2655-4e8c-90cc-201c8769075e",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778591609/menu-items/menu_1778591607687.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "3616ebf7-289f-4f02-9437-c60ecd106177",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780195099/menu-items/menu_1780195096359.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "eb214da4-98bf-40fa-a89f-b1911e2efa6c",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197091/menu-items/menu_1780197088580.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "219f5b02-7b4a-4551-b43f-5f28f3385cc6",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780198379/menu-items/menu_1780198376410.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "f078277d-8155-48e0-ae4b-4f8051bb80d1",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780417715/menu-items/menu_1780417714441.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "15d107df-3619-4f2c-accf-9bede6975edf",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781912428/menu-items/menu_1781912426392.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "b0c47b63-cef3-46ae-b872-ae15fe2e702e",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782493848/menu-items/menu_1782493845495.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "f59c662d-2f81-48c9-a3c9-b686400dc3a4",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260125/menu-items/menu_1783260123570.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c99a3aff-bd18-4aff-bf47-04325c8cf721",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772479442/menu-items/menu_1772479439894.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "7433bc53-f097-4111-aaf0-f5267cf15d1b",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778589453/menu-items/menu_1778589451316.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "6996c7c2-26b5-4733-a7ba-7413d14fe7e5",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197185/menu-items/menu_1780197182951.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "23443775-4aaf-48c6-b8a6-5ba387eb9326",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260365/menu-items/menu_1783260362410.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "1202feae-a556-486b-ac16-867975e9207c",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783789813/menu-items/menu_1783789811132.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "ab412dd7-3b66-4dbb-94b4-eb6e607c7046",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778670193/menu-items/menu_1778670191288.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "d6e74d0a-e41b-449d-82fb-40d4618bedae",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781150198/menu-items/menu_1781150195550.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "72f2cd03-d9fd-41fe-852e-d3d2fc0b3439",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780194779/menu-items/menu_1780194777492.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "7bd5370d-85fe-4a2c-a104-8bdbddde1e4c",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778588186/menu-items/menu_1778588184568.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "51873070-45de-4044-bd50-36e7e238d7ed",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780194779/menu-items/menu_1780194777492.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "acec156c-57ae-44f1-9cd3-f3f0e25b70eb",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780196691/menu-items/menu_1780196688524.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "2dd94f9e-b1d7-4f74-b996-d6488fcc20b1",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197676/menu-items/menu_1780197674318.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "e7d1f3c5-13f3-4a33-9c10-5fe9fb136679",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778670193/menu-items/menu_1778670191288.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c260d413-b3c6-4bab-9ecd-6dab02542496",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781222850/menu-items/menu_1781222848223.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "2d3b6d70-1898-4869-bdbf-6da2c966498b",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781223450/menu-items/menu_1781223448204.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "9237645d-b664-4bae-aa3b-155e2f7269eb",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772479442/menu-items/menu_1772479439894.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "02a05517-332e-4ccb-bd3d-d1e986051f5e",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778348869/menu-items/menu_1778348867774.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "f3675a99-9dd9-40af-9356-f1c91c3f1326",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781222680/menu-items/menu_1781222677558.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "dfb52b56-fb44-4bd7-889f-78bed21fe574",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782491248/menu-items/menu_1782491246467.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "d1247b85-3286-4083-a268-57cafa534ca9",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780053807/menu-items/menu_1780053806640.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "90e5793e-e391-4ca1-90d1-bdbc485e8e18",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260500/menu-items/menu_1783260497244.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c914c5bb-af87-4b18-958d-7e77ea37c681",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780194945/menu-items/menu_1780194943204.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "b177c516-9622-49b2-8c14-8aeb3901fc82",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778588632/menu-items/menu_1778588630341.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "0a3d211d-4a43-45e6-bb92-33059c9b4f23",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778591609/menu-items/menu_1778591607687.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "59e8250d-b054-48d2-a19f-4932e0353f0d",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780195099/menu-items/menu_1780195096359.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "1e314ff2-076b-46ac-aece-e169f16cb33f",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197091/menu-items/menu_1780197088580.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "9851d6a9-d0e2-438d-8e8e-22e09986b63a",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197676/menu-items/menu_1780197674318.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "d4646477-2dde-477b-a8df-837e98a81af0",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260751/menu-items/menu_1783260748367.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "6d15bd86-d3db-4c6f-a4f2-af05a234d751",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783836447/menu-items/menu_1783836444868.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "bcff63ca-a684-4551-a607-56fabc3e50b9",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780195099/menu-items/menu_1780195096359.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "f055f521-7a9e-4cbd-8e31-8b834aeebc89",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778588186/menu-items/menu_1778588184568.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "e7a6ad33-96f2-4316-9bae-73cd433684c8",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781912842/menu-items/menu_1781912840514.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "e274f0b8-bd02-489f-a61c-4f8031dad16d",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778589453/menu-items/menu_1778589451316.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c3628720-4580-4329-96a5-fb554c641842",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781223450/menu-items/menu_1781223448204.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "4eb58bf7-9ab1-4f0c-9b21-6ca5369c87cb",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782493848/menu-items/menu_1782493845495.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "b21f4a50-878e-4f1f-b17a-1ccfb0ac32cf",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260851/menu-items/menu_1783260849211.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "397c821b-8683-4592-99b9-1eb6ce389025",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780194779/menu-items/menu_1780194777492.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "6afc6ee2-4c57-4694-8da1-cc7142e6ef77",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780196691/menu-items/menu_1780196688524.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c4dde1ad-5a50-4f78-a773-7af338881c04",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780678186/menu-items/menu_1780678184613.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "3a7061e9-d2f2-402f-a72d-4ed1239c8f4a",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260944/menu-items/menu_1783260942340.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c83af39e-a846-4ce4-9af4-c6ce6ae1527c",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197185/menu-items/menu_1780197182951.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "be4a95cb-43b8-4dff-8ee1-75662575afa2",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787025242/menu-items/menu_1787025240949.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "4be88fed-94e2-473a-8530-31ab7b9c129d",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778348869/menu-items/menu_1778348867774.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "ba33945a-7ae5-47de-857f-31f340864c22",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781150198/menu-items/menu_1781150195550.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "b9a72747-893e-44ef-a7f8-98f805676f61",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782491248/menu-items/menu_1782491246467.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c0e91a9c-a4cd-4cb6-b778-9ddea62882ad",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780568443/menu-items/menu_1780568441192.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "e9b75217-ef5c-4a1e-b357-e8fad74b7ea3",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781912981/menu-items/menu_1781912979338.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "8650b2ba-7173-47bf-be04-335876165a0a",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780053807/menu-items/menu_1780053806640.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "9edbc129-cdcd-4a35-87e4-462457991d1b",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260989/menu-items/menu_1783260987933.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "d362eff5-66f4-468c-9cce-0d18b298257c",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780194945/menu-items/menu_1780194943204.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "aabeceb2-0088-4828-902c-7d6def37e327",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197494/menu-items/menu_1780197491727.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "065585e6-5b22-4724-85aa-f3d12e7797c3",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780198034/menu-items/menu_1780198031534.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "4043ed73-99a8-4c1f-b18b-08459ff084ad",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778670193/menu-items/menu_1778670191288.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "8a5b4b9f-9141-48f7-a16a-c10e7dc7ba26",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781222850/menu-items/menu_1781222848223.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "d0eb19ee-58cb-4555-bd26-a6f34497b44d",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781223450/menu-items/menu_1781223448204.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "8b6fb7b8-8949-45ce-9b83-ade250dcfea7",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781913053/menu-items/menu_1781913051314.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "cc5e5cf5-76cf-4ef4-803f-8293b6ffa4fe",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780196691/menu-items/menu_1780196688524.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "8d3d7790-cf66-42a7-83be-696491944910",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780198379/menu-items/menu_1780198376410.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "e73ca62e-3459-489b-817f-21287772cba1",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786289420/menu-items/menu_1786289419402.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "1693d03f-3dc4-497a-8078-d461c88ffaf9",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781222680/menu-items/menu_1781222677558.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "79e6d8cf-d922-4869-9cf8-4c5cad02fb34",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782493848/menu-items/menu_1782493845495.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c644c8aa-8599-4c6f-855d-d33bb9a30300",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781913095/menu-items/menu_1781913093369.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "f5b0227c-bdf0-4141-ae65-64ebf4f7a3b9",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197091/menu-items/menu_1780197088580.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "4734e228-391d-4573-a962-2316e5cf7d00",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780392140/menu-items/menu_1780392138600.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "00cf753a-81f6-4b5c-8e25-583c20d2c844",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787045024/menu-items/menu_1787045023124.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "7e470faa-9610-45b0-a473-96a4df34e613",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783261533/menu-items/menu_1783261532045.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "086f8ad5-f9bd-4c7d-9eb7-5f14da70e2b3",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780058452/menu-items/menu_1780058450309.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "9fec39ea-2224-473e-ae91-cd10d1d9d7ba",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197185/menu-items/menu_1780197182951.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "ff77cc8f-b155-470a-b61a-c2ba5e510384",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787025242/menu-items/menu_1787025240949.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "cc26af83-690f-4de7-bf3f-a3d610fcfeb6",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780058735/menu-items/menu_1780058733570.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "8ff7eaec-a050-47b7-b869-84833b85aa38",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783261704/menu-items/menu_1783261702121.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "18abaf3d-e390-40e3-a4b2-b2825a65082d",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782291840/menu-items/menu_1782291838193.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "65ee9e13-7271-4178-9ebc-507036f2ee61",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783261904/menu-items/menu_1783261901822.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "bc65df34-c43d-45ae-a468-1f39558bf637",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786289420/menu-items/menu_1786289419402.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "2922bc3a-7bbf-4e59-b05d-ffe918a88390",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783261956/menu-items/menu_1783261954602.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c1f4209b-7b87-4804-b642-92038b8bbb6d",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197494/menu-items/menu_1780197491727.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "49d77e24-c449-4d75-8ae4-55707fb54dfd",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780678186/menu-items/menu_1780678184613.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "589f9532-f91f-45a7-b28b-25d623487ada",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772479442/menu-items/menu_1772479439894.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "8bb41010-a820-4550-81c6-922aa4b99b8d",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783262110/menu-items/menu_1783262107962.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "db82877a-2fff-4bb3-a0f9-8b1f038a4e06",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780197676/menu-items/menu_1780197674318.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c9ffe8f9-7889-4243-8529-0c4e6e995988",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780392476/menu-items/menu_1780392473901.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "8ee85d84-ba8d-44be-a753-49a1806e395a",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780678387/menu-items/menu_1780678386090.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "c158dc0d-4f4d-4a42-9d26-aff6e2637de3",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782292790/menu-items/menu_1782292788291.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "5c490103-b37e-41f5-8164-96c3d99d609f",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260365/menu-items/menu_1783260362410.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "ebe40edb-1079-4345-bd52-37b0365edd8e",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783260851/menu-items/menu_1783260849211.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "6d5e3bef-33e3-4d77-b840-963eb8aab03f",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783261533/menu-items/menu_1783261532045.jpg"
+  },
+  {
+    "table": "menu_items",
+    "id": "6eb20c06-92ca-46aa-a154-89263cab7d0f",
+    "column": "image_url",
+    "previous": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783262110/menu-items/menu_1783262107962.jpg"
+  }
+]
