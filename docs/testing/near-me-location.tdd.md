@@ -1,5 +1,8 @@
 # TDD Evidence Report — Near-Me Merchants with Auto-Location on Every App Open
 
+> Covers both surfaces: the web app (`src/`) and the Expo mobile app (`mobile/`).
+> The mobile port section is at the end of this document.
+
 ## Source plan
 
 Inline plan produced by `/ecc:plan` in the same session (no `*.plan.md` artifact).
@@ -72,6 +75,36 @@ Evidence commands (all run 2026-08-27):
 - `e4d765c` refactor: drop dead useUserLocation hook from geolocation utils (still GREEN)
 - `46bf864` test: add reproducers for geolocation race and low-accuracy fixes (RED — 3 failed)
 - `f05963f` fix: address review findings in geolocation refresh flow (GREEN — 218 passed)
+
+## Mobile port (Expo app in `mobile/`, added 2026-08-27)
+
+Same behavior ported to the React Native app with platform equivalents:
+expo-location instead of `navigator.geolocation`, AsyncStorage instead of
+localStorage, native `Location.reverseGeocodeAsync` instead of Nominatim.
+
+New files: `mobile/src/lib/merchantDistance.ts` (pure; also sorts nearest-first),
+`mobile/src/context/LocationContext.tsx` (restore → background refresh →
+threshold + accuracy slack → generation guard), wired into the root layout,
+home screen (`app/(tabs)/index.tsx`: location row, denied-permission banner,
+"Restaurants near you" list) and `MerchantCard` (distance badge). `app.json`
+registers the expo-location plugin with a when-in-use permission message.
+There is no manual address editor on mobile yet (web has one); denial shows
+all merchants plus a "Try again" banner — follow-up candidate.
+
+| # | What is guaranteed (mobile) | Test | Result |
+|---|---|---|---|
+| 1 | Haversine distance, decoration, radius filtering, nearest-first sort, immutability | `mobile/src/lib/merchantDistance.test.ts` (12 tests) | RED → PASS |
+| 2 | First open: permission → GPS → reverse geocode → persist; coord fallback; denial → error state | `mobile/src/context/LocationContext.test.tsx` | RED → PASS |
+| 3 | Saved location restores instantly; GPS re-checked on every open; within-threshold and low-accuracy fixes ignored; denial keeps saved silently; stale fix loses to newer request; corrupt JSON discarded | same file (10 tests total) | RED → PASS |
+
+Evidence: `mobile$ npx jest` → 7 suites / 69 tests passed (stable across 3 runs);
+`mobile$ npx tsc --noEmit` → no errors in location-feature files (remaining errors
+belong to a concurrent tabs-navigation restructure by another session).
+
+Mobile checkpoint commits: `b57b6d6` (RED), `4d11ee0` (GREEN core),
+`e5adb00` (distance badge + permission plugin). The home-screen and root-layout
+wiring is applied in the working tree but intentionally left uncommitted because
+another active session is restructuring those same files (`app/(tabs)/`).
 
 ## Coverage and known gaps
 
