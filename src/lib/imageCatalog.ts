@@ -46,7 +46,8 @@ export type ManifestStatus =
   | 'approved'
   | 'rejected'
   | 'no-candidate'
-  | 'uploaded';
+  | 'uploaded'
+  | 'withheld';
 
 export interface CatalogMerchant {
   id: string;
@@ -177,6 +178,17 @@ export const autoApprove = (manifest: ManifestEntry[], items: CatalogItemRow[]):
     return { ...entry, status: 'approved', targetRowIds: emptyRowIds };
   });
 };
+
+/**
+ * Holds uploaded generic-tier entries back from the database write. The asset
+ * stays on the CDN and the URL is kept, so re-approving one later costs nothing.
+ */
+export const withholdGeneric = (manifest: ManifestEntry[]): ManifestEntry[] =>
+  manifest.map((entry) =>
+    entry.status === 'uploaded' && entry.candidates[0]?.confidence === 'generic'
+      ? { ...entry, status: 'withheld' }
+      : entry,
+  );
 
 export const selectPendingReview = (manifest: ManifestEntry[]): ManifestEntry[] =>
   manifest.filter((entry) => entry.status === 'pending-review');

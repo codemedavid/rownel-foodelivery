@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { projectRoot } from './loadEnv.mjs';
-import { autoApprove } from '../src/lib/imageCatalog.ts';
+import { autoApprove, withholdGeneric, buildRowUpdates } from '../src/lib/imageCatalog.ts';
 
 const IMAGES_DIR = resolve(projectRoot, 'docs/images');
 const MANIFEST_PATH = resolve(IMAGES_DIR, 'image-manifest.json');
@@ -41,14 +41,19 @@ const reviewed = autoApprove(manifest, items).map((entry) => {
   return { ...entry, status: 'pending-review', targetRowIds: undefined };
 });
 
-writeFileSync(MANIFEST_PATH, `${JSON.stringify(reviewed, null, 2)}\n`);
+const finalManifest = process.argv.includes('--no-generic') ? withholdGeneric(reviewed) : reviewed;
 
-const counts = reviewed.reduce((acc, e) => ({ ...acc, [e.status]: (acc[e.status] ?? 0) + 1 }), {});
-const rowsToChange = reviewed
+writeFileSync(MANIFEST_PATH, `${JSON.stringify(finalManifest, null, 2)}\n`);
+
+const counts = finalManifest.reduce((acc, e) => ({ ...acc, [e.status]: (acc[e.status] ?? 0) + 1 }), {});
+// Count via the same function the apply step uses, so this can never drift from reality.
+const rowsToChange = buildRowUpdates(finalManifest).length;
+const pendingUploadRows = finalManifest
   .filter((e) => e.status === 'approved')
   .reduce((n, e) => n + (e.targetRowIds ?? e.rowIds).length, 0);
 
 console.log(`status: ${JSON.stringify(counts)}`);
-console.log(`rows that would change: ${rowsToChange}`);
+console.log(`rows the apply step would write: ${rowsToChange}`);
+if (pendingUploadRows) console.log(`rows awaiting upload first: ${pendingUploadRows}`);
 console.log(`held for human review: ${held.length}${held.length ? ` (${held.join(', ')})` : ''}`);
 console.log(`wrote ${MANIFEST_PATH}`);

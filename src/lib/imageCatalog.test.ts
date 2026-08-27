@@ -6,6 +6,7 @@ import {
   withCandidates,
   withUpload,
   autoApprove,
+  withholdGeneric,
   selectPendingUploads,
   selectPendingReview,
   buildRowUpdates,
@@ -258,6 +259,43 @@ describe('autoApprove', () => {
     const input = [pendingWith('official')];
     autoApprove(input, items);
     expect(input[0].status).toBe('pending-review');
+  });
+});
+
+describe('withholdGeneric', () => {
+  const uploaded = (confidence: ImageCandidate['confidence']): ManifestEntry => ({
+    ...withCandidates(entryFor('jollibee::1pc-chickenjoy', buildManifest(merchants, items)), [
+      candidate('https://src.example/x.jpg', confidence),
+    ]),
+    status: 'uploaded',
+    imagekitUrl: 'https://ik.imagekit.io/x/c.jpg',
+    targetRowIds: ['i2'],
+  });
+
+  it('withholds an uploaded generic entry from the write', () => {
+    const [entry] = withholdGeneric([uploaded('generic')]);
+    expect(entry.status).toBe('withheld');
+    expect(buildRowUpdates([entry])).toEqual([]);
+  });
+
+  it('keeps the imagekit url so re-approving needs no re-upload', () => {
+    expect(withholdGeneric([uploaded('generic')])[0].imagekitUrl).toBe('https://ik.imagekit.io/x/c.jpg');
+  });
+
+  it('leaves official entries writable', () => {
+    const [entry] = withholdGeneric([uploaded('official')]);
+    expect(entry.status).toBe('uploaded');
+    expect(buildRowUpdates([entry])).toHaveLength(1);
+  });
+
+  it('leaves likely entries writable', () => {
+    expect(withholdGeneric([uploaded('likely')])[0].status).toBe('uploaded');
+  });
+
+  it('does not mutate the input', () => {
+    const input = [uploaded('generic')];
+    withholdGeneric(input);
+    expect(input[0].status).toBe('uploaded');
   });
 });
 
