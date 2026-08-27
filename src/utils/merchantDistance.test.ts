@@ -102,4 +102,17 @@ describe('hasMovedBeyondThreshold', () => {
 
     expect(moved).toBe(true);
   });
+
+  it('treats a low-accuracy fix as not moved when the move is within the accuracy slack', () => {
+    const moved = hasMovedBeyondThreshold(
+      USER_LOCATION,
+      {
+        latitude: USER_LOCATION.latitude + 0.01, // ~1.1 km north
+        longitude: USER_LOCATION.longitude,
+      },
+      5 // GPS accuracy of ±5 km — the apparent move could be pure noise
+    );
+
+    expect(moved).toBe(false);
+  });
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
 import { LocationProvider, useUserLocation, USER_LOCATION_STORAGE_KEY } from './LocationContext';
 
 vi.mock('../lib/osm', () => ({
@@ -30,10 +30,14 @@ const Probe = () => {
     locationStreet,
     locationDisplayName,
     isManualPromptRequested,
+    requestLocation,
   } = useUserLocation();
 
   return (
     <div>
+      <button type="button" data-testid="request-gps" onClick={() => requestLocation(false)}>
+        gps
+      </button>
       <span data-testid="status">{locationStatus}</span>
       <span data-testid="error">{locationError ?? 'none'}</span>
       <span data-testid="street">{locationStreet}</span>
@@ -181,6 +185,69 @@ describe('LocationProvider', () => {
 
       const saved = JSON.parse(localStorage.getItem(USER_LOCATION_STORAGE_KEY) ?? 'null');
       expect(saved).toMatchObject({ street: 'San Roque' });
+    });
+
+    it('ignores a background fix whose accuracy is too poor to trust', async () => {
+      // Apparent move of ~0.33 km, but with ±5 km accuracy it could be pure GPS noise.
+      stubGeolocationSuccess({
+        latitude: SAVED_LOCATION.latitude + 0.003,
+        longitude: SAVED_LOCATION.longitude,
+        accuracy: 5000,
+      } as GeolocationCoordinates);
+
+      renderProvider();
+
+      await waitFor(() => {
+        expect(mockedGetCurrentPosition).toHaveBeenCalled();
+      });
+      expect(screen.getByTestId('coords')).toHaveTextContent(
+        `${SAVED_LOCATION.latitude},${SAVED_LOCATION.longitude}`
+      );
+      expect(mockedReverseGeocode).not.toHaveBeenCalled();
+    });
+
+    it('ignores a stale background fix that resolves after a newer manual request', async () => {
+      const pendingSuccessCallbacks: PositionCallback[] = [];
+      mockedGetCurrentPosition.mockImplementation((success) => {
+        pendingSuccessCallbacks.push(success);
+      });
+      mockedReverseGeocode.mockImplementation(async (latitude: number, longitude: number) => ({
+        latitude,
+        longitude,
+        displayName: latitude === FAR_COORDS.latitude ? 'Pili, Camarines Sur' : 'Stale Town',
+        street: latitude === FAR_COORDS.latitude ? 'San Roque' : 'Stale St',
+      }));
+
+      renderProvider();
+
+      await waitFor(() => {
+        expect(pendingSuccessCallbacks).toHaveLength(1); // background refresh in flight
+      });
+
+      fireEvent.click(screen.getByTestId('request-gps')); // user-triggered request
+      await waitFor(() => {
+        expect(pendingSuccessCallbacks).toHaveLength(2);
+      });
+
+      // The newer manual request resolves first...
+      await act(async () => {
+        pendingSuccessCallbacks[1]({ coords: FAR_COORDS } as GeolocationPosition);
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('street')).toHaveTextContent('San Roque');
+      });
+
+      // ...then the stale background fix resolves with a different position and must be ignored.
+      await act(async () => {
+        pendingSuccessCallbacks[0]({
+          coords: { latitude: 13.9, longitude: 123.5 },
+        } as GeolocationPosition);
+      });
+
+      expect(screen.getByTestId('street')).toHaveTextContent('San Roque');
+      expect(screen.getByTestId('coords')).toHaveTextContent(
+        `${FAR_COORDS.latitude},${FAR_COORDS.longitude}`
+      );
     });
 
     it('keeps the saved location without error state when the background refresh is denied', async () => {
