@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { useOrderById, useOrdersByPhone } from '../hooks/useOrdersData';
 import type { Order } from '../lib/deliveryTypes';
+import { ordersApi } from '../lib/deliveryApi';
+import { useAuth } from '../contexts/AuthContext';
 import CustomerRiderPanel from './CustomerRiderPanel';
 
 const STATUS_STEPS = [
@@ -278,8 +280,72 @@ function PhoneLookupTab({ onSelectOrder }: { onSelectOrder: (id: string) => void
   );
 }
 
+function AccountOrdersSection({ onSelectOrder }: { onSelectOrder: (id: string) => void }) {
+  const { user } = useAuth();
+  const [accountOrders, setAccountOrders] = useState<Order[]>([]);
+  const [isLoadingAccount, setIsLoadingAccount] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) {
+      setAccountOrders([]);
+      return;
+    }
+    setIsLoadingAccount(true);
+    ordersApi
+      .listMine()
+      .then((orders) => {
+        if (!cancelled) setAccountOrders(orders);
+      })
+      .catch((err) => {
+        console.error('Failed to load account orders:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingAccount(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  if (!user || (accountOrders.length === 0 && !isLoadingAccount)) return null;
+
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        Your Account Orders
+      </p>
+      {isLoadingAccount && accountOrders.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-4 text-center text-sm text-gray-400">
+          Loading your orders...
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {accountOrders.map((order) => (
+            <button
+              key={order.id}
+              onClick={() => onSelectOrder(order.id)}
+              className="w-full bg-white rounded-xl shadow-sm p-4 text-left hover:shadow-md transition-shadow border border-transparent hover:border-red-200"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-semibold text-gray-800 text-sm">{order.customerName}</span>
+                <StatusBadge status={order.status} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400 font-mono truncate max-w-[55%]">{order.id}</span>
+                <span className="font-bold text-red-600 text-sm">₱{order.total.toFixed(2)}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HistoryTab({ onSelectOrder }: { onSelectOrder: (id: string) => void }) {
   const [history, setHistory] = useState<LocalOrderRecord[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     try {
@@ -292,10 +358,13 @@ function HistoryTab({ onSelectOrder }: { onSelectOrder: (id: string) => void }) 
 
   if (history.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-        <History size={48} className="text-gray-300 mx-auto mb-4" />
-        <h2 className="text-lg font-semibold text-gray-800 mb-2">No Order History</h2>
-        <p className="text-gray-500 text-sm">Orders you place on this device will appear here.</p>
+      <div className="space-y-4">
+        {user && <AccountOrdersSection onSelectOrder={onSelectOrder} />}
+        <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+          <History size={48} className="text-gray-300 mx-auto mb-4" />
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">No Order History</h2>
+          <p className="text-gray-500 text-sm">Orders you place on this device will appear here.</p>
+        </div>
       </div>
     );
   }
@@ -338,6 +407,7 @@ function HistoryTab({ onSelectOrder }: { onSelectOrder: (id: string) => void }) 
 
   return (
     <div className="space-y-4">
+      {user && <AccountOrdersSection onSelectOrder={onSelectOrder} />}
       {activeOrders.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent (last 24h)</p>

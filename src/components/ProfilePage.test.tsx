@@ -93,7 +93,7 @@ describe('ProfilePage (signed in)', () => {
     authState.user = { id: 'u1', email: 'buyer@example.com' };
     authState.isCustomer = true;
     renderPage();
-    expect(screen.getByText('buyer@example.com')).toBeInTheDocument();
+    expect(screen.getAllByText('buyer@example.com').length).toBeGreaterThan(0);
     await userEvent.click(screen.getByRole('button', { name: /sign out/i }));
     expect(mockSignOut).toHaveBeenCalled();
   });

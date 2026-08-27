@@ -21,6 +21,9 @@ import ErrorBoundary from './components/ErrorBoundary';
 import MerchantsList from './components/MerchantsList';
 import MenuItemDetailsPage from './components/MenuItemDetailsPage';
 import OrderTracking from './components/OrderTracking';
+import BottomNav from './components/BottomNav';
+import CartPage from './components/CartPage';
+import ProfilePage from './components/ProfilePage';
 import { AuthProvider } from './contexts/AuthContext';
 import { MerchantProvider, useMerchant } from './contexts/MerchantContext';
 import { CartProvider } from './contexts/CartContext';
@@ -94,6 +97,9 @@ function App() {
                 <Route path="/merchant/:merchantId/item/:itemId" element={<MenuItemDetailsPage />} />
                 <Route path="/track" element={<OrderTracking />} />
                 <Route path="/track/:orderId" element={<OrderTracking />} />
+                <Route path="/orders" element={<OrderTracking />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route
                   path="/admin"
@@ -139,6 +145,7 @@ function App() {
                   }
                 />
               </Routes>
+              <BottomNav />
               </ErrorBoundary>
             </Router>
           </MenuProvider>
