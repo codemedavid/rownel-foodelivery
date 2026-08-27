@@ -2,11 +2,11 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { colors, formatPeso, radius, spacing } from '../theme';
-import { Merchant } from '../types';
+import { MerchantWithDistance } from '../lib/merchantDistance';
 
 type Props = {
-  merchant: Merchant;
-  onPress: (merchant: Merchant) => void;
+  merchant: MerchantWithDistance;
+  onPress: (merchant: MerchantWithDistance) => void;
 };
 
 const PLACEHOLDER = 'https://placehold.co/600x300/fee2e2/dc2626?text=🍽';
@@ -51,6 +51,9 @@ export function MerchantCard({ merchant, onPress }: Props) {
         </Text>
         <Text style={styles.meta}>
           {formatPeso(merchant.deliveryFee)} delivery · Min. {formatPeso(merchant.minimumOrder)}
+          {typeof merchant.distanceKm === 'number'
+            ? ` · ${merchant.distanceKm.toFixed(1)} km`
+            : ''}
         </Text>
       </View>
     </Pressable>
