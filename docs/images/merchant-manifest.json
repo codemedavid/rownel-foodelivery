@@ -15,7 +15,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/471858064_122217502148068014_8838654937519099480_n.jpg?stp=dst-jpg_tt6&cstp=mx960x960&ctp=s720x720&_nc_cat=104&ccb=1-7&_nc_sid=3ab345&_nc_ohc=MtVTqAL0Ik8Q7kNvwF47TOC&_nc_oc=AdoQxSeBhkRbLKnkdHQBdzLzLTTfo4Z-UZGQ5YbIv5uLwz8P_QWGHMTDJS1DgTaLVNbMFuOTFgq46YC6NzbGuMxj&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=nwytnRyMRTTP-AauRjTmHw&_nc_ss=70289&oh=00_AQFY2wBFUqNpuKFdycOHdgATFRWtKzczDZXOJptnyNNsNg&oe=6A95C6EA",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "ee0d1e43-df0c-4d1d-9a46-505c01f5f3db::logo"
+    ]
   },
   {
     "key": "sandace-pizza::cover-image",
@@ -33,7 +36,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/473348783_122220268490068014_5157329259333707019_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1080&ctp=s1080x1080&_nc_cat=103&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=i8jbjBaEploQ7kNvwHTUQmJ&_nc_oc=AdqMSnh3YXfJ9yaW3M7kiBsdQPQFNqh0PJE1GIjbZg_hsrubcAt_T9oxIvwzY4knP0ioVjbvb-0gMXvLrahHGbK_&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=dzFY-tNZqljwE5VlTAUwrw&_nc_ss=70289&oh=00_AQFb9Y_UES63Pauxh4siLgjNbC-RDCs2-TqFBvp9080t0w&oe=6A95E856",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "ee0d1e43-df0c-4d1d-9a46-505c01f5f3db::cover"
+    ]
   },
   {
     "key": "choylin::logo",
@@ -51,7 +57,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/323157005_702690911528012_7853282954158037524_n.jpg?stp=dst-jpg_tt6&cstp=mx960x955&ctp=s720x720&_nc_cat=109&ccb=1-7&_nc_sid=3ab345&_nc_ohc=6puZVwZyUsEQ7kNvwHXyv0i&_nc_oc=Adq7WT8PQJZC4BGtiPlaYNsX9nnFd_nxst2iXhACvNq4eQXHKqZJTqAePJo_u5v_n5j5nlWMX4_BRC4369PCaEpF&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=r8DImTRYRA_kMSw5Oej28A&_nc_ss=70289&oh=00_AQFDHr9C5LhPk-5iJHDH_DHXfMpnwKbA9pYdovjrOgCNZw&oe=6A95E4FB",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "1fc928ad-f1a6-4bb3-9718-ca4307fe9117::logo"
+    ]
   },
   {
     "key": "choylin::cover-image",
@@ -69,7 +78,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/482213451_1089167609889326_6497414481773631430_n.jpg?stp=dst-jpg_tt6&cstp=mx3344x1254&ctp=p720x720&_nc_cat=105&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=Vm2MRTHn-_kQ7kNvwHheaQ2&_nc_oc=AdppIueuK1FX_bU-2B6xcg1F2lqXRyalqjvP0cVXZYSS5NpGMOp_JtarQPwumjSWvU09PcrwIQQKmzTCq81xttZA&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=-hhNZ5WF8SVmR47-WBipXA&_nc_ss=70289&oh=00_AQGagSTVn6z6JEoBj2OZeovH9aTTX6dmogB8EfkchSYu6w&oe=6A95C3B2",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "1fc928ad-f1a6-4bb3-9718-ca4307fe9117::cover"
+    ]
   },
   {
     "key": "andoks::logo",
@@ -90,7 +102,13 @@
     ],
     "chosenUrl": "https://static.wixstatic.com/media/382e5f_3365466f78054d60a33703e19c6e7339~mv2.png/v1/fill/w_1000,h_1000,al_c,usm_0.66_1.00_0.01/382e5f_3365466f78054d60a33703e19c6e7339~mv2.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "5a89f142-eb45-43a1-8cc5-4196e761a2e0::logo",
+      "a916920a-812f-4c10-bf93-c278323e365f::logo",
+      "42c5df8f-809b-4db9-98f1-e47345e2d41c::logo",
+      "b78f09a4-ecf3-4f11-9c09-b197df63f1f7::logo"
+    ]
   },
   {
     "key": "andoks::cover-image",
@@ -116,7 +134,13 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Andok%27s_in_Compostela_%2802-28-2021%29.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "5a89f142-eb45-43a1-8cc5-4196e761a2e0::cover",
+      "a916920a-812f-4c10-bf93-c278323e365f::cover",
+      "42c5df8f-809b-4db9-98f1-e47345e2d41c::cover",
+      "b78f09a4-ecf3-4f11-9c09-b197df63f1f7::cover"
+    ]
   },
   {
     "key": "chooks-to-go::logo",
@@ -138,7 +162,14 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/en/3/3c/Official_Chooks-to-Go_2_Liner_Logo.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "015f7d45-e175-4690-b99f-cf69ce6ae435::logo",
+      "afe8fe06-b9b1-40d1-b8d2-da5ccccbc26c::logo",
+      "f1c7df6c-372d-49b9-a925-5f855bb7e8cb::logo",
+      "b3b785e4-60b5-488b-aa7a-47a8a0f10c60::logo",
+      "9d2985ca-2379-4f24-8d0f-2bf5ba72b64c::logo"
+    ]
   },
   {
     "key": "chooks-to-go::cover-image",
@@ -165,7 +196,14 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Chooks-to-Go_Outlet_Facade.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "015f7d45-e175-4690-b99f-cf69ce6ae435::cover",
+      "afe8fe06-b9b1-40d1-b8d2-da5ccccbc26c::cover",
+      "f1c7df6c-372d-49b9-a925-5f855bb7e8cb::cover",
+      "b3b785e4-60b5-488b-aa7a-47a8a0f10c60::cover",
+      "9d2985ca-2379-4f24-8d0f-2bf5ba72b64c::cover"
+    ]
   },
   {
     "key": "chef-raysies-kitchen::logo",
@@ -207,7 +245,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/590753597_122097219645145517_179109654255349920_n.jpg?stp=dst-jpg_tt6&cstp=mx957x960&ctp=s720x720&_nc_cat=102&ccb=1-7&_nc_sid=3ab345&_nc_ohc=xpA1EPn2BdUQ7kNvwHxATKQ&_nc_oc=AdpgkMkOjB8SNc6gFPET1_R-87bHkPbHaqb0RCgohiWRz__BhsdnAiEqyh2VNVSa_bQTFrTBfmFCWey2ZVnXTNQo&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=PJxw_pCb0RwTwXmAZZ-r8w&_nc_ss=70289&oh=00_AQGdSl9cgd6hSpzWUqSEe3Sa4UX5BLjsKvOL7EfecUhzBw&oe=6A95E59F",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "50ba6646-0345-4a14-bb8f-eddda895c47d::logo"
+    ]
   },
   {
     "key": "jay-ar-sisigan-pares::cover-image",
@@ -225,7 +266,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/590851585_122097219867145517_97468900582992401_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x1536&ctp=s2048x1536&_nc_cat=104&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=aLq6SmzRBu0Q7kNvwEXw1cu&_nc_oc=AdorVNOfKDp_3F2ZMP0RJIWYlP-yZkJWRepehnUd22KsI5DJ-OWfGIDhi1upjfMyKc1cwyLM8r1Lk7BcUu9Kj3J4&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=Cnmnve1npnrksN6DN1Fu-Q&_nc_ss=70289&oh=00_AQH2lRpHBYPTpiCZY7OPOwvctVRYE1p9-07Fokx_rRZQXQ&oe=6A95C17B",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "50ba6646-0345-4a14-bb8f-eddda895c47d::cover"
+    ]
   },
   {
     "key": "kusina-ni-maria::logo",
@@ -269,7 +313,12 @@
     ],
     "chosenUrl": "https://play-lh.googleusercontent.com/Qpm71aulyFk7NAU-RP6b16F0ClxIXkFobQXpIbFm6c3ygTXhzyVBLVBUVCHVtlTmgEM3EU8m5t8sFRqiZCJI=s512",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "1c0e0dbf-fa34-4692-9690-603b96a76108::logo",
+      "239de732-92d3-4291-bf26-cf955f3c231a::logo",
+      "c1a9a887-abf0-43f7-a002-1cbbe42ed0cd::logo"
+    ]
   },
   {
     "key": "mrs-g::cover-image",
@@ -289,7 +338,12 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/716410691_1122535456953756_134970740847495087_n.jpg?stp=dst-jpg_tt6&cstp=mx3079x1179&ctp=s2048x2048&_nc_cat=102&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=oJcdcmpvZ_YQ7kNvwGCPBvU&_nc_oc=AdoaC1NCjerG3HgQq3-7bMRIHU_i5cxvOqIF53GJunIPPGWlfCZjOd-wgHpbMZiH3-tJ_cRU0zP9HPnB-PaKF4AK&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=uKvJ3kFF9_IcGOoeiWL4IA&_nc_ss=70289&oh=00_AQHKxMCcTWRGqx9ki5r6vbY5QQE8xjh5QXVFDVBZnUXuJw&oe=6A95E684",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "1c0e0dbf-fa34-4692-9690-603b96a76108::cover",
+      "239de732-92d3-4291-bf26-cf955f3c231a::cover",
+      "c1a9a887-abf0-43f7-a002-1cbbe42ed0cd::cover"
+    ]
   },
   {
     "key": "inihaw::logo",
@@ -356,7 +410,11 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/547546850_1248794713954091_1213058667522986289_n.jpg?stp=dst-jpg_tt6&cstp=mx667x667&ctp=s667x667&_nc_cat=104&ccb=1-7&_nc_sid=3ab345&_nc_ohc=_ArJrF9cJvQQ7kNvwEDiGt4&_nc_oc=AdqX2NtTWh4zp1K-xI74aSnXgw0r7_yplSTsfUZnOucXstUuaLcrSwE4Fxrn5ega28-F53Tb_UPpWN1VNBE96aBx&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=TWOqnvcY0pdh8zp_drNlFQ&_nc_ss=70289&oh=00_AQEJ0_ow61RL5760fdNjxJQ_nFz6BK-CRDTe9kHTihIuRQ&oe=6A95F379",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "edcfc212-2252-4950-88b0-7267ba4e2085::logo",
+      "7234b262-6a8e-469e-8cc5-f74b9fb79baf::logo"
+    ]
   },
   {
     "key": "don-benitos::cover-image",
@@ -375,7 +433,11 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/545605009_1248790710621158_2364278435475397284_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x1238&ctp=s2048x1238&_nc_cat=105&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=CYL3DHcoAyAQ7kNvwFOXHp_&_nc_oc=AdqJbi4hLQNutUbCkqQ9B3CnLCOxi6QWqTYtpHWbVblTeocKD7pgbzQgY_NH4KUBH9A&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=A9BZjiUG83QMUjfMhEjFkg&_nc_ss=70289&oh=00_AQGvR840qFFy8f56W5pnnAlTL0Sy1Bw-iJPPTacIePVlXw&oe=6A95CDCF",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "edcfc212-2252-4950-88b0-7267ba4e2085::cover",
+      "7234b262-6a8e-469e-8cc5-f74b9fb79baf::cover"
+    ]
   },
   {
     "key": "goldilocks::logo",
@@ -399,7 +461,11 @@
     ],
     "chosenUrl": "https://www.goldilocks.com.ph/asset/img/site/layout/Goldilocks-logo.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "8555ef57-9de6-4888-a994-c0083137d4b0::logo",
+      "cc49d928-af4d-48ad-8629-47913600e777::logo"
+    ]
   },
   {
     "key": "goldilocks::cover-image",
@@ -423,7 +489,11 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/7082Interior_of_SM_City_Cabanatuan_25.jpg/1280px-7082Interior_of_SM_City_Cabanatuan_25.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "8555ef57-9de6-4888-a994-c0083137d4b0::cover",
+      "cc49d928-af4d-48ad-8629-47913600e777::cover"
+    ]
   },
   {
     "key": "bontea::logo",
@@ -442,7 +512,11 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/309397570_136781689101233_2840108539722190935_n.jpg?stp=dst-jpg_tt6&cstp=mx720x720&ctp=s720x720&_nc_cat=109&ccb=1-7&_nc_sid=3ab345&_nc_ohc=ZY6wcwj2G6sQ7kNvwEc0xK0&_nc_oc=AdqzNdDmpnB80SaSbdxO4BeTm_1eHWO0VQEH4vhOxqzVQLswdz6IvC8cWg92Zp2Ia_I&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=-iHA1lApya3aRssjG2zS9Q&_nc_ss=70289&oh=00_AQGSu6K6xy_uwAjzTEeFJKLP-AghSbi5MWmFMzI-yuynRw&oe=6A95C1D6",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "38d29cc8-7081-42f2-a407-e95f661711c1::logo",
+      "3d1c67c7-3bb7-4a74-afd1-cbee193efcbf::logo"
+    ]
   },
   {
     "key": "bontea::cover-image",
@@ -461,7 +535,11 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/470780419_989457309624496_1113728053440748242_n.jpg?stp=dst-jpg_tt6&cstp=mx1195x1301&ctp=s1195x1301&_nc_cat=109&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=VqpvFClCGV8Q7kNvwHGfMlB&_nc_oc=AdpTnxolqsBO5bNJ0MN0vnZa-4Ci2OmSs-HkMowZsaVS7jYNAeeQ6BVoVPhOSiXlmqg&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=-Hs2sbmdEOPyoV1VgKNvnA&_nc_ss=70289&oh=00_AQFz5obo1TEvG2tFfD0mwTNy1ZXv-VJyE7IRgcORo0ESlA&oe=6A95CD86",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "38d29cc8-7081-42f2-a407-e95f661711c1::cover",
+      "3d1c67c7-3bb7-4a74-afd1-cbee193efcbf::cover"
+    ]
   },
   {
     "key": "asherep-food-hauz::logo",
@@ -503,7 +581,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/492156642_122097970622854208_6922582658821971738_n.jpg?stp=dst-jpg_tt6&cstp=mx1000x1000&ctp=s720x720&_nc_cat=101&ccb=1-7&_nc_sid=3ab345&_nc_ohc=YaGpJEl7U2IQ7kNvwFU0b8C&_nc_oc=Adp8TWYwy2wpB2OOpYgjjfzwNtgYvHLzHrQD1k0YuaPWw4r_xHWsx_U_SgCZX7ZWJjY&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=x-31esI4WhkPrYTqF_Te6g&_nc_ss=70289&oh=00_AQFm9fvycB8H-gC_2YlTkZRYxbrkRhOjxvaaXtf0ILVtEg&oe=6A95E9D4",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "98d98df7-5063-4f19-b728-29164b9f27c4::logo"
+    ]
   },
   {
     "key": "bean-addicted-elyu::cover-image",
@@ -533,7 +614,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/753798874_1350458603899618_1636771802803899218_n.jpg?stp=dst-jpg_tt6&cstp=mx1080x1080&ctp=s720x720&_nc_cat=102&ccb=1-7&_nc_sid=3ab345&_nc_ohc=O7SvFAOpsLAQ7kNvwEdYK6A&_nc_oc=Adqi56HekFRMnsP8z4c3n7AOM09OgFUoadPlKSE-Y5ubNae9wDep-m0toOKVHiHcSKBpk2DJ0UuZnnYp8sKUmj4H&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=kDIFWhCS_QF-RLF21RIiBQ&_nc_ss=70289&oh=00_AQFWKuEazv0mpAozrdAAFeOLgEd54wHscVCENGdiO-egvQ&oe=6A95E4F1",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "0756bdf3-5e6b-42c9-8d1a-9af00794d25c::logo"
+    ]
   },
   {
     "key": "ytk-restaurant::cover-image",
@@ -551,7 +635,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/480730005_955423723403110_7119414174775847843_n.jpg?stp=dst-jpg_tt6&cstp=mx1440x753&ctp=s1440x753&_nc_cat=101&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=-gKhVS4AJDcQ7kNvwHitZvH&_nc_oc=AdppZmmVT2ewQ4FHxWxW_rWqwtyTJEk3h5BN1IG78YrlRYp2CvO1I1zhIJ14wu3n0YZp8j7lVwt_tcvY_nefXmcB&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=YgbzjpP9q4mYaqrNR0uMSA&_nc_ss=70289&oh=00_AQFOVEbUfhuL5qiB1Ybfm-SVhCrxw5DXn7HctfxHTdEgDg&oe=6A95C846",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "0756bdf3-5e6b-42c9-8d1a-9af00794d25c::cover"
+    ]
   },
   {
     "key": "abra-miki-in-naguilian-elyu::logo",
@@ -569,7 +656,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/732353005_122136871503052097_7391853652941387516_n.jpg?stp=dst-jpg_tt6&cstp=mx2048x2048&ctp=s720x720&_nc_cat=110&ccb=1-7&_nc_sid=3ab345&_nc_ohc=5w8b2sASBiUQ7kNvwHcobKQ&_nc_oc=AdqK5xXH6oFSWm7Dt9teaXgg5XhB8bJl4m2vsp_jw0rCC8sBWugBVTsuC-WyCJTNFSIj-gjEu7mkUBXuLOX0P3k2&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=X2xQVRG-IRm8JRQiCmtPJg&_nc_ss=70289&oh=00_AQGMsQ3bXtc1o2BbeT7xvo4hHvGqJfGeuRjwE5hppGZ7pw&oe=6A95F536",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "408ee1b1-0b30-4110-a738-5ebdc099b986::logo"
+    ]
   },
   {
     "key": "abra-miki-in-naguilian-elyu::cover-image",
@@ -587,7 +677,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-6/557932648_122103559443052097_5172608366574358291_n.jpg?stp=cp6_dst-jpg_tt6&cstp=mx2048x820&ctp=s2048x820&_nc_cat=107&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=DUwhYRhvqhAQ7kNvwFU2yk-&_nc_oc=AdoByQS2g3JYNXkI3bVmpK4yFBNwmpBhyDRF0XTDvaa9EvVUdu_9kfHFFLw5o8FDbaHq4UBT57cQ5F9YhtYYr4XO&_nc_zt=23&_nc_ht=scontent.fmnl44-1.fna&_nc_gid=fCXvyLkRfvTJ7RwPJEzeQw&_nc_ss=70289&oh=00_AQFQtBEaJx3fBdb8KO7Ax9-F0CeXlf9h0gtoyxE6PoT8og&oe=6A95D991",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "408ee1b1-0b30-4110-a738-5ebdc099b986::cover"
+    ]
   },
   {
     "key": "pareng-jay-s-lechon::logo",
@@ -655,7 +748,10 @@
     ],
     "chosenUrl": "https://cdn.prod.website-files.com/67bc057214984cfce8f5cdfa/67c260d69abc2a1611cc2aa3_67b879dcb80386ccc338b7ac_webclip.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "b4e5d164-27fa-437b-8727-5dfa07b01fda::logo"
+    ]
   },
   {
     "key": "minute-burger::cover-image",
@@ -673,7 +769,10 @@
     ],
     "chosenUrl": "https://cdn.prod.website-files.com/67bc057214984cfce8f5cdfa/67bc67ade3055984c59047e1_main-hero.avif",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "b4e5d164-27fa-437b-8727-5dfa07b01fda::cover"
+    ]
   },
   {
     "key": "shawarma-sa-market::logo",
@@ -718,7 +817,13 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/en/thumb/d/d6/Chowking_logo.svg/250px-Chowking_logo.svg.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "8f2ad6c4-bd4a-41ac-ab7a-387b016757f5::logo",
+      "cbfef016-2d48-4382-88ac-a136dcf5515d::logo",
+      "9e45f123-e7ac-4f4b-976a-fbbd54110007::logo",
+      "04a48a93-5d92-4363-8da8-ae54f360eb4b::logo"
+    ]
   },
   {
     "key": "chowking::cover-image",
@@ -739,7 +844,13 @@
     ],
     "chosenUrl": "https://ifranchise.ph/wp-content/uploads/2017/03/Chowking-Fastood-Franchise-Philippines-2.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "8f2ad6c4-bd4a-41ac-ab7a-387b016757f5::cover",
+      "cbfef016-2d48-4382-88ac-a136dcf5515d::cover",
+      "9e45f123-e7ac-4f4b-976a-fbbd54110007::cover",
+      "04a48a93-5d92-4363-8da8-ae54f360eb4b::cover"
+    ]
   },
   {
     "key": "big-brew::logo",
@@ -763,7 +874,11 @@
     ],
     "chosenUrl": "https://bigbrew.com.ph/webimage/bb.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "c3dc7997-9dea-4659-a890-dbbe8af18f0f::logo",
+      "06938ce2-c171-473a-b5d0-ce7eb99a1c81::logo"
+    ]
   },
   {
     "key": "big-brew::cover-image",
@@ -782,7 +897,11 @@
     ],
     "chosenUrl": "https://franchise.ph/wp-content/uploads/2025/01/img-big-brew-.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "c3dc7997-9dea-4659-a890-dbbe8af18f0f::cover",
+      "06938ce2-c171-473a-b5d0-ce7eb99a1c81::cover"
+    ]
   },
   {
     "key": "mcdo::logo",
@@ -802,7 +921,12 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McDonald%27s_Golden_Arches.svg/250px-McDonald%27s_Golden_Arches.svg.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "7aa9d469-c8c4-4991-90a3-4649f76310b4::logo",
+      "e65d4247-4af4-4bea-ad31-6ef57c61bab3::logo",
+      "64a96c29-28a4-4dc7-b459-3f692626ce72::logo"
+    ]
   },
   {
     "key": "mcdo::cover-image",
@@ -822,7 +946,12 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/McDonaldsSagayCity.jpg/1280px-McDonaldsSagayCity.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "7aa9d469-c8c4-4991-90a3-4649f76310b4::cover",
+      "e65d4247-4af4-4bea-ad31-6ef57c61bab3::cover",
+      "64a96c29-28a4-4dc7-b459-3f692626ce72::cover"
+    ]
   },
   {
     "key": "row-nel-online-store-services::logo",
@@ -840,7 +969,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/509664053_1490592639041436_4787345156674924657_n.jpg?stp=c13.0.431.431a_dst-jpg_s200x200_tt6&_nc_cat=100&ccb=1-7&_nc_sid=fe59b0&_nc_ohc=P8Jk80cFZkwQ7kNvwFi9nJs&_nc_oc=AdrWCBmc-8PauQq6cYYx6noDfTSF0R4FdkUbovF4Etvcij3mgtoTn2ruuploELWK4enTV-6jkBWJFjivJobBj3FT&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=LBLOftXvHoCxr17nZJ9hLg&oh=00_AQGCw4vZP8-pwdGOhsz-uSE3RslYeAYVjRPIHhDxjS8JxA&oe=6A95DACC",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "b9f90fa7-f46d-4d72-932d-dda5f3f88141::logo"
+    ]
   },
   {
     "key": "row-nel-online-store-services::cover-image",
@@ -871,7 +1003,11 @@
     ],
     "chosenUrl": "https://graph.facebook.com/KAPYEMCoffee/picture?width=1200&height=1200",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "06b65283-c814-412f-b0bd-90b5fcab4e92::logo",
+      "a45832ec-510a-4dc1-bd40-8d5aae17d1a1::logo"
+    ]
   },
   {
     "key": "kapyem-coffee::cover-image",
@@ -895,7 +1031,11 @@
     ],
     "chosenUrl": "https://cdn.wegic.ai/assets/onepage/img/e7d2baea-a16e-4501-bd1b-c67fa50650b6.jpeg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "06b65283-c814-412f-b0bd-90b5fcab4e92::cover",
+      "a45832ec-510a-4dc1-bd40-8d5aae17d1a1::cover"
+    ]
   },
   {
     "key": "jorences-pizza::logo",
@@ -913,7 +1053,10 @@
     ],
     "chosenUrl": "https://graph.facebook.com/jorences28/picture?width=1200&height=1200",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "b0aaef7e-1cc1-4220-8178-d0f4a4b56635::logo"
+    ]
   },
   {
     "key": "jorences-pizza::cover-image",
@@ -943,7 +1086,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/472613437_523690914019452_4840923761603933795_n.jpg?stp=dst-jpg_s100x100_tt6&_nc_cat=104&ccb=1-7&_nc_sid=f907e8&_nc_ohc=K1uNNnGnj_sQ7kNvwFUsfoq&_nc_oc=Adpzzk6j5mbz8RmFgrJ00EyLRSk9f3FjdfCFGXXwcad86xd5IzNHm2FyJ7rilE7u79M&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=wMY4d-F53Wf0D2AJW2TlfA&oh=00_AQFCstMySmPmEiSDBrywUdEobG05UIK_7VO5qybX8BO_Kg&oe=6A95D2FB",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "70037181-e6ab-4ef7-809a-117da47a3bc9::logo"
+    ]
   },
   {
     "key": "b1-t1::cover-image",
@@ -973,7 +1119,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/557603100_122096719311027009_7756877119197648134_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=106&ccb=1-7&_nc_sid=fe59b0&_nc_ohc=outTAvO-4D0Q7kNvwG8Givb&_nc_oc=AdphriiShvBxwqfXHUQNkx5zGKcjaVrFRJI5Yf-Lx8TK5clD8xwLZhpNN_3jQNCgGLR0NQpOFLHs94kd19TnfC1c&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=iWm8dupA_Pbl8a1w9B77YA&oh=00_AQF6g1dNWmXKU24LfuK4ZM19WoIcAUGipPMylCEFRSM7ww&oe=6A95DB60",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0::logo"
+    ]
   },
   {
     "key": "sweet-tooth-bangar::cover-image",
@@ -991,7 +1140,10 @@
     ],
     "chosenUrl": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWkYo7-gvumifR-axqlTp2wcSsj5xGgqaRjEzygqRRndHqenEn8O8UuvHOIC08QQ1GC6c5JUpHxYuIElwbNY-dWrMe_YwJNLCwM2uDA87r1lq-U_yZsmBf1ot9o7vQRoOY42zPymrtIZluBZ=s1600",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0::cover"
+    ]
   },
   {
     "key": "cj-s-foodies-corner::logo",
@@ -1009,7 +1161,10 @@
     ],
     "chosenUrl": "https://scontent.fmnl44-1.fna.fbcdn.net/v/t39.30808-1/354912028_113085955152012_2486824670723999832_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=109&ccb=1-7&_nc_sid=f907e8&_nc_ohc=DJoaA7VrdD0Q7kNvwE6Vtax&_nc_oc=Adq9YPH-y-JLpK1pLbV1UvSxQbDeTRRevD8i62EjrUe07tQvkIuuM6xe3lkPC5E2PNQ&_nc_zt=24&_nc_ht=scontent.fmnl44-1.fna&edm=ADwHzz8EAAAA&_nc_gid=BffR7Ikp4_i-u5Xzjbicqg&oh=00_AQHz-u8xsoqkY56v1Nc5rBed8jYeH0fSjhnqvijS8KlGNw&oe=6A95CC29",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "c5ba915d-4a49-4751-a90f-923b4b350700::logo"
+    ]
   },
   {
     "key": "cj-s-foodies-corner::cover-image",
@@ -1027,7 +1182,10 @@
     ],
     "chosenUrl": "https://lh3.googleusercontent.com/gps-cs-s/AHRPTWmiKcAyGie01C00wnvfzMzA_QwDZe0hEjLkU3S3WC9KqC5f24X7vExfi1zwALBzHPTNI-mte3lION66zcExGKGHpVPEA4VWt7--9uhRRCEoUtErGZksS2ThA_LCtDP5yDRRzKU2Ww=s1600",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "c5ba915d-4a49-4751-a90f-923b4b350700::cover"
+    ]
   },
   {
     "key": "five-star-chicken::logo",
@@ -1045,7 +1203,10 @@
     ],
     "chosenUrl": "https://content.pancake.vn/1/s648x584/fwebp80/78/7d/1f/ea/55b3608687c8e9c1fd88c3b2a6ffc095be4784ebb143e8ac47f52f11-w:1080-h:972-l:690895-t:image/png.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "536b1769-fab8-437c-94c1-447392c55970::logo"
+    ]
   },
   {
     "key": "five-star-chicken::cover-image",
@@ -1063,7 +1224,10 @@
     ],
     "chosenUrl": "https://content.pancake.vn/1/s876x876/fwebp80/79/0d/ef/f2/be82200187b4cb59eacb3ea40a9e78811018c3893de90fea7ecb9901-w:2048-h:2048-l:2830381-t:image/png.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "536b1769-fab8-437c-94c1-447392c55970::cover"
+    ]
   },
   {
     "key": "shawarma-shack::logo",
@@ -1081,7 +1245,10 @@
     ],
     "chosenUrl": "https://shawarmashack.ph/images/Shawarma-Shack-Logo_Colored-Badge.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "df8d8aae-1a2c-4e97-8d9d-9d42cba9de0e::logo"
+    ]
   },
   {
     "key": "shawarma-shack::cover-image",
@@ -1099,7 +1266,10 @@
     ],
     "chosenUrl": "https://shawarmashack.ph/images/Image-4.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "df8d8aae-1a2c-4e97-8d9d-9d42cba9de0e::cover"
+    ]
   },
   {
     "key": "ilocos-empanada::logo",
@@ -1150,7 +1320,14 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Jollibee_2011_logo.svg/330px-Jollibee_2011_logo.svg.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "710009e1-b8f0-4f08-84ad-04dd2e6d85c4::logo",
+      "9f65ebda-5efd-4f4b-b59d-40c3478d8304::logo",
+      "4be3b239-76b5-4759-8854-99a06d7f5442::logo",
+      "8f327d17-a9b8-4a5b-8f11-053720e0cc2e::logo",
+      "12df59ce-b2e1-4317-82ba-1f21fe693a4b::logo"
+    ]
   },
   {
     "key": "jollibee::cover-image",
@@ -1172,7 +1349,14 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Jollibee_restaurants_%28Rizal%2C_Nueva_Ecija%29_02.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "710009e1-b8f0-4f08-84ad-04dd2e6d85c4::cover",
+      "9f65ebda-5efd-4f4b-b59d-40c3478d8304::cover",
+      "4be3b239-76b5-4759-8854-99a06d7f5442::cover",
+      "8f327d17-a9b8-4a5b-8f11-053720e0cc2e::cover",
+      "12df59ce-b2e1-4317-82ba-1f21fe693a4b::cover"
+    ]
   },
   {
     "key": "almurad-restaurant::logo",
@@ -1195,7 +1379,10 @@
     ],
     "chosenUrl": "https://graph.facebook.com/almuradrestaurant/picture?width=1000&height=1000",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "58edcf17-bf5b-42a3-a185-b77107a1d5a6::logo"
+    ]
   },
   {
     "key": "almurad-restaurant::cover-image",
@@ -1225,7 +1412,10 @@
     ],
     "chosenUrl": "https://www.siomai.house/assets/uploads/2021/04/sioamiHouseLogo.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "6b974a9f-c2fa-44ce-98f8-7d983a0a6b1f::logo"
+    ]
   },
   {
     "key": "siomai-house::cover-image",
@@ -1243,7 +1433,10 @@
     ],
     "chosenUrl": "https://www.siomai.house/assets/uploads/revslider/slider-home1/siomai-standard.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "6b974a9f-c2fa-44ce-98f8-7d983a0a6b1f::cover"
+    ]
   },
   {
     "key": "papag-resto-bar::logo",
@@ -1266,7 +1459,10 @@
     ],
     "chosenUrl": "https://graph.facebook.com/papagrestobar/picture?width=1000&height=1000",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "c18b1fb8-8d54-4f23-92b5-b27014d121df::logo"
+    ]
   },
   {
     "key": "papag-resto-bar::cover-image",
@@ -1296,7 +1492,10 @@
     ],
     "chosenUrl": "https://img1.wsimg.com/isteam/ip/232cb99e-8166-45de-b978-cf28b9646061/blob-ce67801.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "3070eb3d-ceef-4253-8289-f6ef26757dcc::logo"
+    ]
   },
   {
     "key": "chi-x-neh-broh-bangar::cover-image",
@@ -1314,7 +1513,10 @@
     ],
     "chosenUrl": "https://img1.wsimg.com/isteam/ip/232cb99e-8166-45de-b978-cf28b9646061/Bangar.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "3070eb3d-ceef-4253-8289-f6ef26757dcc::cover"
+    ]
   },
   {
     "key": "balaoan-streetfoods::logo",
@@ -1359,7 +1561,13 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Mang_Inasal.svg/500px-Mang_Inasal.svg.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "19bf0410-17c4-412a-bd27-04b5f30f6e4a::logo",
+      "a9c48bc7-ac03-4965-9a82-5df7e3435c72::logo",
+      "aff2ecdc-7818-4206-85ea-c40fdbe01ef7::logo",
+      "965a92e2-c0d9-432c-9473-1e03d7ac4c18::logo"
+    ]
   },
   {
     "key": "mang-inasal::cover-image",
@@ -1380,7 +1588,13 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Mang_Inasal_restaurants_30.jpg/1920px-Mang_Inasal_restaurants_30.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "19bf0410-17c4-412a-bd27-04b5f30f6e4a::cover",
+      "a9c48bc7-ac03-4965-9a82-5df7e3435c72::cover",
+      "aff2ecdc-7818-4206-85ea-c40fdbe01ef7::cover",
+      "965a92e2-c0d9-432c-9473-1e03d7ac4c18::cover"
+    ]
   },
   {
     "key": "m-m-bulaluhan::logo",
@@ -1428,7 +1642,11 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/en/thumb/5/58/Red_Ribbon_Bakeshop_Logo.webp/250px-Red_Ribbon_Bakeshop_Logo.webp.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "c677afa2-ebf0-41b7-8efd-cb8556b778b1::logo",
+      "d5a674c5-dac4-4ac7-a2a2-c2734702933a::logo"
+    ]
   },
   {
     "key": "red-ribbon::cover-image",
@@ -1447,7 +1665,11 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/0/02/Red_Ribbon_SM_Sucat_exterior.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "c677afa2-ebf0-41b7-8efd-cb8556b778b1::cover",
+      "d5a674c5-dac4-4ac7-a2a2-c2734702933a::cover"
+    ]
   },
   {
     "key": "castillo-s-panciteria::logo",
@@ -1595,7 +1817,10 @@
     ],
     "chosenUrl": "https://potatocorner.com/wp-content/uploads/2023/07/Logo-Stacked-Mascot.png",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "a154a279-44ff-4045-bc39-7f942f03d8f3::logo"
+    ]
   },
   {
     "key": "potato-corner::cover-image",
@@ -1618,7 +1843,10 @@
     ],
     "chosenUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0c/Potato_Corner_at_the_Ayala_Center_Cebu_%282024-04-09%29.jpg",
     "imagekitUrl": null,
-    "status": "pending-review"
+    "status": "approved",
+    "targetRowIds": [
+      "a154a279-44ff-4045-bc39-7f942f03d8f3::cover"
+    ]
   },
   {
     "key": "papa-gee-s-pizza::logo",

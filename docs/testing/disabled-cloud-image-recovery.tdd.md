@@ -122,6 +122,28 @@ business's own verified page for independents. Where nothing trustworthy
 exists the slot is left blank and reported, because a wrong logo on a real
 business is worse than no logo.
 
+## Staged outcome
+
+Sourcing is complete; nothing has been uploaded or written yet.
+
+| Manifest | Approved | Rows staged | Held for review | No candidate |
+|---|---|---|---|---|
+| Menu items | 183 | 271 | 18 | 57 |
+| Merchants (logo + cover) | 58 | 112 | 0 | 40 |
+
+383 rows are staged to be re-hosted on ImageKit and written back.
+
+Merchant sourcing ran in two passes. The first excluded Facebook CDN URLs and
+reached 23 of 98 keys — national chains resolved, independents did not. Since
+the uploader fetches server-side and re-hosts immediately, a signed short-lived
+URL is sufficient, so the second pass allowed them and reached 58 of 98,
+recovering twelve independents from their own pages.
+
+Two routes to a Facebook page's profile photo, each with a limit:
+`graph.facebook.com/<page>/picture` returns full resolution but only for pages
+with a vanity username (numeric-ID pages get the grey silhouette); the public
+page plugin works for any page but caps at 100-200px.
+
 ## Known gaps
 
 - Uploads to ImageKit require `IMAGEKIT_PRIVATE_KEY`, which lives in Supabase

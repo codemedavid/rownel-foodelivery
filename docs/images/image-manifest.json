@@ -3060,10 +3060,21 @@
       "201241fb-5e5b-430d-a9d2-fdf615486eb3",
       "b177c516-9622-49b2-8c14-8aeb3901fc82"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://substack-post-media.s3.amazonaws.com/public/images/1523121a-ec36-414c-a58c-4a9ea2250e24_1920x1280.jpeg",
+        "source": "Official McDonald's PH 2026 'Dunk into Flavor' key visual (reproduced in Manila Connoisseur article). CAVEAT: promo poster, not a solo pack shot — the Ebi Burger is the large hero at bottom-right, a Cheeseburger + Chili Con Carne Dunk also appears top-left. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.gmanews.tv/webpics/2022/02/mcdo_2022_02_28_17_28_50.png",
+        "source": "McDonald's PH 2022 'Flavors of Asia' press image via GMA News. CAVEAT: composite banner — Ebi Burger is the LEFT burger, K-Chicken Burger is on the right. Verified image/png.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://substack-post-media.s3.amazonaws.com/public/images/1523121a-ec36-414c-a58c-4a9ea2250e24_1920x1280.jpeg",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "siomai-house::pork-shrimp-siomai-4pcs",
@@ -3145,10 +3156,21 @@
       "a98f1825-2655-4e8c-90cc-201c8769075e",
       "0a3d211d-4a43-45e6-bb92-33059c9b4f23"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/6e34a811fe4ea863e901e26c42cecabb.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, item 'Sulit-Busog 1-pc. Chicken McDo Meal' (McSavers Sulit Busog Meals category). CAVEAT: 'Sulit Busog' on the source menu is a meal range, not one SKU — this is the flagship Sulit Busog meal (Chicken McDo + rice + drink). Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/d07c9b885aa1b23dac8d907e6d6c47d2.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, 'Sulit-Busog Cheeseburger with Fries and Drink Meal'. Alternate Sulit Busog meal shot. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/6e34a811fe4ea863e901e26c42cecabb.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "papag-resto-bar::bilao-s",
@@ -4054,10 +4076,26 @@
       "8de8a8a6-904a-4a9c-9316-b7d2d1d4ebc9",
       "feda7267-3084-42e9-96af-ac77c3400664"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://media.pickaroo.com/media/thumb/variant_photos/2025/6/30/MGZQrY8Ny2NNKYeNVp9Ltd_size_800.jpg",
+        "source": "Pick.A.Roo McDonald's storefront, exact product 'Medium Royal McFloat 16oz' — McDo's own pack shot (Royal orange soda + vanilla soft serve). Un-watermarked 800px variant. Small red 'New' corner badge. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/3af7b6bafe057e756c2d9f95bc8b2460.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, 'Medium Royal'. CAVEAT: plain Royal drink only, NO soft-serve float top — lower-ranked fallback. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://media.pickaroo.com/media/thumb/variant_photos/2025/6/30/MGZQrY8Ny2NNKYeNVp9Ltd_size_800.jpg",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "2879f4c1-7827-461f-98bf-08fb43287858",
+      "8de8a8a6-904a-4a9c-9316-b7d2d1d4ebc9",
+      "feda7267-3084-42e9-96af-ac77c3400664"
+    ]
   },
   {
     "key": "sweet-tooth-bangar::mango-graham-large",
@@ -4720,10 +4758,20 @@
       "2461fcbe-fb49-4129-ad09-1c5e262b9a89",
       "224bc4cb-7d1d-41ba-b6b9-b4cab5f30b3c"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://asset.jfcapps.com/contentful/40fc4q96z77k/4vV679VJu4G0AS7h28iFGV/df7fbe1ee533b996ff611e5a6979c72b/New_Ube_Bloom_Regular__1___1_.webp",
+        "source": "Official redribbon.ph marketing-product API (content.jfcapps.com, tag rr-mktg), entry 'Ube Bloom Cake' — Regular 8in hero shot. Verified image/webp.",
+        "confidence": "official"
+      }
+    ],
+    "chosenUrl": "https://asset.jfcapps.com/contentful/40fc4q96z77k/4vV679VJu4G0AS7h28iFGV/df7fbe1ee533b996ff611e5a6979c72b/New_Ube_Bloom_Regular__1___1_.webp",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "2461fcbe-fb49-4129-ad09-1c5e262b9a89",
+      "224bc4cb-7d1d-41ba-b6b9-b4cab5f30b3c"
+    ]
   },
   {
     "key": "row-nel-online-store-services::pa-angkas",
@@ -4760,10 +4808,26 @@
       "ece77e26-b456-4df3-b9cf-2bea823c5dcb",
       "5ea14daa-4481-461a-9cab-a29aa914d097"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/0b35e3c636dbd2cd449370823e6216ff.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, exact product '6-pc. Chicken McShare Box'. Visually verified: branded McShare Box with 6 pcs Chicken McDo. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/155927090afd77646420bb3c807b85a4.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, '8-pc. Chicken McShare Box'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/0b35e3c636dbd2cd449370823e6216ff.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "f91b7d4b-01ca-4b34-86a2-f157341e4d4d",
+      "ece77e26-b456-4df3-b9cf-2bea823c5dcb",
+      "5ea14daa-4481-461a-9cab-a29aa914d097"
+    ]
   },
   {
     "key": "mcdo::large-shake-shake-fries-n-medium-mcfloat",
@@ -4774,10 +4838,21 @@
       "c914c5bb-af87-4b18-958d-7e77ea37c681",
       "d362eff5-66f4-468c-9cce-0d18b298257c"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://d3bjzufjcawald.cloudfront.net/public/web/2024-06-03/665d88b1a8571/Menu_Drinks_500x500_McFloatCoke-500-500.jpg",
+        "source": "mcdonalds.com.ph official Drinks & Desserts menu, 'Coke McFloat'. CAVEAT: McFloat component only, not the bundle. Verified image/jpeg.",
+        "confidence": "official"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/8f44e16e519cb42b7f319b489e8e4084.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, 'McShaker Fries Large Cheese' (Shake Shake Fries). CAVEAT: fries component only, not the fries + McFloat bundle. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://d3bjzufjcawald.cloudfront.net/public/web/2024-06-03/665d88b1a8571/Menu_Drinks_500x500_McFloatCoke-500-500.jpg",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "mcdo::2pc-mushroom-pepper-steak-w-rice",
@@ -4788,10 +4863,26 @@
       "398361df-fccb-4633-82cb-545f1c0d8c42",
       "d4614929-33eb-445c-b8dd-104329060cf9"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/142bfb5b0bba4bcc184b5ec357b62db7.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, exact product '2-pc. Mushroom Pepper Steak' (solo rice plate). Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/931d8a25141265f600b059984808a172.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, '2pc. Mushroom Pepper Steak with Fries and Drink' (meal version). Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/142bfb5b0bba4bcc184b5ec357b62db7.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "6bfc2408-f31e-4995-a253-46216d6ddedc",
+      "398361df-fccb-4633-82cb-545f1c0d8c42",
+      "d4614929-33eb-445c-b8dd-104329060cf9"
+    ]
   },
   {
     "key": "mcdo::double-quarter-pounder-w-cheese",
@@ -4893,10 +4984,26 @@
       "9df4c477-46b2-47b8-97e3-21f12ee94a8c",
       "ff77cc8f-b155-470a-b61a-c2ba5e510384"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://cdn.okya.co/01b4bf84-c86c-4d2e-a004-e1f4042febc0~1/nth/0/-/format/auto/",
+        "source": "Official jollibee.com.ph /menu/super-meals card: '1-pc. Chickenjoy, Half Jolly Spaghetti, Yumburger, with Rice and Reg. Drink'. CAVEAT: Jollibee PH does not label Super Meals A/B/C/D on its own site; this is the most-loaded (4th) Super Meal variant and the most likely 'D'. NOT confirmed as Super Meal D. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://cdn.okya.co/da16b6d4-a803-4875-8ede-5f484eb57eda~1/nth/0/-/format/auto/",
+        "source": "Official jollibee.com.ph /menu/super-meals: '1-pc. Chickenjoy, Half Jolly Spaghetti, Burger Steak with Rice and Reg. Drink'. Fallback generic Super Meal plate. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://cdn.okya.co/003bcf4a-3dfb-4445-89c2-c5538eeef8de~1/nth/0/-/format/auto/",
+        "source": "Official jollibee.com.ph /menu/super-meals: '1-pc. Chickenjoy, Half Jolly Spaghetti, Fries w/ Rice & Drink'. Fallback generic Super Meal plate. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://cdn.okya.co/01b4bf84-c86c-4d2e-a004-e1f4042febc0~1/nth/0/-/format/auto/",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "don-benitos::casava",
@@ -5049,10 +5156,26 @@
       "59e8250d-b054-48d2-a19f-4932e0353f0d",
       "bcff63ca-a684-4551-a607-56fabc3e50b9"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://d3bjzufjcawald.cloudfront.net/public/web/2024-06-03/665d88b1a8571/Menu_Drinks_500x500_McFloatCoke-500-500.jpg",
+        "source": "mcdonalds.com.ph official Drinks & Desserts menu, 'Coke McFloat'. CAVEAT: McFloat component only, not the bundle. Verified image/jpeg.",
+        "confidence": "official"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/c03157dd6ab0dabbb209288af7447ce3.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, 'Large Fries'. CAVEAT: fries only, not the fries + McFloat bundle. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/c07378a6469fb6bb8fc427bfd1d64aa4.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, 'BFF Fries & 2 McFloat Combo'. CAVEAT: different size combo (BFF fries + 2 floats) but is a genuine fries+McFloat bundle shot. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://d3bjzufjcawald.cloudfront.net/public/web/2024-06-03/665d88b1a8571/Menu_Drinks_500x500_McFloatCoke-500-500.jpg",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "mcdo::burger-mcdo-w-lettuce-tomatoes",
@@ -5613,10 +5736,26 @@
       "fe053e47-e498-47f1-9bbb-7db7717b9407",
       "101d13c7-5c80-4049-9af0-96ee5e71ec21"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/fddb29314b7ec6b1b1f41c45e7f86d90.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, exact product 'Crispy Chicken Fillet Ala King' — visually verified: fillet in white ala king sauce with a rice mound on a plate. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/8043f2f349bfe18952cfa13bf22635a8.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, 'Sulit-Busog Chicken Fillet Ala King with Extra Rice Meal'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/fddb29314b7ec6b1b1f41c45e7f86d90.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "51493ebc-21c2-4404-883b-7ad5e61a33b3",
+      "fe053e47-e498-47f1-9bbb-7db7717b9407",
+      "101d13c7-5c80-4049-9af0-96ee5e71ec21"
+    ]
   },
   {
     "key": "mcdo::golden-curry-fillet-w-rice",
@@ -5627,10 +5766,26 @@
       "56319deb-2fa5-424d-a5be-4305dcbc3f83",
       "2fe7fedc-a386-446e-ad69-7ba43876a762"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/d8d52c2b9f11b4e6289a843fefe5be4b.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, exact product 'Golden Curry Fillet' — visually verified: fillet in yellow curry sauce with rice mound on a plate. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/8552a783baf7dac66e09b6d564be9a51.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, 'Sulit-Busog Golden Curry Fillet with Extra Rice Meal'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/d8d52c2b9f11b4e6289a843fefe5be4b.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "cb8ab63a-49c2-4dc4-8b6a-56f89a99e824",
+      "56319deb-2fa5-424d-a5be-4305dcbc3f83",
+      "2fe7fedc-a386-446e-ad69-7ba43876a762"
+    ]
   },
   {
     "key": "mcdo::crispy-chicken-sandwich-w-lettuce-tomatoes",
@@ -5935,10 +6090,21 @@
       "51873070-45de-4044-bd50-36e7e238d7ed",
       "397c821b-8683-4592-99b9-1eb6ce389025"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://d3bjzufjcawald.cloudfront.net/public/web/2024-06-03/665d88b1a8571/Menu_Drinks_500x500_McFloatCoke-500-500.jpg",
+        "source": "mcdonalds.com.ph official Drinks & Desserts menu, 'Coke McFloat'. CAVEAT: McFloat component only, not the bundle. Verified image/jpeg.",
+        "confidence": "official"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/7713d788febbe7810019149ae9d90b3c.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, 'McShaker Fries Medium Cheese' (Shake Shake Fries). CAVEAT: fries component only, not the fries + McFloat bundle. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://d3bjzufjcawald.cloudfront.net/public/web/2024-06-03/665d88b1a8571/Menu_Drinks_500x500_McFloatCoke-500-500.jpg",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "mcdo::2pcs-chicken-mcdo-w-rice",
@@ -5974,10 +6140,26 @@
       "002a64a2-cbba-417a-9aa0-810cda71e76d",
       "9a911d39-405d-4dcd-9f34-1875f791ab52"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/da3b95739d1396b535da08668ae531e1.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, exact product '1-pc. Mushroom Pepper Steak' — visually verified: patty in mushroom pepper gravy with rice mound on a plate. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/7d46fe0023e979e595296c4e2cf6840a.jpg?width=800",
+        "source": "foodpanda PH McDonald's chain asset, 'Sulit Busog 1-pc Mushroom Pepper Steak with Extra Rice Meal'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/menu-import-gateway-prd/regions/AS/chains/mcd_philippines/da3b95739d1396b535da08668ae531e1.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "a40ae4e9-283f-49ac-b1cb-fa1eb0487f41",
+      "002a64a2-cbba-417a-9aa0-810cda71e76d",
+      "9a911d39-405d-4dcd-9f34-1875f791ab52"
+    ]
   },
   {
     "key": "mcdo::mc-spaghetti",
@@ -6161,10 +6343,26 @@
       "d1247b85-3286-4083-a268-57cafa534ca9",
       "8650b2ba-7173-47bf-be04-335876165a0a"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/t41b/product/47008074/c13f7df6-3e73-4d05-9f81-990cfc31f20d.jpg?width=800",
+        "source": "foodpanda PH BigBrew, 'Mango Grande (22oz)' from the 'Fruit Tea (water-based)' category — BigBrew-branded 22oz cup. CAVEAT: BigBrew has no generic 'Fruit Tea' SKU; flavors are listed individually. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/t41b/product/47007996/670f18db-42ce-4ac1-ab6b-fc88d9d63bec.jpg?width=800",
+        "source": "foodpanda PH BigBrew, 'Kiwi Grande (22oz)' fruit tea. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/t41b/product/47008166/f6a54fc6-8cbf-48d3-b622-b94a1ee4d08a.jpg?width=800",
+        "source": "foodpanda PH BigBrew, 'Blueberry Grande (22oz)' fruit tea. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/t41b/product/47008074/c13f7df6-3e73-4d05-9f81-990cfc31f20d.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "chi-x-neh-broh-bangar::chi-x-chaofan",
@@ -6611,10 +6809,30 @@
       "83b871ce-1f4b-4090-8179-2cdba76ed395",
       "0238d169-bc27-4fcc-a43e-4e6ecf851284"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/products/29807445.jpg?width=800",
+        "source": "foodpanda PH Big Brew - Regalado, product 'Choco Hot Brew' — BigBrew kraft hot cup with black lid. CAVEAT: size not stated in listing; flavor is Choco. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/products/29807446.jpg?width=800",
+        "source": "foodpanda PH Big Brew - Regalado, 'Mocha Hot Brew'. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/76899029.jpg?width=800",
+        "source": "foodpanda PH Big Brew - San Francisco, 'Brusko Hot Coffee'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/fd-ph/products/29807445.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "83b871ce-1f4b-4090-8179-2cdba76ed395",
+      "0238d169-bc27-4fcc-a43e-4e6ecf851284"
+    ]
   },
   {
     "key": "chef-raysies-kitchen::italian-pizza-10",
@@ -6760,10 +6978,24 @@
     "rowIds": [
       "c0dab494-ffb8-4e5c-81dc-f892c73b1b60"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/26442923.jpg?width=800",
+        "source": "foodpanda PH Shawarma Shack listing, 'Beef Shawarma Rice Bowl'. Visually confirmed: TWO branded Shawarma Shack rice bowls side by side, i.e. the buy-1-take-1 presentation. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/26442924.jpg?width=800",
+        "source": "foodpanda PH Shawarma Shack, 'Chicken Shawarma Rice Bowl' — same twin-bowl styling, chicken variant. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/fd-ph/Products/26442923.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "c0dab494-ffb8-4e5c-81dc-f892c73b1b60"
+    ]
   },
   {
     "key": "papag-resto-bar::chicken-biryani",
@@ -6909,10 +7141,20 @@
       "a8839570-576d-40e4-9318-32b7a252f717",
       "ce2939d4-1857-40bf-bab0-de469b712d69"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://asset.jfcapps.com/contentful/40fc4q96z77k/66pnWxzdqJy17CzTn1SNDR/409459907708b07aac04308781e20b02/Chocolate_Bliss__1_.webp",
+        "source": "Official redribbon.ph marketing-product API, entry 'Chocolate Bliss Cake'. Verified image/webp.",
+        "confidence": "official"
+      }
+    ],
+    "chosenUrl": "https://asset.jfcapps.com/contentful/40fc4q96z77k/66pnWxzdqJy17CzTn1SNDR/409459907708b07aac04308781e20b02/Chocolate_Bliss__1_.webp",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "a8839570-576d-40e4-9318-32b7a252f717",
+      "ce2939d4-1857-40bf-bab0-de469b712d69"
+    ]
   },
   {
     "key": "ytk-restaurant::solo-meryenda",
@@ -7002,10 +7244,29 @@
     "rowIds": [
       "e6830bc6-1ec0-41f8-b917-f21bd2d1658e"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/26442927.jpg?width=800",
+        "source": "foodpanda PH Shawarma Shack, 'Beef Shawarma Rice' — yellow rice + beef shawarma in branded tray. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/26442928.jpg?width=800",
+        "source": "foodpanda PH Shawarma Shack, 'Chicken Shawarma Rice'. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/25972584.jpg?width=800",
+        "source": "foodpanda PH Shawarma Shack, 'Beef Shawarma Rice with Side' (includes a drink/side). Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/fd-ph/Products/26442927.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "e6830bc6-1ec0-41f8-b917-f21bd2d1658e"
+    ]
   },
   {
     "key": "minute-burger::beef-hungarian-sandwich-buy-1-take-1",
@@ -7014,10 +7275,24 @@
     "rowIds": [
       "0ad43d50-be6a-42d9-828f-19d95ec930f0"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/87251623.jpg?width=800",
+        "source": "foodpanda PH Minute Burger - Talipapa QC, exact product 'Buy 1 Take 1 Beef Hungarian'. Visually verified: two Hungarian sausage sandwiches in long buns with mayo drizzle — Minute Burger's own pack shot. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/87251624.jpg?width=800",
+        "source": "foodpanda PH Minute Burger, 'Buy 1 Take 1 Beef Hungarian + Leslie's Premium Chips'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/fd-ph/Products/87251623.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "0ad43d50-be6a-42d9-828f-19d95ec930f0"
+    ]
   },
   {
     "key": "shawarma-sa-market::menu",
@@ -7058,10 +7333,20 @@
       "9c943a4e-3dfd-4526-9493-a5fd79135507",
       "49593353-4e72-404d-bcd1-68e1230c42ce"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://asset.jfcapps.com/contentful/40fc4q96z77k/4EoXWsB5GU4lbd0Cc1aC0r/26f2e7aa9db38ebe93d19c531683fbe4/New_Triple_Chocolate_Roll.webp",
+        "source": "Official redribbon.ph marketing-product API, entry 'Triple Chocolate Roll' (Full / Half sizes) — asset shows the full roll. Verified image/webp.",
+        "confidence": "official"
+      }
+    ],
+    "chosenUrl": "https://asset.jfcapps.com/contentful/40fc4q96z77k/4EoXWsB5GU4lbd0Cc1aC0r/26f2e7aa9db38ebe93d19c531683fbe4/New_Triple_Chocolate_Roll.webp",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "9c943a4e-3dfd-4526-9493-a5fd79135507",
+      "49593353-4e72-404d-bcd1-68e1230c42ce"
+    ]
   },
   {
     "key": "m-m-bulaluhan::beef-lomi",
@@ -7186,10 +7471,24 @@
     "rowIds": [
       "d3644ec9-7d93-4e85-a037-2434efbab558"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/25972582.jpg?width=800",
+        "source": "foodpanda PH Shawarma Shack, 'Kebab Rice' — visually distinct: whole grilled kebab strip beside yellow rice. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/25972587.jpg?width=800",
+        "source": "foodpanda PH Shawarma Shack, 'Kebab Rice with Side'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/fd-ph/Products/25972582.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "d3644ec9-7d93-4e85-a037-2434efbab558"
+    ]
   },
   {
     "key": "sweet-tooth-bangar::halo-halo-22oz",
@@ -7310,10 +7609,24 @@
     "rowIds": [
       "d0661dda-f661-450f-8236-92574de0e7c1"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/d4mu/product/1f9a0f46-b2f7-4aa9-92ab-0dc59ae142c2.jpg?width=800",
+        "source": "foodpanda PH Minute Burger - TPH (Tarlac), exact product 'Buy 1 Take 1 Pork Sisig Burger'. Visually verified: two burgers, sisig patty + white sauce + jalapeno + crispy bits, no chips badge. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/hrnt/product/1babde20-d2b4-483c-bbf5-9ef71bbfe76f.jpg?width=800",
+        "source": "foodpanda PH Minute Burger - TOCS Avenue (Antipolo), 'Buy 1 Take 1 Pork Sisig Burger'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/d4mu/product/1f9a0f46-b2f7-4aa9-92ab-0dc59ae142c2.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "d0661dda-f661-450f-8236-92574de0e7c1"
+    ]
   },
   {
     "key": "red-ribbon::mango-blossom-petite-cake",
@@ -7323,10 +7636,16 @@
       "e73ca62e-3459-489b-817f-21287772cba1",
       "bc65df34-c43d-45ae-a468-1f39558bf637"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://asset.jfcapps.com/contentful/40fc4q96z77k/2ZWkibxsOakCi1P9KgdMbS/e545201096b32dded09810591f82704a/Mango_Blossom_Cake.webp",
+        "source": "Official redribbon.ph marketing-product API, entry 'Mango Blossom'. CAVEAT: Red Ribbon publishes one hero shot per cake — this is the Regular-size photo, not a Petite-specific shot; same cake design. Verified image/webp.",
+        "confidence": "official"
+      }
+    ],
+    "chosenUrl": "https://asset.jfcapps.com/contentful/40fc4q96z77k/2ZWkibxsOakCi1P9KgdMbS/e545201096b32dded09810591f82704a/Mango_Blossom_Cake.webp",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "pending-review"
   },
   {
     "key": "castillo-s-panciteria::pancit-miki",
@@ -7552,10 +7871,24 @@
     "rowIds": [
       "531403b6-5107-425d-bffb-dff38629b6a4"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/25972583.jpg?width=800",
+        "source": "foodpanda PH Shawarma Shack, 'Tikka Rice' — visually distinct from kebab: shredded tikka meat + veg garnish. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/25972586.jpg?width=800",
+        "source": "foodpanda PH Shawarma Shack, 'Tikka Rice with Side'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/fd-ph/Products/25972583.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "531403b6-5107-425d-bffb-dff38629b6a4"
+    ]
   },
   {
     "key": "chef-raysies-kitchen::creamy-chicken-pizza-10",
@@ -7602,10 +7935,24 @@
     "rowIds": [
       "8dc4d2df-007f-4846-afcc-17c660584af4"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/d4mu/product/07307b32-9b90-4aee-97b1-836885816bac.jpg?width=800",
+        "source": "foodpanda PH Minute Burger - TPH, exact product 'Buy 1 Take 1 Pork Sisig Burger + Leslie's Premium Chips'. Visually verified: two sisig burgers with 'MORE Sauce' + Leslie's Chips badges. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/hrnt/product/471ac171-60a0-48e8-a228-3a2544061295.jpg?width=800",
+        "source": "foodpanda PH Minute Burger - TOCS Avenue, 'Buy 1 Take 1 Pork Sisig Burger + Leslie's Premium Chips'. Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/d4mu/product/07307b32-9b90-4aee-97b1-836885816bac.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "8dc4d2df-007f-4846-afcc-17c660584af4"
+    ]
   },
   {
     "key": "goldilocks::rainbow-magic-cake-round",
@@ -7972,10 +8319,24 @@
     "rowIds": [
       "2766fb3d-2d9c-48b6-a879-6bb75b68c12a"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/k093/product/8950c274-d28b-458c-a7f8-aaa6cbb90100.jpg?width=800",
+        "source": "foodpanda PH Potato Corner, exact product 'Mega Chicken Fries with Korean Sweet Soy' — Potato Corner MEGA bucket + 'NEW! Korean Sweet Soy' dip badge (the chain's own marketing asset). Verified image/jpeg.",
+        "confidence": "official"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/k093/product/1cc45e73-0d93-40aa-a9ab-817069210cd8.jpg?width=800",
+        "source": "foodpanda PH Potato Corner, 'Mega Mix - Chicken Fries & Fries with Korean Sweet Soy' (variant). Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/k093/product/8950c274-d28b-458c-a7f8-aaa6cbb90100.jpg?width=800",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "2766fb3d-2d9c-48b6-a879-6bb75b68c12a"
+    ]
   },
   {
     "key": "ytk-restaurant::sandwiches",
@@ -8130,10 +8491,29 @@
     "rowIds": [
       "a4f89c0c-f36e-421b-bf6c-861fe2dff608"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://firebasestorage.googleapis.com/v0/b/foodrunnersdb.firebasestorage.app/o/merchants_product%2F1745285787_MB_CCCBurgerwithFarmerJohn_GrabFood.jpg?alt=media",
+        "source": "Minute Burger's own GrabFood pack shot (filename MB_CCCBurgerwithFarmerJohn_GrabFood.jpg) re-hosted by foodrunnersph.com under 'Buy 1 Take 1 Chimichurri Burger + Leslie's Premium Chips'. 750x750 clean white bg, exact bundle artwork; visually matches the foodpanda asset below. Verified image/jpeg, no UA restriction.",
+        "confidence": "official"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/61563517.jpg?width=800",
+        "source": "foodpanda PH Minute Burger, exact product 'Buy 1 Take 1 Chimichurri Burger + Leslie's Premium Chips'. Visually verified: two burgers with green/red chimichurri relish, mushrooms and onions, plus 'MORE Sauce' + Leslie's Chips badges. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/q23s/product/116795327/6986eb9c-6435-49c6-8195-6386dc53c511.jpg?width=800",
+        "source": "foodpanda PH Minute Burger, 'Buy 1 Take 1 Chimichurri Burger' (a la carte, no chips). Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://firebasestorage.googleapis.com/v0/b/foodrunnersdb.firebasestorage.app/o/merchants_product%2F1745285787_MB_CCCBurgerwithFarmerJohn_GrabFood.jpg?alt=media",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "a4f89c0c-f36e-421b-bf6c-861fe2dff608"
+    ]
   },
   {
     "key": "sweet-tooth-bangar::ube-cheese-graham",
@@ -8381,10 +8761,29 @@
     "rowIds": [
       "ede62c94-6cbf-4d41-bae5-131117964027"
     ],
-    "candidates": [],
-    "chosenUrl": null,
+    "candidates": [
+      {
+        "url": "https://firebasestorage.googleapis.com/v0/b/foodrunnersdb.firebasestorage.app/o/merchants_product%2F1745285820_MB_ShawarmaBurgerwithFarmerJohn_GrabFood.jpg?alt=media",
+        "source": "Minute Burger's own GrabFood pack shot (filename MB_ShawarmaBurgerwithFarmerJohn_GrabFood.jpg) re-hosted by foodrunnersph.com under 'Buy 1 Take 1 Beef Shawarma Burger + Leslie's Premium Chips'. 750x750 clean white bg, exact bundle artwork; visually matches the foodpanda asset below. Verified image/jpeg, no UA restriction.",
+        "confidence": "official"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/fd-ph/Products/53474229.jpg?width=800",
+        "source": "foodpanda PH Minute Burger, exact product 'Buy 1 Take 1 Beef Shawarma Burger + Leslie's Premium Chips'. Visually verified and cross-checked against two other Minute Burger branch listings for the same SKU: beef patty + white garlic sauce + cheese on sesame-flecked bun, with 'MORE Sauce' + Leslie's Chips badges. Verified image/jpeg.",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://images.deliveryhero.io/image/global-menu-service/FP_PH/vendor/q23s/product/116795328/6693b66b-cfc3-43ff-a0a2-281e40429adb.jpg?width=800",
+        "source": "foodpanda PH Minute Burger, 'Buy 1 Take 1 Beef Shawarma Burger' (a la carte, no chips badge). Verified image/jpeg.",
+        "confidence": "likely"
+      }
+    ],
+    "chosenUrl": "https://firebasestorage.googleapis.com/v0/b/foodrunnersdb.firebasestorage.app/o/merchants_product%2F1745285820_MB_ShawarmaBurgerwithFarmerJohn_GrabFood.jpg?alt=media",
     "imagekitUrl": null,
-    "status": "no-candidate"
+    "status": "approved",
+    "targetRowIds": [
+      "ede62c94-6cbf-4d41-bae5-131117964027"
+    ]
   },
   {
     "key": "inihaw::extra-rice",

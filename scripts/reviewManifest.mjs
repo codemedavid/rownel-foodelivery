@@ -39,6 +39,15 @@ const HOLD_FOR_HUMAN = new Set([
   'mcdo::mc-spaghetti',
   'mcdo::bff-fries',
   'mcdo::mc-shaker-fries',
+  // Chain-item pass: sourced, but the photo is knowingly not the exact SKU.
+  'mcdo::ebi-burger', //                       no solo pack shot exists; hero sits in a multi-product poster
+  'mcdo::sulit-busog', //                      a meal range, not one SKU
+  'mcdo::large-shake-shake-fries-n-medium-mcfloat', // component only, no bundle artwork
+  'mcdo::medium-shake-shake-fries-n-medium-mcfloat', // component only, no bundle artwork
+  'mcdo::large-fries-n-mcfloat', //            component only, no bundle artwork
+  'jollibee::super-meal-d', //                 Jollibee does not label Super Meals A-D; the mapping is inferred
+  'big-brew::fruit-tea-22oz', //               no generic Fruit Tea SKU; candidates are single flavours
+  'red-ribbon::mango-blossom-petite-cake', //  Regular-size hero shot, not the Petite variant
 ]);
 
 const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
