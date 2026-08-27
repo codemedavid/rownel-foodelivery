@@ -49,11 +49,14 @@ const items = itemRows.map((row) => ({
   imageUrl: row.image_url ?? null,
 }));
 
+// Rebuilding the manifest discards every review decision and upload record it
+// holds, so refreshing the catalog state alone has to be possible on its own.
+const isSnapshotOnly = process.argv.includes('--snapshot-only');
 const manifest = buildManifest(merchants, items);
 
 mkdirSync(OUTPUT_DIR, { recursive: true });
 writeFileSync(CATALOG_PATH, `${JSON.stringify({ merchants, items }, null, 2)}\n`);
-writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+if (!isSnapshotOnly) writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
 
 const withImage = items.filter((item) => item.imageUrl).length;
 console.log(`merchants          ${merchants.length}`);
