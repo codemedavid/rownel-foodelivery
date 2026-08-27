@@ -181,6 +181,13 @@ export const ordersApi = {
     return data ? mapOrder(data as Record<string, any>) : null;
   },
 
+  /** Authed customer: own order history (orders stamped with auth.uid() at checkout). */
+  async listMine(): Promise<Order[]> {
+    const { data, error } = await supabase.rpc('list_my_orders');
+    throwIf(error);
+    return ((data as Record<string, any>[]) ?? []).map(mapOrder);
+  },
+
   /** Public: customer self-lookup by contact number (server strips GPS/IP). */
   async listByContactNumber(contactNumber: string): Promise<Order[]> {
     const { data, error } = await supabase.rpc('list_orders_by_contact', {

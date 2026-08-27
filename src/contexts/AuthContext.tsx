@@ -3,18 +3,20 @@ import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { staffApi } from '../lib/deliveryApi';
 import type { StaffRecord } from '../lib/deliveryTypes';
-import { isAdminUser, isRiderUser, isStaffUser } from '../lib/authRoles';
+import { isAdminUser, isCustomerUser, isRiderUser, isStaffUser } from '../lib/authRoles';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   changePassword: (newPassword: string) => Promise<{ error: AuthError | null }>;
   isAdmin: boolean;
   isStaff: boolean;
   isRider: boolean;
+  isCustomer: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,6 +74,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   }, []);
 
+  const signUp = useCallback(async (email: string, password: string, name: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } },
+    });
+    return { error };
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
@@ -108,19 +119,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const isAdmin = staffIsAdmin || isAdminUser(user, adminEmail);
     const isStaff = staffIsAdmin || !!staffRecord?.isActive || isStaffUser(user);
     const isRider = isRiderUser(user);
+    const isCustomer = !staffIsAdmin && !staffRecord?.isActive && isCustomerUser(user, adminEmail);
 
     return {
       user,
       session,
       loading,
       signIn,
+      signUp,
       signOut,
       changePassword,
       isAdmin,
       isStaff,
       isRider,
+      isCustomer,
     };
-  }, [user, session, loading, signIn, signOut, changePassword, staffRecord]);
+  }, [user, session, loading, signIn, signUp, signOut, changePassword, staffRecord]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

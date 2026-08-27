@@ -30,3 +30,12 @@ export function isStaffUser(user: UserLike | null | undefined) {
 export function isRiderUser(user: UserLike | null | undefined) {
   return user?.app_metadata?.role === "rider";
 }
+
+/**
+ * A customer is any authenticated user without an operational role.
+ * Only app_metadata (server-controlled) is trusted for role checks.
+ */
+export function isCustomerUser(user: UserLike | null | undefined, adminEmail?: string) {
+  if (!user) return false;
+  return !isAdminUser(user, adminEmail) && !isStaffUser(user) && !isRiderUser(user);
+}
