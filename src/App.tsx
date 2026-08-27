@@ -22,6 +22,7 @@ import MerchantsList from './components/MerchantsList';
 import MenuItemDetailsPage from './components/MenuItemDetailsPage';
 import OrderTracking from './components/OrderTracking';
 import BottomNav from './components/BottomNav';
+import CustomerNotificationsWatcher from './components/CustomerNotificationsWatcher';
 import CartPage from './components/CartPage';
 import ProfilePage from './components/ProfilePage';
 import { AuthProvider } from './contexts/AuthContext';
@@ -146,6 +147,7 @@ function App() {
                 />
               </Routes>
               <BottomNav />
+              <CustomerNotificationsWatcher />
               </ErrorBoundary>
             </Router>
           </MenuProvider>

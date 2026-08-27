@@ -13,6 +13,7 @@ import { reverseGeocode, isWithinPhilippines } from '../lib/osm';
 import { calculateDeliveryFee, haversineKm } from '../lib/deliveryPricing';
 import { resolveDeliveryMode } from '../lib/deliveryMode';
 import { getMinOrderStatus, isMerchantOpen } from '../lib/timeUtils';
+import { requestNotificationPermission } from '../lib/notificationUtils';
 
 interface CheckoutProps {
   onBack: () => void;
@@ -416,6 +417,9 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
       }
 
       clearCart();
+
+      // So the customer can hear/see status updates (e.g. order confirmed).
+      requestNotificationPermission();
 
       navigate(`/track/${orderIds[0]}`);
     } catch (err: any) {
