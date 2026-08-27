@@ -49,14 +49,29 @@ beyond 0.25 km (avoids re-sorting the merchant list underfoot for tiny GPS jitte
 | 16 | Corrupt saved JSON is discarded; fresh geolocation runs | "discards invalid JSON…" | behavior | PASS |
 | 17 | `useUserLocation` outside the provider throws | "throws when useUserLocation is used outside the provider" | unit | PASS |
 
+## Code-review round (ecc:react-reviewer)
+
+The reviewer flagged three HIGH findings; all were resolved in a second RED→GREEN cycle:
+
+| # | What is guaranteed | Test | Result |
+|---|---|---|---|
+| 18 | A stale background fix resolving after a newer manual request is ignored (generation guard) | `LocationContext.test.tsx` "ignores a stale background fix…" | RED → PASS |
+| 19 | A low-accuracy fix (apparent move < threshold + accuracy) never relocates the user | "ignores a background fix whose accuracy is too poor to trust" + `merchantDistance.test.ts` accuracy-slack test | RED → PASS |
+| 20 | Location editor closes only when a GPS request started from inside the editor succeeds; GPS button disabled while locating | untested UI wiring (`MerchantsList.tsx`), verified by typecheck + full suite staying green | applied |
+
+Accepted as designed: the background refresh updating the merchant list mid-session is the
+confirmed feature intent; mitigations are the 0.25 km threshold plus the new accuracy slack.
+
 Evidence commands (all run 2026-08-27):
-`npx vitest run` → 17 files / 215 tests passed. `npx tsc --noEmit` → clean. `npm run build` → built.
+`npx vitest run` → 17 files / 218 tests passed. `npx tsc --noEmit` → clean. `npm run build` → built.
 
 ## Checkpoint commits (branch `feat/catalog-image-sourcing`)
 
 - `f2402ec` test: add reproducers… (RED — both test files failed to resolve imports)
 - `d70f847` feat: detect location on every app open via app-level LocationProvider (GREEN)
 - `e4d765c` refactor: drop dead useUserLocation hook from geolocation utils (still GREEN)
+- `46bf864` test: add reproducers for geolocation race and low-accuracy fixes (RED — 3 failed)
+- `f05963f` fix: address review findings in geolocation refresh flow (GREEN — 218 passed)
 
 ## Coverage and known gaps
 
