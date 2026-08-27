@@ -1,0 +1,147 @@
+[
+  {
+    "key": "five-star-chicken::logo",
+    "candidates": [
+      {
+        "url": "https://content.pancake.vn/1/s648x584/fwebp80/78/7d/1f/ea/55b3608687c8e9c1fd88c3b2a6ffc095be4784ebb143e8ac47f52f11-w:1080-h:972-l:690895-t:image/png.png",
+        "source": "Header logo asset on the official Five Star Chicken Philippines site (fivestarchicken.ph); verified as the red/yellow Five Star chicken roundel",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "five-star-chicken::cover-image",
+    "candidates": [
+      {
+        "url": "https://content.pancake.vn/1/s876x876/fwebp80/79/0d/ef/f2/be82200187b4cb59eacb3ea40a9e78811018c3893de90fea7ecb9901-w:2048-h:2048-l:2830381-t:image/png.png",
+        "source": "Official Five Star Chicken Philippines site (fivestarchicken.ph) product hero — branded Five Star chicken bucket",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "shawarma-shack::logo",
+    "candidates": [
+      {
+        "url": "https://shawarmashack.ph/images/Shawarma-Shack-Logo_Colored-Badge.png",
+        "source": "Official Shawarma Shack website (shawarmashack.ph) brand badge logo, 256x256 PNG",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "shawarma-shack::cover-image",
+    "candidates": [
+      {
+        "url": "https://shawarmashack.ph/images/Image-4.jpg",
+        "source": "Official Shawarma Shack website (shawarmashack.ph) — branded storefront photo with crew",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "ilocos-empanada::logo",
+    "candidates": []
+  },
+  {
+    "key": "ilocos-empanada::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "jollibee::logo",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Jollibee_2011_logo.svg/330px-Jollibee_2011_logo.svg.png",
+        "source": "Wikipedia File:Jollibee 2011 logo.svg — current official Jollibee bee mascot logo (rendered PNG)",
+        "confidence": "official"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Jollibee_Foods_Corporation_logo.png",
+        "source": "Wikimedia Commons — Jollibee Foods Corporation official wordmark logo",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "jollibee::cover-image",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Jollibee_restaurants_%28Rizal%2C_Nueva_Ecija%29_02.jpg",
+        "source": "Wikimedia Commons — photo of an actual Jollibee restaurant storefront (Philippines). Genuine Jollibee branding, but not this specific branch.",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "almurad-restaurant::logo",
+    "candidates": []
+  },
+  {
+    "key": "almurad-restaurant::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "siomai-house::logo",
+    "candidates": [
+      {
+        "url": "https://www.siomai.house/assets/uploads/2021/04/sioamiHouseLogo.png",
+        "source": "Official Siomai House website (siomai.house) header logo",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "siomai-house::cover-image",
+    "candidates": [
+      {
+        "url": "https://www.siomai.house/assets/uploads/revslider/slider-home1/siomai-standard.jpg",
+        "source": "Official Siomai House website (siomai.house) homepage slider banner — branded product photography with Siomai House logo",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "papag-resto-bar::logo",
+    "candidates": []
+  },
+  {
+    "key": "papag-resto-bar::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "chi-x-neh-broh-bangar::logo",
+    "candidates": []
+  },
+  {
+    "key": "chi-x-neh-broh-bangar::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "balaoan-streetfoods::logo",
+    "candidates": []
+  },
+  {
+    "key": "balaoan-streetfoods::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "mang-inasal::logo",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Mang_Inasal.svg/500px-Mang_Inasal.svg.png",
+        "source": "Wikimedia Commons File:Mang Inasal.svg — official Mang Inasal corporate logo (rendered PNG)",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "mang-inasal::cover-image",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Mang_Inasal_restaurants_30.jpg/1920px-Mang_Inasal_restaurants_30.jpg",
+        "source": "Wikimedia Commons — photo of an actual Mang Inasal restaurant storefront (Philippines). Genuine Mang Inasal branding, but not this specific branch.",
+        "confidence": "likely"
+      }
+    ]
+  }
+]

@@ -1,0 +1,116 @@
+[
+  {
+    "key": "don-benitos::logo",
+    "candidates": []
+  },
+  {
+    "key": "don-benitos::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "goldilocks::logo",
+    "candidates": [
+      {
+        "url": "https://www.goldilocks.com.ph/asset/img/site/layout/Goldilocks-logo.png",
+        "source": "Official Goldilocks Philippines website (goldilocks.com.ph) site header logo asset",
+        "confidence": "official"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Goldilocks_logo.svg/1280px-Goldilocks_logo.svg.png",
+        "source": "Wikimedia Commons File:Goldilocks_logo.svg (PNG rendition), used on the Goldilocks Bakeshop Wikipedia article",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "goldilocks::cover-image",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/7082Interior_of_SM_City_Cabanatuan_25.jpg/1280px-7082Interior_of_SM_City_Cabanatuan_25.jpg",
+        "source": "Wikimedia Commons - Goldilocks Bakeshop storefront photo used in the Goldilocks Bakeshop Wikipedia article",
+        "confidence": "official"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Goldilocks_Bakeshop_products.jpg/1280px-Goldilocks_Bakeshop_products.jpg",
+        "source": "Wikimedia Commons - Goldilocks outlet product display, used in the Goldilocks Bakeshop Wikipedia article",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "bontea::logo",
+    "candidates": []
+  },
+  {
+    "key": "bontea::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "asherep-food-hauz::logo",
+    "candidates": []
+  },
+  {
+    "key": "asherep-food-hauz::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "bean-addicted-elyu::logo",
+    "candidates": []
+  },
+  {
+    "key": "bean-addicted-elyu::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "ytk-restaurant::logo",
+    "candidates": []
+  },
+  {
+    "key": "ytk-restaurant::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "abra-miki-in-naguilian-elyu::logo",
+    "candidates": []
+  },
+  {
+    "key": "abra-miki-in-naguilian-elyu::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "pareng-jay-s-lechon::logo",
+    "candidates": []
+  },
+  {
+    "key": "pareng-jay-s-lechon::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "elyucano-pares::logo",
+    "candidates": []
+  },
+  {
+    "key": "elyucano-pares::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "minute-burger::logo",
+    "candidates": [
+      {
+        "url": "https://cdn.prod.website-files.com/67bc057214984cfce8f5cdfa/67c260d69abc2a1611cc2aa3_67b879dcb80386ccc338b7ac_webclip.png",
+        "source": "Official Minute Burger website (minuteburger.com) webclip/app icon asset on their Webflow CDN",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "minute-burger::cover-image",
+    "candidates": [
+      {
+        "url": "https://cdn.prod.website-files.com/67bc057214984cfce8f5cdfa/67bc67ade3055984c59047e1_main-hero.avif",
+        "source": "Official Minute Burger website (minuteburger.com) homepage hero image",
+        "confidence": "official"
+      }
+    ]
+  }
+]

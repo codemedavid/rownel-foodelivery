@@ -1,0 +1,122 @@
+[
+  {
+    "key": "sandace-pizza::logo",
+    "candidates": []
+  },
+  {
+    "key": "sandace-pizza::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "choylin::logo",
+    "candidates": []
+  },
+  {
+    "key": "choylin::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "andoks::logo",
+    "candidates": [
+      {
+        "url": "https://static.wixstatic.com/media/382e5f_3365466f78054d60a33703e19c6e7339~mv2.png/v1/fill/w_1000,h_1000,al_c,usm_0.66_1.00_0.01/382e5f_3365466f78054d60a33703e19c6e7339~mv2.png",
+        "source": "Philippine Franchise Association official Andok's brand page (pfa.org.ph/product-page/andok-s) - verified visually as the official Andok's rooster wordmark, 1000x1000 PNG",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "andoks::cover-image",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Andok%27s_in_Compostela_%2802-28-2021%29.jpg",
+        "source": "Wikimedia Commons - photograph of an Andok's branch storefront with official signage (verified visually)",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Andok%27s_Lechon%2C_Iriga_City.JPG",
+        "source": "Wikimedia Commons - Andok's Lechon branch storefront photo",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "chooks-to-go::logo",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/en/3/3c/Official_Chooks-to-Go_2_Liner_Logo.jpg",
+        "source": "Wikipedia (en) Chooks-to-Go article infobox - official corporate 2-liner logo, verified visually",
+        "confidence": "official"
+      }
+    ]
+  },
+  {
+    "key": "chooks-to-go::cover-image",
+    "candidates": [
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Chooks-to-Go_Outlet_Facade.jpg",
+        "source": "Wikimedia Commons - Chooks-to-Go outlet facade with official branded signage (verified visually)",
+        "confidence": "likely"
+      },
+      {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/7/79/Chooks-to-Go_outlet_in_Sampaloc%2C_Manila_%282026-01-15%29.jpg",
+        "source": "Wikimedia Commons - Chooks-to-Go outlet, Sampaloc Manila",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "chef-raysies-kitchen::logo",
+    "candidates": []
+  },
+  {
+    "key": "chef-raysies-kitchen::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "jay-ar-sisigan-pares::logo",
+    "candidates": []
+  },
+  {
+    "key": "jay-ar-sisigan-pares::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "kusina-ni-maria::logo",
+    "candidates": []
+  },
+  {
+    "key": "kusina-ni-maria::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "mrs-g::logo",
+    "candidates": [
+      {
+        "url": "https://play-lh.googleusercontent.com/Qpm71aulyFk7NAU-RP6b16F0ClxIXkFobQXpIbFm6c3ygTXhzyVBLVBUVCHVtlTmgEM3EU8m5t8sFRqiZCJI=s512",
+        "source": "Google Play Store icon for the official 'MrsG Loyalty' app published by Mrs.G (Mrs. G Cakeshop Corporation) - official brand logo, 512x512 PNG. Mrs. G Cakeshop is a North Luzon chain with confirmed La Union branches (Naguilian, Bacnotan); exact Balaoan/2517 branch not independently confirmed.",
+        "confidence": "likely"
+      }
+    ]
+  },
+  {
+    "key": "mrs-g::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "inihaw::logo",
+    "candidates": []
+  },
+  {
+    "key": "inihaw::cover-image",
+    "candidates": []
+  },
+  {
+    "key": "j-c-cagayan-batil-patong-eatery::logo",
+    "candidates": []
+  },
+  {
+    "key": "j-c-cagayan-batil-patong-eatery::cover-image",
+    "candidates": []
+  }
+]

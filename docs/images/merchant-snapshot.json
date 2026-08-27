@@ -1,0 +1,1238 @@
+{
+  "merchants": [
+    {
+      "id": "ee0d1e43-df0c-4d1d-9a46-505c01f5f3db",
+      "name": "Sandace Pizza"
+    },
+    {
+      "id": "1fc928ad-f1a6-4bb3-9718-ca4307fe9117",
+      "name": "Choylin Bangued"
+    },
+    {
+      "id": "5a89f142-eb45-43a1-8cc5-4196e761a2e0",
+      "name": "Andoks Bangued"
+    },
+    {
+      "id": "015f7d45-e175-4690-b99f-cf69ce6ae435",
+      "name": "Chooks-to-Go Bangued"
+    },
+    {
+      "id": "68808990-8dbf-4add-b1b6-bfef823eb954",
+      "name": "Chef Raysies Kitchen"
+    },
+    {
+      "id": "50ba6646-0345-4a14-bb8f-eddda895c47d",
+      "name": "Jay-Ar Sisigan & Pares"
+    },
+    {
+      "id": "82def8b2-63dd-4e2e-80ab-eb780ad3890d",
+      "name": "Kusina ni Maria"
+    },
+    {
+      "id": "1c0e0dbf-fa34-4692-9690-603b96a76108",
+      "name": "Mrs G Balaoan"
+    },
+    {
+      "id": "a916920a-812f-4c10-bf93-c278323e365f",
+      "name": "Andoks Balaoan"
+    },
+    {
+      "id": "afe8fe06-b9b1-40d1-b8d2-da5ccccbc26c",
+      "name": "Chooks-to-Go Balaoan"
+    },
+    {
+      "id": "126336d8-fc13-4c0b-acec-fdcd85c47e88",
+      "name": "Inihaw"
+    },
+    {
+      "id": "de5dc586-8894-4420-a1c1-7265dae8efb5",
+      "name": "J & C Cagayan Batil Patong Eatery"
+    },
+    {
+      "id": "edcfc212-2252-4950-88b0-7267ba4e2085",
+      "name": "Don Benitos Naguilian"
+    },
+    {
+      "id": "8555ef57-9de6-4888-a994-c0083137d4b0",
+      "name": "Goldilocks Luna"
+    },
+    {
+      "id": "38d29cc8-7081-42f2-a407-e95f661711c1",
+      "name": "Bontea Naguilian"
+    },
+    {
+      "id": "de7d3a9c-3b44-4efb-acda-ace37d889c78",
+      "name": "Asherep Food Hauz"
+    },
+    {
+      "id": "98d98df7-5063-4f19-b728-29164b9f27c4",
+      "name": "Bean Addicted Elyu"
+    },
+    {
+      "id": "0756bdf3-5e6b-42c9-8d1a-9af00794d25c",
+      "name": "YTK Restaurant"
+    },
+    {
+      "id": "408ee1b1-0b30-4110-a738-5ebdc099b986",
+      "name": "Abra Miki in Naguilian Elyu"
+    },
+    {
+      "id": "ec832d38-d8d5-40ef-960b-58e1f1398696",
+      "name": "Pareng Jay's Lechon (Luna)"
+    },
+    {
+      "id": "2e682bd6-17f6-41f5-a469-341e64ca34bb",
+      "name": "Elyucano Pares"
+    },
+    {
+      "id": "b4e5d164-27fa-437b-8727-5dfa07b01fda",
+      "name": "Minute Burger Naguilian"
+    },
+    {
+      "id": "5d2f8e2f-bc36-43f9-9e91-4c4ad58fcbc9",
+      "name": "Shawarma sa Market"
+    },
+    {
+      "id": "8f2ad6c4-bd4a-41ac-ab7a-387b016757f5",
+      "name": "Chowking Bacnotan"
+    },
+    {
+      "id": "c3dc7997-9dea-4659-a890-dbbe8af18f0f",
+      "name": "Big Brew Naguilian"
+    },
+    {
+      "id": "f1c7df6c-372d-49b9-a925-5f855bb7e8cb",
+      "name": "Chooks-to-Go Naguilian"
+    },
+    {
+      "id": "cbfef016-2d48-4382-88ac-a136dcf5515d",
+      "name": "Chowking Bauang"
+    },
+    {
+      "id": "06938ce2-c171-473a-b5d0-ce7eb99a1c81",
+      "name": "Big Brew Balaoan"
+    },
+    {
+      "id": "7234b262-6a8e-469e-8cc5-f74b9fb79baf",
+      "name": "Don Benitos Balaoan"
+    },
+    {
+      "id": "7aa9d469-c8c4-4991-90a3-4649f76310b4",
+      "name": "McDo Bacnotan"
+    },
+    {
+      "id": "b9f90fa7-f46d-4d72-932d-dda5f3f88141",
+      "name": "Row-Nel Online Store & Services"
+    },
+    {
+      "id": "eb8c0119-5a8d-4b24-ad99-ca7e96dfdf82",
+      "name": "Pareng Jay's Lechon (Sablut)"
+    },
+    {
+      "id": "06b65283-c814-412f-b0bd-90b5fcab4e92",
+      "name": "Kapyem Coffee Balaoan"
+    },
+    {
+      "id": "b0aaef7e-1cc1-4220-8178-d0f4a4b56635",
+      "name": "Jorences Pizza"
+    },
+    {
+      "id": "70037181-e6ab-4ef7-809a-117da47a3bc9",
+      "name": "B1 T1"
+    },
+    {
+      "id": "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0",
+      "name": "Sweet Tooth Bangar"
+    },
+    {
+      "id": "c5ba915d-4a49-4751-a90f-923b4b350700",
+      "name": "Cj's Foodies Corner"
+    },
+    {
+      "id": "536b1769-fab8-437c-94c1-447392c55970",
+      "name": "Five Star Chicken"
+    },
+    {
+      "id": "df8d8aae-1a2c-4e97-8d9d-9d42cba9de0e",
+      "name": "Shawarma Shack Balaoan"
+    },
+    {
+      "id": "239de732-92d3-4291-bf26-cf955f3c231a",
+      "name": "Mrs G Bangued"
+    },
+    {
+      "id": "f2b139e7-9c59-49f0-a263-4b8fb243851a",
+      "name": "Ilocos Empanada"
+    },
+    {
+      "id": "710009e1-b8f0-4f08-84ad-04dd2e6d85c4",
+      "name": "Jollibee Naguilian"
+    },
+    {
+      "id": "58edcf17-bf5b-42a3-a185-b77107a1d5a6",
+      "name": "Almurad Restaurant"
+    },
+    {
+      "id": "3d1c67c7-3bb7-4a74-afd1-cbee193efcbf",
+      "name": "Bontea Balaoan"
+    },
+    {
+      "id": "6b974a9f-c2fa-44ce-98f8-7d983a0a6b1f",
+      "name": "Siomai House"
+    },
+    {
+      "id": "c1a9a887-abf0-43f7-a002-1cbbe42ed0cd",
+      "name": "Mrs G Naguilian"
+    },
+    {
+      "id": "c18b1fb8-8d54-4f23-92b5-b27014d121df",
+      "name": "Papag Resto Bar"
+    },
+    {
+      "id": "3070eb3d-ceef-4253-8289-f6ef26757dcc",
+      "name": "Chi'x Neh Broh Bangar"
+    },
+    {
+      "id": "f0bb5f6a-33d9-4430-956c-c9f4853a81c8",
+      "name": "Balaoan StreetFoods"
+    },
+    {
+      "id": "a45832ec-510a-4dc1-bd40-8d5aae17d1a1",
+      "name": "Kapyem Coffee Luna Main"
+    },
+    {
+      "id": "19bf0410-17c4-412a-bd27-04b5f30f6e4a",
+      "name": "Mang Inasal Bauang"
+    },
+    {
+      "id": "a9c48bc7-ac03-4965-9a82-5df7e3435c72",
+      "name": "Mang Inasal Bacnotan"
+    },
+    {
+      "id": "aff2ecdc-7818-4206-85ea-c40fdbe01ef7",
+      "name": "Mang Inasal Bangued"
+    },
+    {
+      "id": "a68ebece-bfde-49ba-9c38-2d08ad5b9c9d",
+      "name": "M&M Bulaluhan"
+    },
+    {
+      "id": "9f65ebda-5efd-4f4b-b59d-40c3478d8304",
+      "name": "Jollibee Tabuk"
+    },
+    {
+      "id": "965a92e2-c0d9-432c-9473-1e03d7ac4c18",
+      "name": "Mang Inasal Tabuk"
+    },
+    {
+      "id": "e65d4247-4af4-4bea-ad31-6ef57c61bab3",
+      "name": "McDo Naguilian"
+    },
+    {
+      "id": "64a96c29-28a4-4dc7-b459-3f692626ce72",
+      "name": "McDo Tabuk"
+    },
+    {
+      "id": "c677afa2-ebf0-41b7-8efd-cb8556b778b1",
+      "name": "Red Ribbon Bauang"
+    },
+    {
+      "id": "d5a674c5-dac4-4ac7-a2a2-c2734702933a",
+      "name": "Red Ribbon Tabuk"
+    },
+    {
+      "id": "b3b785e4-60b5-488b-aa7a-47a8a0f10c60",
+      "name": "Chooks-to-Go Tabuk"
+    },
+    {
+      "id": "9e45f123-e7ac-4f4b-976a-fbbd54110007",
+      "name": "Chowking Bangued"
+    },
+    {
+      "id": "04a48a93-5d92-4363-8da8-ae54f360eb4b",
+      "name": "Chowking Tabuk"
+    },
+    {
+      "id": "4be3b239-76b5-4759-8854-99a06d7f5442",
+      "name": "Jollibee Sta. Cruz Zambales"
+    },
+    {
+      "id": "42c5df8f-809b-4db9-98f1-e47345e2d41c",
+      "name": "Andoks Tabuk"
+    },
+    {
+      "id": "cc49d928-af4d-48ad-8629-47913600e777",
+      "name": "Goldilocks Naguilian"
+    },
+    {
+      "id": "fff6ca4b-1db4-4a81-be7f-ca1bebe63dff",
+      "name": "Castillo's  Panciteria"
+    },
+    {
+      "id": "b987edba-70db-4452-b972-0d0b45bb6903",
+      "name": "Deodatos Tres Ermanos Pizza"
+    },
+    {
+      "id": "55174b87-c21d-4b29-8d32-2bc36742495b",
+      "name": "Guji Cafe Balaoan"
+    },
+    {
+      "id": "cf0622a4-8766-47b0-9929-3466004fff98",
+      "name": "Gian's Paciteria"
+    },
+    {
+      "id": "74982934-89a9-406d-a9f8-36649451a3e9",
+      "name": "Mita's Fried Chicken"
+    },
+    {
+      "id": "a154a279-44ff-4045-bc39-7f942f03d8f3",
+      "name": "Potato Corner Naguilian"
+    },
+    {
+      "id": "9d2985ca-2379-4f24-8d0f-2bf5ba72b64c",
+      "name": "Chooks-to-Go Sta. Curz Zambales"
+    },
+    {
+      "id": "8f327d17-a9b8-4a5b-8f11-053720e0cc2e",
+      "name": "Jollibee Balaoan"
+    },
+    {
+      "id": "b78f09a4-ecf3-4f11-9c09-b197df63f1f7",
+      "name": "Andoks Sta. Cruz Zambales"
+    },
+    {
+      "id": "b39afe24-c915-4c46-8bad-5924fac06ffb",
+      "name": "Papa Gee's Pizza"
+    },
+    {
+      "id": "12df59ce-b2e1-4317-82ba-1f21fe693a4b",
+      "name": "Jollibee Bangued"
+    }
+  ],
+  "items": [
+    {
+      "id": "ee0d1e43-df0c-4d1d-9a46-505c01f5f3db::logo",
+      "name": "Logo",
+      "merchantId": "ee0d1e43-df0c-4d1d-9a46-505c01f5f3db",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782955312/menu-items/menu_1782955310094.jpg"
+    },
+    {
+      "id": "ee0d1e43-df0c-4d1d-9a46-505c01f5f3db::cover",
+      "name": "Cover Image",
+      "merchantId": "ee0d1e43-df0c-4d1d-9a46-505c01f5f3db",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782955318/menu-items/menu_1782955316579.jpg"
+    },
+    {
+      "id": "1fc928ad-f1a6-4bb3-9718-ca4307fe9117::logo",
+      "name": "Logo",
+      "merchantId": "1fc928ad-f1a6-4bb3-9718-ca4307fe9117",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772299581/menu-items/menu_1772299578070.jpg"
+    },
+    {
+      "id": "1fc928ad-f1a6-4bb3-9718-ca4307fe9117::cover",
+      "name": "Cover Image",
+      "merchantId": "1fc928ad-f1a6-4bb3-9718-ca4307fe9117",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772299591/menu-items/menu_1772299588741.jpg"
+    },
+    {
+      "id": "5a89f142-eb45-43a1-8cc5-4196e761a2e0::logo",
+      "name": "Logo",
+      "merchantId": "5a89f142-eb45-43a1-8cc5-4196e761a2e0",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302154/menu-items/menu_1772302151163.jpg"
+    },
+    {
+      "id": "5a89f142-eb45-43a1-8cc5-4196e761a2e0::cover",
+      "name": "Cover Image",
+      "merchantId": "5a89f142-eb45-43a1-8cc5-4196e761a2e0",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302303/menu-items/menu_1772302300411.jpg"
+    },
+    {
+      "id": "015f7d45-e175-4690-b99f-cf69ce6ae435::logo",
+      "name": "Logo",
+      "merchantId": "015f7d45-e175-4690-b99f-cf69ce6ae435",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+    },
+    {
+      "id": "015f7d45-e175-4690-b99f-cf69ce6ae435::cover",
+      "name": "Cover Image",
+      "merchantId": "015f7d45-e175-4690-b99f-cf69ce6ae435",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+    },
+    {
+      "id": "68808990-8dbf-4add-b1b6-bfef823eb954::logo",
+      "name": "Logo",
+      "merchantId": "68808990-8dbf-4add-b1b6-bfef823eb954",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787310347/menu-items/menu_1787310345688.jpg"
+    },
+    {
+      "id": "68808990-8dbf-4add-b1b6-bfef823eb954::cover",
+      "name": "Cover Image",
+      "merchantId": "68808990-8dbf-4add-b1b6-bfef823eb954",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784027951/menu-items/menu_1784027949016.jpg"
+    },
+    {
+      "id": "50ba6646-0345-4a14-bb8f-eddda895c47d::logo",
+      "name": "Logo",
+      "merchantId": "50ba6646-0345-4a14-bb8f-eddda895c47d",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772873887/menu-items/menu_1772873884421.jpg"
+    },
+    {
+      "id": "50ba6646-0345-4a14-bb8f-eddda895c47d::cover",
+      "name": "Cover Image",
+      "merchantId": "50ba6646-0345-4a14-bb8f-eddda895c47d",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772873894/menu-items/menu_1772873891721.jpg"
+    },
+    {
+      "id": "82def8b2-63dd-4e2e-80ab-eb780ad3890d::logo",
+      "name": "Logo",
+      "merchantId": "82def8b2-63dd-4e2e-80ab-eb780ad3890d",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772733260/menu-items/menu_1772733256694.jpg"
+    },
+    {
+      "id": "82def8b2-63dd-4e2e-80ab-eb780ad3890d::cover",
+      "name": "Cover Image",
+      "merchantId": "82def8b2-63dd-4e2e-80ab-eb780ad3890d",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772733266/menu-items/menu_1772733263909.jpg"
+    },
+    {
+      "id": "1c0e0dbf-fa34-4692-9690-603b96a76108::logo",
+      "name": "Logo",
+      "merchantId": "1c0e0dbf-fa34-4692-9690-603b96a76108",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778347992/menu-items/menu_1778347990282.jpg"
+    },
+    {
+      "id": "1c0e0dbf-fa34-4692-9690-603b96a76108::cover",
+      "name": "Cover Image",
+      "merchantId": "1c0e0dbf-fa34-4692-9690-603b96a76108",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778348001/menu-items/menu_1778347999651.jpg"
+    },
+    {
+      "id": "a916920a-812f-4c10-bf93-c278323e365f::logo",
+      "name": "Logo",
+      "merchantId": "a916920a-812f-4c10-bf93-c278323e365f",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302154/menu-items/menu_1772302151163.jpg"
+    },
+    {
+      "id": "a916920a-812f-4c10-bf93-c278323e365f::cover",
+      "name": "Cover Image",
+      "merchantId": "a916920a-812f-4c10-bf93-c278323e365f",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302303/menu-items/menu_1772302300411.jpg"
+    },
+    {
+      "id": "afe8fe06-b9b1-40d1-b8d2-da5ccccbc26c::logo",
+      "name": "Logo",
+      "merchantId": "afe8fe06-b9b1-40d1-b8d2-da5ccccbc26c",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+    },
+    {
+      "id": "afe8fe06-b9b1-40d1-b8d2-da5ccccbc26c::cover",
+      "name": "Cover Image",
+      "merchantId": "afe8fe06-b9b1-40d1-b8d2-da5ccccbc26c",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+    },
+    {
+      "id": "126336d8-fc13-4c0b-acec-fdcd85c47e88::logo",
+      "name": "Logo",
+      "merchantId": "126336d8-fc13-4c0b-acec-fdcd85c47e88",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782291744/menu-items/menu_1782291742599.jpg"
+    },
+    {
+      "id": "126336d8-fc13-4c0b-acec-fdcd85c47e88::cover",
+      "name": "Cover Image",
+      "merchantId": "126336d8-fc13-4c0b-acec-fdcd85c47e88",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782291751/menu-items/menu_1782291749585.jpg"
+    },
+    {
+      "id": "de5dc586-8894-4420-a1c1-7265dae8efb5::logo",
+      "name": "Logo",
+      "merchantId": "de5dc586-8894-4420-a1c1-7265dae8efb5",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784723308/menu-items/menu_1784723306991.jpg"
+    },
+    {
+      "id": "de5dc586-8894-4420-a1c1-7265dae8efb5::cover",
+      "name": "Cover Image",
+      "merchantId": "de5dc586-8894-4420-a1c1-7265dae8efb5",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784723313/menu-items/menu_1784723312312.jpg"
+    },
+    {
+      "id": "edcfc212-2252-4950-88b0-7267ba4e2085::logo",
+      "name": "Logo",
+      "merchantId": "edcfc212-2252-4950-88b0-7267ba4e2085",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779614759/menu-items/menu_1779614757645.jpg"
+    },
+    {
+      "id": "edcfc212-2252-4950-88b0-7267ba4e2085::cover",
+      "name": "Cover Image",
+      "merchantId": "edcfc212-2252-4950-88b0-7267ba4e2085",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779614766/menu-items/menu_1779614764338.jpg"
+    },
+    {
+      "id": "8555ef57-9de6-4888-a994-c0083137d4b0::logo",
+      "name": "Logo",
+      "merchantId": "8555ef57-9de6-4888-a994-c0083137d4b0",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787136202/menu-items/menu_1787136200744.jpg"
+    },
+    {
+      "id": "8555ef57-9de6-4888-a994-c0083137d4b0::cover",
+      "name": "Cover Image",
+      "merchantId": "8555ef57-9de6-4888-a994-c0083137d4b0",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787136269/menu-items/menu_1787136268015.jpg"
+    },
+    {
+      "id": "38d29cc8-7081-42f2-a407-e95f661711c1::logo",
+      "name": "Logo",
+      "merchantId": "38d29cc8-7081-42f2-a407-e95f661711c1",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780016238/menu-items/menu_1780016235507.jpg"
+    },
+    {
+      "id": "38d29cc8-7081-42f2-a407-e95f661711c1::cover",
+      "name": "Cover Image",
+      "merchantId": "38d29cc8-7081-42f2-a407-e95f661711c1",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780016241/menu-items/menu_1780016239326.jpg"
+    },
+    {
+      "id": "de7d3a9c-3b44-4efb-acda-ace37d889c78::logo",
+      "name": "Logo",
+      "merchantId": "de7d3a9c-3b44-4efb-acda-ace37d889c78",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779232572/menu-items/menu_1779232569963.jpg"
+    },
+    {
+      "id": "de7d3a9c-3b44-4efb-acda-ace37d889c78::cover",
+      "name": "Cover Image",
+      "merchantId": "de7d3a9c-3b44-4efb-acda-ace37d889c78",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779232575/menu-items/menu_1779232574744.jpg"
+    },
+    {
+      "id": "98d98df7-5063-4f19-b728-29164b9f27c4::logo",
+      "name": "Logo",
+      "merchantId": "98d98df7-5063-4f19-b728-29164b9f27c4",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781909454/menu-items/menu_1781909452318.jpg"
+    },
+    {
+      "id": "98d98df7-5063-4f19-b728-29164b9f27c4::cover",
+      "name": "Cover Image",
+      "merchantId": "98d98df7-5063-4f19-b728-29164b9f27c4",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1781909460/menu-items/menu_1781909458730.jpg"
+    },
+    {
+      "id": "0756bdf3-5e6b-42c9-8d1a-9af00794d25c::logo",
+      "name": "Logo",
+      "merchantId": "0756bdf3-5e6b-42c9-8d1a-9af00794d25c",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780568259/menu-items/menu_1780568257806.jpg"
+    },
+    {
+      "id": "0756bdf3-5e6b-42c9-8d1a-9af00794d25c::cover",
+      "name": "Cover Image",
+      "merchantId": "0756bdf3-5e6b-42c9-8d1a-9af00794d25c",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780568267/menu-items/menu_1780568265754.jpg"
+    },
+    {
+      "id": "408ee1b1-0b30-4110-a738-5ebdc099b986::logo",
+      "name": "Logo",
+      "merchantId": "408ee1b1-0b30-4110-a738-5ebdc099b986",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783256037/menu-items/menu_1783256034781.jpg"
+    },
+    {
+      "id": "408ee1b1-0b30-4110-a738-5ebdc099b986::cover",
+      "name": "Cover Image",
+      "merchantId": "408ee1b1-0b30-4110-a738-5ebdc099b986",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783256030/menu-items/menu_1783256028469.jpg"
+    },
+    {
+      "id": "ec832d38-d8d5-40ef-960b-58e1f1398696::logo",
+      "name": "Logo",
+      "merchantId": "ec832d38-d8d5-40ef-960b-58e1f1398696",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780147340/menu-items/menu_1780147338784.jpg"
+    },
+    {
+      "id": "ec832d38-d8d5-40ef-960b-58e1f1398696::cover",
+      "name": "Cover Image",
+      "merchantId": "ec832d38-d8d5-40ef-960b-58e1f1398696",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780147346/menu-items/menu_1780147344457.jpg"
+    },
+    {
+      "id": "2e682bd6-17f6-41f5-a469-341e64ca34bb::logo",
+      "name": "Logo",
+      "merchantId": "2e682bd6-17f6-41f5-a469-341e64ca34bb",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784997593/menu-items/menu_1784997591990.jpg"
+    },
+    {
+      "id": "2e682bd6-17f6-41f5-a469-341e64ca34bb::cover",
+      "name": "Cover Image",
+      "merchantId": "2e682bd6-17f6-41f5-a469-341e64ca34bb",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1784997602/menu-items/menu_1784997600450.jpg"
+    },
+    {
+      "id": "b4e5d164-27fa-437b-8727-5dfa07b01fda::logo",
+      "name": "Logo",
+      "merchantId": "b4e5d164-27fa-437b-8727-5dfa07b01fda",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786092188/menu-items/menu_1786092187070.jpg"
+    },
+    {
+      "id": "b4e5d164-27fa-437b-8727-5dfa07b01fda::cover",
+      "name": "Cover Image",
+      "merchantId": "b4e5d164-27fa-437b-8727-5dfa07b01fda",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786092192/menu-items/menu_1786092190803.jpg"
+    },
+    {
+      "id": "5d2f8e2f-bc36-43f9-9e91-4c4ad58fcbc9::logo",
+      "name": "Logo",
+      "merchantId": "5d2f8e2f-bc36-43f9-9e91-4c4ad58fcbc9",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780231439/menu-items/menu_1780231437311.jpg"
+    },
+    {
+      "id": "5d2f8e2f-bc36-43f9-9e91-4c4ad58fcbc9::cover",
+      "name": "Cover Image",
+      "merchantId": "5d2f8e2f-bc36-43f9-9e91-4c4ad58fcbc9",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780231432/menu-items/menu_1780231430070.jpg"
+    },
+    {
+      "id": "8f2ad6c4-bd4a-41ac-ab7a-387b016757f5::logo",
+      "name": "Logo",
+      "merchantId": "8f2ad6c4-bd4a-41ac-ab7a-387b016757f5",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119126/menu-items/menu_1779119124770.jpg"
+    },
+    {
+      "id": "8f2ad6c4-bd4a-41ac-ab7a-387b016757f5::cover",
+      "name": "Cover Image",
+      "merchantId": "8f2ad6c4-bd4a-41ac-ab7a-387b016757f5",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119131/menu-items/menu_1779119129991.jpg"
+    },
+    {
+      "id": "c3dc7997-9dea-4659-a890-dbbe8af18f0f::logo",
+      "name": "Logo",
+      "merchantId": "c3dc7997-9dea-4659-a890-dbbe8af18f0f",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780048055/menu-items/menu_1780048054370.jpg"
+    },
+    {
+      "id": "c3dc7997-9dea-4659-a890-dbbe8af18f0f::cover",
+      "name": "Cover Image",
+      "merchantId": "c3dc7997-9dea-4659-a890-dbbe8af18f0f",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780048050/menu-items/menu_1780048049377.jpg"
+    },
+    {
+      "id": "f1c7df6c-372d-49b9-a925-5f855bb7e8cb::logo",
+      "name": "Logo",
+      "merchantId": "f1c7df6c-372d-49b9-a925-5f855bb7e8cb",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+    },
+    {
+      "id": "f1c7df6c-372d-49b9-a925-5f855bb7e8cb::cover",
+      "name": "Cover Image",
+      "merchantId": "f1c7df6c-372d-49b9-a925-5f855bb7e8cb",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+    },
+    {
+      "id": "cbfef016-2d48-4382-88ac-a136dcf5515d::logo",
+      "name": "Logo",
+      "merchantId": "cbfef016-2d48-4382-88ac-a136dcf5515d",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119126/menu-items/menu_1779119124770.jpg"
+    },
+    {
+      "id": "cbfef016-2d48-4382-88ac-a136dcf5515d::cover",
+      "name": "Cover Image",
+      "merchantId": "cbfef016-2d48-4382-88ac-a136dcf5515d",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119131/menu-items/menu_1779119129991.jpg"
+    },
+    {
+      "id": "06938ce2-c171-473a-b5d0-ce7eb99a1c81::logo",
+      "name": "Logo",
+      "merchantId": "06938ce2-c171-473a-b5d0-ce7eb99a1c81",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780048055/menu-items/menu_1780048054370.jpg"
+    },
+    {
+      "id": "06938ce2-c171-473a-b5d0-ce7eb99a1c81::cover",
+      "name": "Cover Image",
+      "merchantId": "06938ce2-c171-473a-b5d0-ce7eb99a1c81",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780048050/menu-items/menu_1780048049377.jpg"
+    },
+    {
+      "id": "7234b262-6a8e-469e-8cc5-f74b9fb79baf::logo",
+      "name": "Logo",
+      "merchantId": "7234b262-6a8e-469e-8cc5-f74b9fb79baf",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779614759/menu-items/menu_1779614757645.jpg"
+    },
+    {
+      "id": "7234b262-6a8e-469e-8cc5-f74b9fb79baf::cover",
+      "name": "Cover Image",
+      "merchantId": "7234b262-6a8e-469e-8cc5-f74b9fb79baf",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779614766/menu-items/menu_1779614764338.jpg"
+    },
+    {
+      "id": "7aa9d469-c8c4-4991-90a3-4649f76310b4::logo",
+      "name": "Logo",
+      "merchantId": "7aa9d469-c8c4-4991-90a3-4649f76310b4",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584528/menu-items/menu_1778584526619.jpg"
+    },
+    {
+      "id": "7aa9d469-c8c4-4991-90a3-4649f76310b4::cover",
+      "name": "Cover Image",
+      "merchantId": "7aa9d469-c8c4-4991-90a3-4649f76310b4",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584522/menu-items/menu_1778584520874.jpg"
+    },
+    {
+      "id": "b9f90fa7-f46d-4d72-932d-dda5f3f88141::logo",
+      "name": "Logo",
+      "merchantId": "b9f90fa7-f46d-4d72-932d-dda5f3f88141",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786120613/menu-items/menu_1786120612046.jpg"
+    },
+    {
+      "id": "b9f90fa7-f46d-4d72-932d-dda5f3f88141::cover",
+      "name": "Cover Image",
+      "merchantId": "b9f90fa7-f46d-4d72-932d-dda5f3f88141",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786120617/menu-items/menu_1786120616511.jpg"
+    },
+    {
+      "id": "eb8c0119-5a8d-4b24-ad99-ca7e96dfdf82::logo",
+      "name": "Logo",
+      "merchantId": "eb8c0119-5a8d-4b24-ad99-ca7e96dfdf82",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780147340/menu-items/menu_1780147338784.jpg"
+    },
+    {
+      "id": "eb8c0119-5a8d-4b24-ad99-ca7e96dfdf82::cover",
+      "name": "Cover Image",
+      "merchantId": "eb8c0119-5a8d-4b24-ad99-ca7e96dfdf82",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780147346/menu-items/menu_1780147344457.jpg"
+    },
+    {
+      "id": "06b65283-c814-412f-b0bd-90b5fcab4e92::logo",
+      "name": "Logo",
+      "merchantId": "06b65283-c814-412f-b0bd-90b5fcab4e92",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782818989/menu-items/menu_1782818985691.jpg"
+    },
+    {
+      "id": "06b65283-c814-412f-b0bd-90b5fcab4e92::cover",
+      "name": "Cover Image",
+      "merchantId": "06b65283-c814-412f-b0bd-90b5fcab4e92",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782819018/menu-items/menu_1782819015413.jpg"
+    },
+    {
+      "id": "b0aaef7e-1cc1-4220-8178-d0f4a4b56635::logo",
+      "name": "Logo",
+      "merchantId": "b0aaef7e-1cc1-4220-8178-d0f4a4b56635",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779599251/menu-items/menu_1779599248691.jpg"
+    },
+    {
+      "id": "b0aaef7e-1cc1-4220-8178-d0f4a4b56635::cover",
+      "name": "Cover Image",
+      "merchantId": "b0aaef7e-1cc1-4220-8178-d0f4a4b56635",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779599263/menu-items/menu_1779599260668.jpg"
+    },
+    {
+      "id": "70037181-e6ab-4ef7-809a-117da47a3bc9::logo",
+      "name": "Logo",
+      "merchantId": "70037181-e6ab-4ef7-809a-117da47a3bc9",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780417451/menu-items/menu_1780417449239.jpg"
+    },
+    {
+      "id": "70037181-e6ab-4ef7-809a-117da47a3bc9::cover",
+      "name": "Cover Image",
+      "merchantId": "70037181-e6ab-4ef7-809a-117da47a3bc9",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780417455/menu-items/menu_1780417454425.jpg"
+    },
+    {
+      "id": "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0::logo",
+      "name": "Logo",
+      "merchantId": "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780391387/menu-items/menu_1780391384161.jpg"
+    },
+    {
+      "id": "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0::cover",
+      "name": "Cover Image",
+      "merchantId": "6b387a1f-469e-4fb1-adf1-ba55b88fa2d0",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780391428/menu-items/menu_1780391424890.jpg"
+    },
+    {
+      "id": "c5ba915d-4a49-4751-a90f-923b4b350700::logo",
+      "name": "Logo",
+      "merchantId": "c5ba915d-4a49-4751-a90f-923b4b350700",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780490908/menu-items/menu_1780490905991.jpg"
+    },
+    {
+      "id": "c5ba915d-4a49-4751-a90f-923b4b350700::cover",
+      "name": "Cover Image",
+      "merchantId": "c5ba915d-4a49-4751-a90f-923b4b350700",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780490916/menu-items/menu_1780490914372.jpg"
+    },
+    {
+      "id": "536b1769-fab8-437c-94c1-447392c55970::logo",
+      "name": "Logo",
+      "merchantId": "536b1769-fab8-437c-94c1-447392c55970",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783682551/menu-items/menu_1783682548799.jpg"
+    },
+    {
+      "id": "536b1769-fab8-437c-94c1-447392c55970::cover",
+      "name": "Cover Image",
+      "merchantId": "536b1769-fab8-437c-94c1-447392c55970",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783682558/menu-items/menu_1783682555792.jpg"
+    },
+    {
+      "id": "df8d8aae-1a2c-4e97-8d9d-9d42cba9de0e::logo",
+      "name": "Logo",
+      "merchantId": "df8d8aae-1a2c-4e97-8d9d-9d42cba9de0e",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779205187/menu-items/menu_1779205182714.jpg"
+    },
+    {
+      "id": "df8d8aae-1a2c-4e97-8d9d-9d42cba9de0e::cover",
+      "name": "Cover Image",
+      "merchantId": "df8d8aae-1a2c-4e97-8d9d-9d42cba9de0e",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779205190/menu-items/menu_1779205187962.jpg"
+    },
+    {
+      "id": "239de732-92d3-4291-bf26-cf955f3c231a::logo",
+      "name": "Logo",
+      "merchantId": "239de732-92d3-4291-bf26-cf955f3c231a",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778347992/menu-items/menu_1778347990282.jpg"
+    },
+    {
+      "id": "239de732-92d3-4291-bf26-cf955f3c231a::cover",
+      "name": "Cover Image",
+      "merchantId": "239de732-92d3-4291-bf26-cf955f3c231a",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778348001/menu-items/menu_1778347999651.jpg"
+    },
+    {
+      "id": "f2b139e7-9c59-49f0-a263-4b8fb243851a::logo",
+      "name": "Logo",
+      "merchantId": "f2b139e7-9c59-49f0-a263-4b8fb243851a",
+      "imageUrl": null
+    },
+    {
+      "id": "f2b139e7-9c59-49f0-a263-4b8fb243851a::cover",
+      "name": "Cover Image",
+      "merchantId": "f2b139e7-9c59-49f0-a263-4b8fb243851a",
+      "imageUrl": null
+    },
+    {
+      "id": "710009e1-b8f0-4f08-84ad-04dd2e6d85c4::logo",
+      "name": "Logo",
+      "merchantId": "710009e1-b8f0-4f08-84ad-04dd2e6d85c4",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+    },
+    {
+      "id": "710009e1-b8f0-4f08-84ad-04dd2e6d85c4::cover",
+      "name": "Cover Image",
+      "merchantId": "710009e1-b8f0-4f08-84ad-04dd2e6d85c4",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+    },
+    {
+      "id": "58edcf17-bf5b-42a3-a185-b77107a1d5a6::logo",
+      "name": "Logo",
+      "merchantId": "58edcf17-bf5b-42a3-a185-b77107a1d5a6",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778861583/menu-items/menu_1778861581160.jpg"
+    },
+    {
+      "id": "58edcf17-bf5b-42a3-a185-b77107a1d5a6::cover",
+      "name": "Cover Image",
+      "merchantId": "58edcf17-bf5b-42a3-a185-b77107a1d5a6",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778861591/menu-items/menu_1778861588822.jpg"
+    },
+    {
+      "id": "3d1c67c7-3bb7-4a74-afd1-cbee193efcbf::logo",
+      "name": "Logo",
+      "merchantId": "3d1c67c7-3bb7-4a74-afd1-cbee193efcbf",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780016238/menu-items/menu_1780016235507.jpg"
+    },
+    {
+      "id": "3d1c67c7-3bb7-4a74-afd1-cbee193efcbf::cover",
+      "name": "Cover Image",
+      "merchantId": "3d1c67c7-3bb7-4a74-afd1-cbee193efcbf",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1780016241/menu-items/menu_1780016239326.jpg"
+    },
+    {
+      "id": "6b974a9f-c2fa-44ce-98f8-7d983a0a6b1f::logo",
+      "name": "Logo",
+      "merchantId": "6b974a9f-c2fa-44ce-98f8-7d983a0a6b1f",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782433237/menu-items/menu_1782433234736.jpg"
+    },
+    {
+      "id": "6b974a9f-c2fa-44ce-98f8-7d983a0a6b1f::cover",
+      "name": "Cover Image",
+      "merchantId": "6b974a9f-c2fa-44ce-98f8-7d983a0a6b1f",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782433255/menu-items/menu_1782433253663.jpg"
+    },
+    {
+      "id": "c1a9a887-abf0-43f7-a002-1cbbe42ed0cd::logo",
+      "name": "Logo",
+      "merchantId": "c1a9a887-abf0-43f7-a002-1cbbe42ed0cd",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778347992/menu-items/menu_1778347990282.jpg"
+    },
+    {
+      "id": "c1a9a887-abf0-43f7-a002-1cbbe42ed0cd::cover",
+      "name": "Cover Image",
+      "merchantId": "c1a9a887-abf0-43f7-a002-1cbbe42ed0cd",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778348001/menu-items/menu_1778347999651.jpg"
+    },
+    {
+      "id": "c18b1fb8-8d54-4f23-92b5-b27014d121df::logo",
+      "name": "Logo",
+      "merchantId": "c18b1fb8-8d54-4f23-92b5-b27014d121df",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782694894/menu-items/menu_1782694892217.jpg"
+    },
+    {
+      "id": "c18b1fb8-8d54-4f23-92b5-b27014d121df::cover",
+      "name": "Cover Image",
+      "merchantId": "c18b1fb8-8d54-4f23-92b5-b27014d121df",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782694902/menu-items/menu_1782694900359.jpg"
+    },
+    {
+      "id": "3070eb3d-ceef-4253-8289-f6ef26757dcc::logo",
+      "name": "Logo",
+      "merchantId": "3070eb3d-ceef-4253-8289-f6ef26757dcc",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783789472/menu-items/menu_1783789470328.jpg"
+    },
+    {
+      "id": "3070eb3d-ceef-4253-8289-f6ef26757dcc::cover",
+      "name": "Cover Image",
+      "merchantId": "3070eb3d-ceef-4253-8289-f6ef26757dcc",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1783789566/menu-items/menu_1783789564499.jpg"
+    },
+    {
+      "id": "f0bb5f6a-33d9-4430-956c-c9f4853a81c8::logo",
+      "name": "Logo",
+      "merchantId": "f0bb5f6a-33d9-4430-956c-c9f4853a81c8",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782292539/menu-items/menu_1782292536904.jpg"
+    },
+    {
+      "id": "f0bb5f6a-33d9-4430-956c-c9f4853a81c8::cover",
+      "name": "Cover Image",
+      "merchantId": "f0bb5f6a-33d9-4430-956c-c9f4853a81c8",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782292568/menu-items/menu_1782292566341.jpg"
+    },
+    {
+      "id": "a45832ec-510a-4dc1-bd40-8d5aae17d1a1::logo",
+      "name": "Logo",
+      "merchantId": "a45832ec-510a-4dc1-bd40-8d5aae17d1a1",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782818989/menu-items/menu_1782818985691.jpg"
+    },
+    {
+      "id": "a45832ec-510a-4dc1-bd40-8d5aae17d1a1::cover",
+      "name": "Cover Image",
+      "merchantId": "a45832ec-510a-4dc1-bd40-8d5aae17d1a1",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1782819018/menu-items/menu_1782819015413.jpg"
+    },
+    {
+      "id": "19bf0410-17c4-412a-bd27-04b5f30f6e4a::logo",
+      "name": "Logo",
+      "merchantId": "19bf0410-17c4-412a-bd27-04b5f30f6e4a",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435346/menu-items/menu_1772435343713.jpg"
+    },
+    {
+      "id": "19bf0410-17c4-412a-bd27-04b5f30f6e4a::cover",
+      "name": "Cover Image",
+      "merchantId": "19bf0410-17c4-412a-bd27-04b5f30f6e4a",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435358/menu-items/menu_1772435356574.jpg"
+    },
+    {
+      "id": "a9c48bc7-ac03-4965-9a82-5df7e3435c72::logo",
+      "name": "Logo",
+      "merchantId": "a9c48bc7-ac03-4965-9a82-5df7e3435c72",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435346/menu-items/menu_1772435343713.jpg"
+    },
+    {
+      "id": "a9c48bc7-ac03-4965-9a82-5df7e3435c72::cover",
+      "name": "Cover Image",
+      "merchantId": "a9c48bc7-ac03-4965-9a82-5df7e3435c72",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435358/menu-items/menu_1772435356574.jpg"
+    },
+    {
+      "id": "aff2ecdc-7818-4206-85ea-c40fdbe01ef7::logo",
+      "name": "Logo",
+      "merchantId": "aff2ecdc-7818-4206-85ea-c40fdbe01ef7",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435346/menu-items/menu_1772435343713.jpg"
+    },
+    {
+      "id": "aff2ecdc-7818-4206-85ea-c40fdbe01ef7::cover",
+      "name": "Cover Image",
+      "merchantId": "aff2ecdc-7818-4206-85ea-c40fdbe01ef7",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435358/menu-items/menu_1772435356574.jpg"
+    },
+    {
+      "id": "a68ebece-bfde-49ba-9c38-2d08ad5b9c9d::logo",
+      "name": "Logo",
+      "merchantId": "a68ebece-bfde-49ba-9c38-2d08ad5b9c9d",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787326049/menu-items/menu_1787326047879.jpg"
+    },
+    {
+      "id": "a68ebece-bfde-49ba-9c38-2d08ad5b9c9d::cover",
+      "name": "Cover Image",
+      "merchantId": "a68ebece-bfde-49ba-9c38-2d08ad5b9c9d",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787234746/menu-items/menu_1787234744619.jpg"
+    },
+    {
+      "id": "9f65ebda-5efd-4f4b-b59d-40c3478d8304::logo",
+      "name": "Logo",
+      "merchantId": "9f65ebda-5efd-4f4b-b59d-40c3478d8304",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+    },
+    {
+      "id": "9f65ebda-5efd-4f4b-b59d-40c3478d8304::cover",
+      "name": "Cover Image",
+      "merchantId": "9f65ebda-5efd-4f4b-b59d-40c3478d8304",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+    },
+    {
+      "id": "965a92e2-c0d9-432c-9473-1e03d7ac4c18::logo",
+      "name": "Logo",
+      "merchantId": "965a92e2-c0d9-432c-9473-1e03d7ac4c18",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435346/menu-items/menu_1772435343713.jpg"
+    },
+    {
+      "id": "965a92e2-c0d9-432c-9473-1e03d7ac4c18::cover",
+      "name": "Cover Image",
+      "merchantId": "965a92e2-c0d9-432c-9473-1e03d7ac4c18",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772435358/menu-items/menu_1772435356574.jpg"
+    },
+    {
+      "id": "e65d4247-4af4-4bea-ad31-6ef57c61bab3::logo",
+      "name": "Logo",
+      "merchantId": "e65d4247-4af4-4bea-ad31-6ef57c61bab3",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584528/menu-items/menu_1778584526619.jpg"
+    },
+    {
+      "id": "e65d4247-4af4-4bea-ad31-6ef57c61bab3::cover",
+      "name": "Cover Image",
+      "merchantId": "e65d4247-4af4-4bea-ad31-6ef57c61bab3",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584522/menu-items/menu_1778584520874.jpg"
+    },
+    {
+      "id": "64a96c29-28a4-4dc7-b459-3f692626ce72::logo",
+      "name": "Logo",
+      "merchantId": "64a96c29-28a4-4dc7-b459-3f692626ce72",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584528/menu-items/menu_1778584526619.jpg"
+    },
+    {
+      "id": "64a96c29-28a4-4dc7-b459-3f692626ce72::cover",
+      "name": "Cover Image",
+      "merchantId": "64a96c29-28a4-4dc7-b459-3f692626ce72",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1778584522/menu-items/menu_1778584520874.jpg"
+    },
+    {
+      "id": "c677afa2-ebf0-41b7-8efd-cb8556b778b1::logo",
+      "name": "Logo",
+      "merchantId": "c677afa2-ebf0-41b7-8efd-cb8556b778b1",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786282250/menu-items/menu_1786282250036.jpg"
+    },
+    {
+      "id": "c677afa2-ebf0-41b7-8efd-cb8556b778b1::cover",
+      "name": "Cover Image",
+      "merchantId": "c677afa2-ebf0-41b7-8efd-cb8556b778b1",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786282256/menu-items/menu_1786282255091.jpg"
+    },
+    {
+      "id": "d5a674c5-dac4-4ac7-a2a2-c2734702933a::logo",
+      "name": "Logo",
+      "merchantId": "d5a674c5-dac4-4ac7-a2a2-c2734702933a",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786282250/menu-items/menu_1786282250036.jpg"
+    },
+    {
+      "id": "d5a674c5-dac4-4ac7-a2a2-c2734702933a::cover",
+      "name": "Cover Image",
+      "merchantId": "d5a674c5-dac4-4ac7-a2a2-c2734702933a",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1786282256/menu-items/menu_1786282255091.jpg"
+    },
+    {
+      "id": "b3b785e4-60b5-488b-aa7a-47a8a0f10c60::logo",
+      "name": "Logo",
+      "merchantId": "b3b785e4-60b5-488b-aa7a-47a8a0f10c60",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+    },
+    {
+      "id": "b3b785e4-60b5-488b-aa7a-47a8a0f10c60::cover",
+      "name": "Cover Image",
+      "merchantId": "b3b785e4-60b5-488b-aa7a-47a8a0f10c60",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+    },
+    {
+      "id": "9e45f123-e7ac-4f4b-976a-fbbd54110007::logo",
+      "name": "Logo",
+      "merchantId": "9e45f123-e7ac-4f4b-976a-fbbd54110007",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119126/menu-items/menu_1779119124770.jpg"
+    },
+    {
+      "id": "9e45f123-e7ac-4f4b-976a-fbbd54110007::cover",
+      "name": "Cover Image",
+      "merchantId": "9e45f123-e7ac-4f4b-976a-fbbd54110007",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119131/menu-items/menu_1779119129991.jpg"
+    },
+    {
+      "id": "04a48a93-5d92-4363-8da8-ae54f360eb4b::logo",
+      "name": "Logo",
+      "merchantId": "04a48a93-5d92-4363-8da8-ae54f360eb4b",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119126/menu-items/menu_1779119124770.jpg"
+    },
+    {
+      "id": "04a48a93-5d92-4363-8da8-ae54f360eb4b::cover",
+      "name": "Cover Image",
+      "merchantId": "04a48a93-5d92-4363-8da8-ae54f360eb4b",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1779119131/menu-items/menu_1779119129991.jpg"
+    },
+    {
+      "id": "4be3b239-76b5-4759-8854-99a06d7f5442::logo",
+      "name": "Logo",
+      "merchantId": "4be3b239-76b5-4759-8854-99a06d7f5442",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+    },
+    {
+      "id": "4be3b239-76b5-4759-8854-99a06d7f5442::cover",
+      "name": "Cover Image",
+      "merchantId": "4be3b239-76b5-4759-8854-99a06d7f5442",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+    },
+    {
+      "id": "42c5df8f-809b-4db9-98f1-e47345e2d41c::logo",
+      "name": "Logo",
+      "merchantId": "42c5df8f-809b-4db9-98f1-e47345e2d41c",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302154/menu-items/menu_1772302151163.jpg"
+    },
+    {
+      "id": "42c5df8f-809b-4db9-98f1-e47345e2d41c::cover",
+      "name": "Cover Image",
+      "merchantId": "42c5df8f-809b-4db9-98f1-e47345e2d41c",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302303/menu-items/menu_1772302300411.jpg"
+    },
+    {
+      "id": "cc49d928-af4d-48ad-8629-47913600e777::logo",
+      "name": "Logo",
+      "merchantId": "cc49d928-af4d-48ad-8629-47913600e777",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787136202/menu-items/menu_1787136200744.jpg"
+    },
+    {
+      "id": "cc49d928-af4d-48ad-8629-47913600e777::cover",
+      "name": "Cover Image",
+      "merchantId": "cc49d928-af4d-48ad-8629-47913600e777",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787136269/menu-items/menu_1787136268015.jpg"
+    },
+    {
+      "id": "fff6ca4b-1db4-4a81-be7f-ca1bebe63dff::logo",
+      "name": "Logo",
+      "merchantId": "fff6ca4b-1db4-4a81-be7f-ca1bebe63dff",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787468387/menu-items/menu_1787468386392.jpg"
+    },
+    {
+      "id": "fff6ca4b-1db4-4a81-be7f-ca1bebe63dff::cover",
+      "name": "Cover Image",
+      "merchantId": "fff6ca4b-1db4-4a81-be7f-ca1bebe63dff",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787468390/menu-items/menu_1787468389299.jpg"
+    },
+    {
+      "id": "b987edba-70db-4452-b972-0d0b45bb6903::logo",
+      "name": "Logo",
+      "merchantId": "b987edba-70db-4452-b972-0d0b45bb6903",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787531136/menu-items/menu_1787531135381.jpg"
+    },
+    {
+      "id": "b987edba-70db-4452-b972-0d0b45bb6903::cover",
+      "name": "Cover Image",
+      "merchantId": "b987edba-70db-4452-b972-0d0b45bb6903",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787531140/menu-items/menu_1787531140446.jpg"
+    },
+    {
+      "id": "55174b87-c21d-4b29-8d32-2bc36742495b::logo",
+      "name": "Logo",
+      "merchantId": "55174b87-c21d-4b29-8d32-2bc36742495b",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787545515/menu-items/menu_1787545513833.jpg"
+    },
+    {
+      "id": "55174b87-c21d-4b29-8d32-2bc36742495b::cover",
+      "name": "Cover Image",
+      "merchantId": "55174b87-c21d-4b29-8d32-2bc36742495b",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787545519/menu-items/menu_1787545518539.jpg"
+    },
+    {
+      "id": "cf0622a4-8766-47b0-9929-3466004fff98::logo",
+      "name": "Logo",
+      "merchantId": "cf0622a4-8766-47b0-9929-3466004fff98",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787576039/menu-items/menu_1787576037860.jpg"
+    },
+    {
+      "id": "cf0622a4-8766-47b0-9929-3466004fff98::cover",
+      "name": "Cover Image",
+      "merchantId": "cf0622a4-8766-47b0-9929-3466004fff98",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787576045/menu-items/menu_1787576043997.jpg"
+    },
+    {
+      "id": "74982934-89a9-406d-a9f8-36649451a3e9::logo",
+      "name": "Logo",
+      "merchantId": "74982934-89a9-406d-a9f8-36649451a3e9",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787576098/menu-items/menu_1787576096959.jpg"
+    },
+    {
+      "id": "74982934-89a9-406d-a9f8-36649451a3e9::cover",
+      "name": "Cover Image",
+      "merchantId": "74982934-89a9-406d-a9f8-36649451a3e9",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787576122/menu-items/menu_1787576121463.jpg"
+    },
+    {
+      "id": "a154a279-44ff-4045-bc39-7f942f03d8f3::logo",
+      "name": "Logo",
+      "merchantId": "a154a279-44ff-4045-bc39-7f942f03d8f3",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787398280/menu-items/menu_1787398278494.jpg"
+    },
+    {
+      "id": "a154a279-44ff-4045-bc39-7f942f03d8f3::cover",
+      "name": "Cover Image",
+      "merchantId": "a154a279-44ff-4045-bc39-7f942f03d8f3",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787398287/menu-items/menu_1787398285974.jpg"
+    },
+    {
+      "id": "9d2985ca-2379-4f24-8d0f-2bf5ba72b64c::logo",
+      "name": "Logo",
+      "merchantId": "9d2985ca-2379-4f24-8d0f-2bf5ba72b64c",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305273/menu-items/menu_1772305270420.jpg"
+    },
+    {
+      "id": "9d2985ca-2379-4f24-8d0f-2bf5ba72b64c::cover",
+      "name": "Cover Image",
+      "merchantId": "9d2985ca-2379-4f24-8d0f-2bf5ba72b64c",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772305280/menu-items/menu_1772305278228.jpg"
+    },
+    {
+      "id": "8f327d17-a9b8-4a5b-8f11-053720e0cc2e::logo",
+      "name": "Logo",
+      "merchantId": "8f327d17-a9b8-4a5b-8f11-053720e0cc2e",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+    },
+    {
+      "id": "8f327d17-a9b8-4a5b-8f11-053720e0cc2e::cover",
+      "name": "Cover Image",
+      "merchantId": "8f327d17-a9b8-4a5b-8f11-053720e0cc2e",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+    },
+    {
+      "id": "b78f09a4-ecf3-4f11-9c09-b197df63f1f7::logo",
+      "name": "Logo",
+      "merchantId": "b78f09a4-ecf3-4f11-9c09-b197df63f1f7",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302154/menu-items/menu_1772302151163.jpg"
+    },
+    {
+      "id": "b78f09a4-ecf3-4f11-9c09-b197df63f1f7::cover",
+      "name": "Cover Image",
+      "merchantId": "b78f09a4-ecf3-4f11-9c09-b197df63f1f7",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772302303/menu-items/menu_1772302300411.jpg"
+    },
+    {
+      "id": "b39afe24-c915-4c46-8bad-5924fac06ffb::logo",
+      "name": "Logo",
+      "merchantId": "b39afe24-c915-4c46-8bad-5924fac06ffb",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787632804/menu-items/menu_1787632803136.jpg"
+    },
+    {
+      "id": "b39afe24-c915-4c46-8bad-5924fac06ffb::cover",
+      "name": "Cover Image",
+      "merchantId": "b39afe24-c915-4c46-8bad-5924fac06ffb",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1787632808/menu-items/menu_1787632806524.jpg"
+    },
+    {
+      "id": "12df59ce-b2e1-4317-82ba-1f21fe693a4b::logo",
+      "name": "Logo",
+      "merchantId": "12df59ce-b2e1-4317-82ba-1f21fe693a4b",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290687/menu-items/menu_1772290685553.jpg"
+    },
+    {
+      "id": "12df59ce-b2e1-4317-82ba-1f21fe693a4b::cover",
+      "name": "Cover Image",
+      "merchantId": "12df59ce-b2e1-4317-82ba-1f21fe693a4b",
+      "imageUrl": "https://res.cloudinary.com/dnxwoqezb/image/upload/v1772290761/menu-items/menu_1772290759446.jpg"
+    }
+  ]
+}
