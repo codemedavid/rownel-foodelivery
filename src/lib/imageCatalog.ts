@@ -31,6 +31,20 @@ const KNOWN_BRANDS = [
   'Mrs G',
 ] as const;
 
+/**
+ * Cloudinary cloud `dnxwoqezb` was disabled, so every asset on it now answers
+ * 401 (`x-cld-error: cloud_name dnxwoqezb is disabled`). Those URLs are still
+ * stored on the rows, but they render nothing — the pipeline has to read them
+ * as an empty slot, not as a photo worth protecting.
+ */
+const DISABLED_CLOUDINARY_CLOUDS = ['dnxwoqezb'] as const;
+
+/** Which merchant column a `<id>::<suffix>` pseudo-row writes back to. */
+const MERCHANT_COLUMN_BY_SUFFIX = {
+  logo: 'logo_url',
+  cover: 'cover_image_url',
+} as const;
+
 /** Ranked best-first: an official brand asset always outranks a scraped one. */
 const CONFIDENCE_RANK: Record<CandidateConfidence, number> = {
   official: 0,
@@ -84,6 +98,37 @@ export interface RowUpdate {
   rowId: string;
   imageUrl: string | null;
 }
+
+export type MerchantImageColumn = (typeof MERCHANT_COLUMN_BY_SUFFIX)[keyof typeof MERCHANT_COLUMN_BY_SUFFIX];
+
+export interface MerchantRowUpdate {
+  merchantId: string;
+  column: MerchantImageColumn;
+  imageUrl: string | null;
+}
+
+/**
+ * Whether a stored URL still renders. A slot pointing at a disabled cloud is
+ * indistinguishable from an empty one for every decision the pipeline makes.
+ */
+export const isLiveImageUrl = (url: string | null | undefined): boolean => {
+  if (!url || !url.trim()) return false;
+  return !DISABLED_CLOUDINARY_CLOUDS.some((cloud) => url.includes(`res.cloudinary.com/${cloud}/`));
+};
+
+/** Splits a merchant pseudo-row id into the merchant and the column it targets. */
+export const parseMerchantRowId = (
+  rowId: string,
+): { merchantId: string; column: MerchantImageColumn } | null => {
+  const separator = rowId.lastIndexOf('::');
+  if (separator < 0) return null;
+
+  const suffix = rowId.slice(separator + 2);
+  const column = MERCHANT_COLUMN_BY_SUFFIX[suffix as keyof typeof MERCHANT_COLUMN_BY_SUFFIX];
+  if (!column) return null;
+
+  return { merchantId: rowId.slice(0, separator), column };
+};
 
 const slugify = (value: string): string =>
   value
@@ -161,7 +206,7 @@ export const withUpload = (entry: ManifestEntry, imagekitUrl: string): ManifestE
  * merchant's real photo of their real dish with stock imagery is a downgrade.
  */
 export const autoApprove = (manifest: ManifestEntry[], items: CatalogItemRow[]): ManifestEntry[] => {
-  const hasImageByRowId = new Map(items.map((item) => [item.id, Boolean(item.imageUrl)]));
+  const hasImageByRowId = new Map(items.map((item) => [item.id, isLiveImageUrl(item.imageUrl)]));
 
   return manifest.map((entry) => {
     if (entry.status !== 'pending-review') return entry;
@@ -202,6 +247,18 @@ export const buildRowUpdates = (manifest: ManifestEntry[]): RowUpdate[] =>
     .filter((entry) => entry.status === 'uploaded' && entry.imagekitUrl)
     .flatMap((entry) =>
       (entry.targetRowIds ?? entry.rowIds).map((rowId) => ({ rowId, imageUrl: entry.imagekitUrl as string })),
+    );
+
+/** Expands uploaded entries into merchant column writes, dropping unroutable row ids. */
+export const buildMerchantRowUpdates = (manifest: ManifestEntry[]): MerchantRowUpdate[] =>
+  manifest
+    .filter((entry) => entry.status === 'uploaded' && entry.imagekitUrl)
+    .flatMap((entry) =>
+      (entry.targetRowIds ?? entry.rowIds).flatMap((rowId) => {
+        const target = parseMerchantRowId(rowId);
+        if (!target) return [];
+        return [{ ...target, imageUrl: entry.imagekitUrl as string }];
+      }),
     );
 
 /** Snapshots the current URL of every row an update would overwrite. */
