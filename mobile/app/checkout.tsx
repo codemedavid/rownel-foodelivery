@@ -13,11 +13,9 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../src/lib/supabase';
-import {
-  buildOrderInsert,
-  buildOrderItemRows,
-  validateCheckoutForm,
-} from '../src/lib/checkout';
+import { buildCreateOrderInput, validateCheckoutForm } from '../src/lib/checkout';
+import { appendOrderRecord } from '../src/lib/orderHistory';
+import { requestOrderNotificationPermission } from '../src/hooks/useOrderStatusNotifications';
 import { useCart } from '../src/context/CartContext';
 import { colors, formatPeso, radius, spacing } from '../src/theme';
 import { PaymentMethod, ServiceType } from '../src/types';
@@ -69,7 +67,7 @@ export default function CheckoutScreen() {
       setIsSubmitting(true);
       setSubmitError(null);
 
-      const orderRow = buildOrderInsert({
+      const input = buildCreateOrderInput({
         merchantId: merchant.id,
         items: cartItems,
         customerName,
@@ -84,20 +82,23 @@ export default function CheckoutScreen() {
         total,
       });
 
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert(orderRow)
-        .select()
-        .single();
+      // Same server path as the web app: validates pricing, decrements
+      // inventory, dispatches riders, and stamps signed-in customers.
+      const { data: orderId, error: orderError } = await supabase.rpc('create_order', {
+        p: input,
+      });
       if (orderError) throw orderError;
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(buildOrderItemRows(order.id, cartItems));
-      if (itemsError) throw itemsError;
+      await appendOrderRecord({
+        orderId: String(orderId),
+        merchantName: merchant.name,
+        total,
+        placedAt: Date.now(),
+      });
+      await requestOrderNotificationPermission();
 
       clearCart();
-      router.replace({ pathname: '/order/[id]', params: { id: order.id } });
+      router.replace({ pathname: '/order/[id]', params: { id: String(orderId) } });
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : 'Something went wrong placing your order.'

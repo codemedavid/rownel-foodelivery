@@ -12,11 +12,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useMerchants } from '../src/hooks/useMerchants';
-import { MerchantCard } from '../src/components/MerchantCard';
-import { BasketBar } from '../src/components/BasketBar';
-import { colors, radius, spacing } from '../src/theme';
-import { Merchant } from '../src/types';
+import { useMerchants } from '../../src/hooks/useMerchants';
+import { useUserLocation } from '../../src/context/LocationContext';
+import { decorateAndFilterMerchantsByDistance } from '../../src/lib/merchantDistance';
+import { MerchantCard } from '../../src/components/MerchantCard';
+import { BasketBar } from '../../src/components/BasketBar';
+import { colors, radius, spacing } from '../../src/theme';
+import { Merchant } from '../../src/types';
 
 const CATEGORY_EMOJI: Record<string, string> = {
   restaurant: '🍽️',
@@ -27,19 +29,26 @@ const CATEGORY_EMOJI: Record<string, string> = {
 
 export default function HomeScreen() {
   const { merchants, isLoading, error, refetch } = useMerchants();
+  const { userLocation, locationStatus, locationError, locationLabel, requestLocation } =
+    useUserLocation();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  const nearbyMerchants = useMemo(
+    () => decorateAndFilterMerchantsByDistance(merchants, userLocation),
+    [merchants, userLocation]
+  );
+
   const categories = useMemo(
-    () => [...new Set(merchants.map((m) => m.category))],
-    [merchants]
+    () => [...new Set(nearbyMerchants.map((m) => m.category))],
+    [nearbyMerchants]
   );
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return merchants.filter((m) => {
+    return nearbyMerchants.filter((m) => {
       if (activeCategory && m.category !== activeCategory) return false;
       if (!query) return true;
       return (
@@ -47,7 +56,7 @@ export default function HomeScreen() {
         (m.cuisineType ?? '').toLowerCase().includes(query)
       );
     });
-  }, [merchants, search, activeCategory]);
+  }, [nearbyMerchants, search, activeCategory]);
 
   const featured = useMemo(() => filtered.filter((m) => m.featured), [filtered]);
 
@@ -55,8 +64,32 @@ export default function HomeScreen() {
 
   const renderHeader = () => (
     <View>
+      <Pressable
+        style={styles.locationRow}
+        onPress={() => requestLocation()}
+        accessibilityRole="button"
+        accessibilityLabel="Refresh your delivery location"
+      >
+        <Text style={styles.locationIcon}>📍</Text>
+        <Text style={styles.locationLabel} numberOfLines={1}>
+          {locationStatus === 'locating' ? 'Detecting your location…' : locationLabel}
+        </Text>
+      </Pressable>
+
       <Text style={styles.greeting}>Kumusta! 👋</Text>
       <Text style={styles.tagline}>What are you craving today?</Text>
+
+      {locationStatus === 'error' && !userLocation && (
+        <View style={styles.locationBanner}>
+          <Text style={styles.locationBannerTitle}>
+            Turn on location to see restaurants near you
+          </Text>
+          {locationError ? <Text style={styles.locationBannerText}>{locationError}</Text> : null}
+          <Pressable style={styles.locationBannerButton} onPress={() => requestLocation()}>
+            <Text style={styles.locationBannerButtonText}>Try again</Text>
+          </Pressable>
+        </View>
+      )}
 
       <View style={styles.searchBox}>
         <Text style={styles.searchIcon}>🔍</Text>
@@ -116,7 +149,9 @@ export default function HomeScreen() {
         </>
       )}
 
-      <Text style={styles.sectionTitle}>All restaurants</Text>
+      <Text style={styles.sectionTitle}>
+        {userLocation ? 'Restaurants near you' : 'All restaurants'}
+      </Text>
     </View>
   );
 
@@ -149,7 +184,13 @@ export default function HomeScreen() {
         renderItem={({ item }) => <MerchantCard merchant={item} onPress={openMerchant} />}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No restaurants match your search.</Text>
+          <Text style={styles.emptyText}>
+            {search || activeCategory
+              ? 'No restaurants match your search.'
+              : userLocation
+                ? 'No restaurants deliver to your location yet.'
+                : 'No restaurants available right now.'}
+          </Text>
         }
         contentContainerStyle={[
           styles.listContent,
@@ -185,6 +226,30 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   retryText: { color: '#fff', fontWeight: '700' },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  locationIcon: { fontSize: 14, marginRight: spacing.xs },
+  locationLabel: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.primary },
+  locationBanner: {
+    backgroundColor: colors.accentLight,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  locationBannerTitle: { fontSize: 14, fontWeight: '700', color: colors.text },
+  locationBannerText: { fontSize: 13, color: colors.textSecondary, marginTop: spacing.xs },
+  locationBannerButton: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  locationBannerButtonText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   greeting: { fontSize: 26, fontWeight: '800', color: colors.text },
   tagline: { fontSize: 15, color: colors.textSecondary, marginTop: 2, marginBottom: spacing.lg },
   searchBox: {

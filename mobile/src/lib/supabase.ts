@@ -13,9 +13,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
-    // Guest ordering only — no auth session needed yet.
-    persistSession: false,
-    autoRefreshToken: false,
+    // Optional customer accounts: guests stay anonymous, signed-in sessions persist.
+    persistSession: true,
+    autoRefreshToken: true,
     detectSessionInUrl: false,
   },
   global: {

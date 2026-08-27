@@ -2,10 +2,10 @@ import React from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCart } from '../src/context/CartContext';
-import { QuantityStepper } from '../src/components/QuantityStepper';
-import { colors, formatPeso, radius, spacing } from '../src/theme';
-import { CartItem } from '../src/types';
+import { useCart } from '../../src/context/CartContext';
+import { QuantityStepper } from '../../src/components/QuantityStepper';
+import { colors, formatPeso, radius, spacing } from '../../src/theme';
+import { CartItem } from '../../src/types';
 
 const describeSelections = (line: CartItem): string => {
   const parts: string[] = [];
