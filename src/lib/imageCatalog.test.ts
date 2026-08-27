@@ -11,6 +11,9 @@ import {
   selectPendingReview,
   buildRowUpdates,
   buildRollback,
+  isLiveImageUrl,
+  parseMerchantRowId,
+  buildMerchantRowUpdates,
   type CatalogItemRow,
   type CatalogMerchant,
   type ImageCandidate,
@@ -221,6 +224,27 @@ describe('selectPendingUploads', () => {
   });
 });
 
+describe('isLiveImageUrl', () => {
+  const dead = 'https://res.cloudinary.com/dnxwoqezb/image/upload/v1/menu-items/x.jpg';
+
+  it('treats a url on the disabled cloudinary cloud as not live', () => {
+    expect(isLiveImageUrl(dead)).toBe(false);
+  });
+
+  it('treats an imagekit url as live', () => {
+    expect(isLiveImageUrl('https://ik.imagekit.io/hvqkkhesl/menu-items/x')).toBe(true);
+  });
+
+  it('treats a surviving cloudinary cloud as live', () => {
+    expect(isLiveImageUrl('https://res.cloudinary.com/othercloud/image/upload/v1/x.jpg')).toBe(true);
+  });
+
+  it('treats null and blank as not live', () => {
+    expect(isLiveImageUrl(null)).toBe(false);
+    expect(isLiveImageUrl('   ')).toBe(false);
+  });
+});
+
 describe('autoApprove', () => {
   const pendingWith = (confidence: ImageCandidate['confidence']): ManifestEntry =>
     withCandidates(entryFor('jollibee::1pc-chickenjoy', buildManifest(merchants, items)), [
@@ -250,6 +274,14 @@ describe('autoApprove', () => {
     expect(entry.targetRowIds).toEqual([]);
   });
 
+  it('lets a generic candidate fill a row whose only image is on the disabled cloud', () => {
+    const dead = 'https://res.cloudinary.com/dnxwoqezb/image/upload/v1/menu-items/x.jpg';
+    const stranded = items.map((item) => ({ ...item, imageUrl: dead }));
+    const [entry] = autoApprove([pendingWith('generic')], stranded);
+    expect(entry.status).toBe('approved');
+    expect(entry.targetRowIds).toEqual(['i1', 'i2']);
+  });
+
   it('leaves entries that are not pending review untouched', () => {
     const manifest = buildManifest(merchants, items);
     expect(autoApprove(manifest, items)).toEqual(manifest);
@@ -259,6 +291,65 @@ describe('autoApprove', () => {
     const input = [pendingWith('official')];
     autoApprove(input, items);
     expect(input[0].status).toBe('pending-review');
+  });
+});
+
+describe('parseMerchantRowId', () => {
+  it('routes a logo pseudo-row to the logo_url column', () => {
+    expect(parseMerchantRowId('abc-123::logo')).toEqual({ merchantId: 'abc-123', column: 'logo_url' });
+  });
+
+  it('routes a cover pseudo-row to the cover_image_url column', () => {
+    expect(parseMerchantRowId('abc-123::cover')).toEqual({
+      merchantId: 'abc-123',
+      column: 'cover_image_url',
+    });
+  });
+
+  it('returns null for a row id that carries no column suffix', () => {
+    expect(parseMerchantRowId('abc-123')).toBeNull();
+  });
+
+  it('returns null for an unrecognised suffix', () => {
+    expect(parseMerchantRowId('abc-123::banner')).toBeNull();
+  });
+});
+
+describe('buildMerchantRowUpdates', () => {
+  const uploadedEntry = (rowIds: string[]): ManifestEntry => ({
+    key: 'jollibee::logo',
+    brand: 'Jollibee',
+    productName: 'Logo',
+    rowIds,
+    candidates: [candidate('https://src.example/x.jpg', 'official')],
+    chosenUrl: 'https://src.example/x.jpg',
+    imagekitUrl: 'https://ik.imagekit.io/x/logo.png',
+    status: 'uploaded',
+  });
+
+  it('expands an uploaded entry into one column-targeted update per merchant', () => {
+    expect(buildMerchantRowUpdates([uploadedEntry(['m1::logo', 'm2::logo'])])).toEqual([
+      { merchantId: 'm1', column: 'logo_url', imageUrl: 'https://ik.imagekit.io/x/logo.png' },
+      { merchantId: 'm2', column: 'logo_url', imageUrl: 'https://ik.imagekit.io/x/logo.png' },
+    ]);
+  });
+
+  it('skips entries that are not uploaded', () => {
+    const pending = { ...uploadedEntry(['m1::logo']), status: 'pending-review' as const };
+    expect(buildMerchantRowUpdates([pending])).toEqual([]);
+  });
+
+  it('honours targetRowIds when the review narrowed the write', () => {
+    const narrowed = { ...uploadedEntry(['m1::logo', 'm2::logo']), targetRowIds: ['m2::logo'] };
+    expect(buildMerchantRowUpdates([narrowed])).toEqual([
+      { merchantId: 'm2', column: 'logo_url', imageUrl: 'https://ik.imagekit.io/x/logo.png' },
+    ]);
+  });
+
+  it('drops row ids that carry no valid column suffix', () => {
+    expect(buildMerchantRowUpdates([uploadedEntry(['m1::logo', 'm2'])])).toEqual([
+      { merchantId: 'm1', column: 'logo_url', imageUrl: 'https://ik.imagekit.io/x/logo.png' },
+    ]);
   });
 });
 
