@@ -4,6 +4,7 @@ import {
   buildOrderInsert,
   buildOrderItemRows,
   buildCreateOrderInput,
+  buildMerchantOrderInputs,
 } from './checkout';
 import { CartItem, OrderData } from '../types';
 
@@ -201,5 +202,107 @@ describe('buildCreateOrderInput', () => {
     expect(input.address).toBeNull();
     expect(input.deliveryFee).toBeNull();
     expect(Object.values(input)).not.toContain(undefined);
+  });
+});
+
+describe('buildMerchantOrderInputs', () => {
+  const otherLine: CartItem = {
+    ...line,
+    id: 'i-2',
+    lineId: 'm-2::i-2::sig',
+    menuItemId: 'i-2',
+    merchantId: 'm-2',
+    name: 'Margherita',
+    quantity: 1,
+    totalPrice: 300,
+    selectedVariations: undefined,
+    selectedAddOns: undefined,
+  };
+
+  const form = {
+    customerName: 'Juan Dela Cruz',
+    contactNumber: '09171234567',
+    serviceType: 'delivery' as const,
+    address: '123 Rizal St, Poblacion',
+    paymentMethod: 'gcash' as const,
+    deliveryMode: 'priority' as const,
+  };
+
+  const quotes = {
+    'm-1': { deliverable: true, distanceKm: 2, deliveryFee: 40, isEstimate: false },
+    'm-2': { deliverable: true, distanceKm: 6, deliveryFee: 90, isEstimate: false },
+  };
+
+  it('builds one order payload per merchant in the basket', () => {
+    const inputs = buildMerchantOrderInputs({
+      cartItems: [line, otherLine],
+      quotes,
+      primaryMerchantId: 'm-2',
+      form,
+    });
+
+    expect(inputs).toHaveLength(2);
+    expect(inputs.map((i) => i.merchantId)).toEqual(['m-1', 'm-2']);
+    expect(inputs[0].items).toHaveLength(1);
+    expect(inputs[0].items[0].itemId).toBe('i-1');
+  });
+
+  it('charges the delivery fee only on the primary (furthest) merchant order', () => {
+    const inputs = buildMerchantOrderInputs({
+      cartItems: [line, otherLine],
+      quotes,
+      primaryMerchantId: 'm-2',
+      form,
+    });
+
+    const [first, second] = inputs;
+    expect(first.deliveryFee).toBe(0);
+    expect(first.total).toBe(440);
+    expect(second.deliveryFee).toBe(90);
+    expect(second.total).toBe(390);
+  });
+
+  it('carries each merchant own distance even when it is not the primary', () => {
+    const inputs = buildMerchantOrderInputs({
+      cartItems: [line, otherLine],
+      quotes,
+      primaryMerchantId: 'm-2',
+      form,
+    });
+
+    expect(inputs[0].distanceKm).toBe(2);
+    expect(inputs[1].distanceKm).toBe(6);
+  });
+
+  it('sends no delivery fee at all for pickup orders', () => {
+    const inputs = buildMerchantOrderInputs({
+      cartItems: [line, otherLine],
+      quotes,
+      primaryMerchantId: 'm-2',
+      form: { ...form, serviceType: 'pickup', address: undefined },
+    });
+
+    expect(inputs.every((i) => i.deliveryFee === 0)).toBe(true);
+    expect(inputs.every((i) => i.address === null)).toBe(true);
+    expect(inputs[1].total).toBe(300);
+  });
+
+  it('never emits undefined values in any payload', () => {
+    const inputs = buildMerchantOrderInputs({
+      cartItems: [line, otherLine],
+      quotes,
+      primaryMerchantId: 'm-2',
+      form,
+    });
+
+    inputs.forEach((input) => {
+      expect(Object.values(input)).not.toContain(undefined);
+    });
+  });
+
+  it('returns an empty list for an empty basket', () => {
+    expect(
+      buildMerchantOrderInputs({ cartItems: [], quotes: {}, primaryMerchantId: null, form })
+    ).toEqual([]);
   });
 });
