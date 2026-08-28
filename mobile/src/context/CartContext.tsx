@@ -2,15 +2,21 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import {
   addToCart,
   getCartItemCount,
+  getCartMerchantIds,
   getCartTotal,
+  groupCartByMerchant,
   removeLine,
+  removeMerchantLines,
   updateLineQuantity,
 } from '../lib/cart';
 import { AddOn, CartItem, MenuItem, Merchant, Variation } from '../types';
 
 interface CartContextValue {
   cartItems: CartItem[];
-  merchant: Merchant | null;
+  /** Every merchant represented in the basket, keyed by id. */
+  merchantsById: Record<string, Merchant>;
+  merchantIds: string[];
+  itemsByMerchant: Record<string, CartItem[]>;
   itemCount: number;
   subtotal: number;
   addItem: (
@@ -22,6 +28,7 @@ interface CartContextValue {
   ) => void;
   updateQuantity: (lineId: string, quantity: number) => void;
   removeItem: (lineId: string) => void;
+  removeMerchant: (merchantId: string) => void;
   clearCart: () => void;
 }
 
@@ -29,20 +36,16 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [merchant, setMerchant] = useState<Merchant | null>(null);
+  const [merchantsById, setMerchantsById] = useState<Record<string, Merchant>>({});
 
   const addItem = useCallback<CartContextValue['addItem']>(
-    (nextMerchant, item, quantity, selectedVariations, addOns) => {
-      setCartItems((prev) => {
-        // One merchant per basket (Grab/FoodPanda behavior): switching
-        // merchants starts a fresh basket.
-        const sameMerchant = merchant?.id === nextMerchant.id;
-        const base = sameMerchant ? prev : [];
-        return addToCart(base, item, quantity, selectedVariations, addOns);
-      });
-      setMerchant(nextMerchant);
+    (merchant, item, quantity, selectedVariations, addOns) => {
+      // Baskets hold several restaurants at once (same as the web app) — adding
+      // from a new merchant appends rather than replacing what is already there.
+      setCartItems((prev) => addToCart(prev, item, quantity, selectedVariations, addOns));
+      setMerchantsById((prev) => ({ ...prev, [merchant.id]: merchant }));
     },
-    [merchant?.id]
+    []
   );
 
   const updateQuantity = useCallback((lineId: string, quantity: number) => {
@@ -53,23 +56,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCartItems((prev) => removeLine(prev, lineId));
   }, []);
 
+  const removeMerchant = useCallback((merchantId: string) => {
+    setCartItems((prev) => removeMerchantLines(prev, merchantId));
+  }, []);
+
   const clearCart = useCallback(() => {
     setCartItems([]);
-    setMerchant(null);
+    setMerchantsById({});
   }, []);
 
   const value = useMemo<CartContextValue>(
     () => ({
       cartItems,
-      merchant,
+      merchantsById,
+      merchantIds: getCartMerchantIds(cartItems),
+      itemsByMerchant: groupCartByMerchant(cartItems),
       itemCount: getCartItemCount(cartItems),
       subtotal: getCartTotal(cartItems),
       addItem,
       updateQuantity,
       removeItem,
+      removeMerchant,
       clearCart,
     }),
-    [cartItems, merchant, addItem, updateQuantity, removeItem, clearCart]
+    [cartItems, merchantsById, addItem, updateQuantity, removeItem, removeMerchant, clearCart]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

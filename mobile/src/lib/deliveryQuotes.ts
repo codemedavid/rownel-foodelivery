@@ -132,10 +132,3 @@ export const getDeliveryFeeTotal = (quotes: Record<string, DeliveryQuote>): numb
   const primaryId = selectPrimaryMerchantId(quotes);
   return primaryId ? quotes[primaryId].deliveryFee : 0;
 };
-
-export const getUndeliverableMerchantIds = (
-  quotes: Record<string, DeliveryQuote>
-): string[] =>
-  Object.entries(quotes)
-    .filter(([, quote]) => !quote.deliverable)
-    .map(([merchantId]) => merchantId);

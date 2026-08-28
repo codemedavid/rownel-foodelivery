@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,10 +13,17 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../src/lib/supabase';
-import { buildCreateOrderInput, validateCheckoutForm } from '../src/lib/checkout';
+import { buildMerchantOrderInputs, validateCheckoutForm } from '../src/lib/checkout';
+import { getMerchantSubtotal } from '../src/lib/cart';
+import {
+  getDeliveryFeeTotal,
+  quoteMerchants,
+  selectPrimaryMerchantId,
+} from '../src/lib/deliveryQuotes';
 import { appendOrderRecord } from '../src/lib/orderHistory';
 import { requestOrderNotificationPermission } from '../src/hooks/useOrderStatusNotifications';
 import { useCart } from '../src/context/CartContext';
+import { useUserLocation } from '../src/context/LocationContext';
 import { colors, formatPeso, radius, spacing } from '../src/theme';
 import { PaymentMethod, ServiceType } from '../src/types';
 
@@ -33,7 +40,15 @@ const PAYMENT_METHODS: Array<{ value: PaymentMethod; label: string }> = [
 ];
 
 export default function CheckoutScreen() {
-  const { cartItems, merchant, subtotal, clearCart } = useCart();
+  const {
+    cartItems,
+    merchantsById,
+    merchantIds,
+    subtotal,
+    clearCart,
+    removeMerchant,
+  } = useCart();
+  const { userLocation } = useUserLocation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -48,11 +63,18 @@ export default function CheckoutScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const deliveryFee = serviceType === 'delivery' ? merchant?.deliveryFee ?? 0 : 0;
+  const quotes = useMemo(
+    () => quoteMerchants(merchantIds, merchantsById, userLocation),
+    [merchantIds, merchantsById, userLocation]
+  );
+  const primaryMerchantId = useMemo(() => selectPrimaryMerchantId(quotes), [quotes]);
+
+  // One fee for the whole basket — the furthest restaurant's (web parity).
+  const deliveryFee = serviceType === 'delivery' ? getDeliveryFeeTotal(quotes) : 0;
   const total = subtotal + deliveryFee;
 
   const handlePlaceOrder = async () => {
-    if (!merchant || cartItems.length === 0) return;
+    if (cartItems.length === 0) return;
 
     const validation = validateCheckoutForm({
       customerName,
@@ -63,45 +85,66 @@ export default function CheckoutScreen() {
     setErrors(validation.errors);
     if (!validation.valid) return;
 
-    try {
-      setIsSubmitting(true);
-      setSubmitError(null);
-
-      const input = buildCreateOrderInput({
-        merchantId: merchant.id,
-        items: cartItems,
+    const orderInputs = buildMerchantOrderInputs({
+      cartItems,
+      quotes,
+      primaryMerchantId,
+      form: {
         customerName,
         contactNumber,
         serviceType,
         address: serviceType === 'delivery' ? address : undefined,
-        deliveryFee: serviceType === 'delivery' ? deliveryFee : undefined,
-        deliveryMode: 'priority',
+        deliveryLatitude: userLocation?.latitude,
+        deliveryLongitude: userLocation?.longitude,
         paymentMethod,
+        deliveryMode: 'priority',
         referenceNumber: referenceNumber || undefined,
         notes: notes || undefined,
-        total,
-      });
+      },
+    });
 
-      // Same server path as the web app: validates pricing, decrements
-      // inventory, dispatches riders, and stamps signed-in customers.
-      const { data: orderId, error: orderError } = await supabase.rpc('create_order', {
-        p: input,
-      });
-      if (orderError) throw orderError;
+    setIsSubmitting(true);
+    setSubmitError(null);
 
-      await appendOrderRecord({
-        orderId: String(orderId),
-        merchantName: merchant.name,
-        total,
-        placedAt: Date.now(),
-      });
+    // One order per restaurant. If a later one fails we keep only the failed
+    // restaurants in the basket so the customer never re-orders what already
+    // went through.
+    const placedOrderIds: string[] = [];
+    const placedMerchantIds: string[] = [];
+
+    try {
+      for (const input of orderInputs) {
+        // Same server path as the web app: validates pricing, decrements
+        // inventory, dispatches riders, and stamps signed-in customers.
+        const { data: orderId, error: orderError } = await supabase.rpc('create_order', {
+          p: input,
+        });
+        if (orderError) throw orderError;
+
+        placedOrderIds.push(String(orderId));
+        placedMerchantIds.push(input.merchantId);
+
+        await appendOrderRecord({
+          orderId: String(orderId),
+          merchantName: merchantsById[input.merchantId]?.name ?? 'Restaurant',
+          total: input.total,
+          placedAt: Date.now(),
+        });
+      }
+
       await requestOrderNotificationPermission();
 
       clearCart();
-      router.replace({ pathname: '/order/[id]', params: { id: String(orderId) } });
+      router.replace({ pathname: '/order/[id]', params: { id: placedOrderIds[0] } });
     } catch (err) {
+      placedMerchantIds.forEach(removeMerchant);
+
+      const message =
+        err instanceof Error ? err.message : 'Something went wrong placing your order.';
       setSubmitError(
-        err instanceof Error ? err.message : 'Something went wrong placing your order.'
+        placedOrderIds.length > 0
+          ? `${placedOrderIds.length} order(s) were placed, but the rest failed: ${message} The restaurants left in your basket were not ordered.`
+          : message
       );
     } finally {
       setIsSubmitting(false);
@@ -206,14 +249,32 @@ export default function CheckoutScreen() {
         />
 
         <View style={styles.summary}>
+          {merchantIds.map((merchantId) => (
+            <View key={merchantId} style={styles.summaryRow}>
+              <Text style={styles.summaryLabel} numberOfLines={1}>
+                {merchantsById[merchantId]?.name ?? 'Restaurant'}
+              </Text>
+              <Text style={styles.summaryValue}>
+                {formatPeso(getMerchantSubtotal(cartItems, merchantId))}
+              </Text>
+            </View>
+          ))}
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
             <Text style={styles.summaryValue}>{formatPeso(subtotal)}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Delivery fee</Text>
+            <Text style={styles.summaryLabel}>
+              Delivery fee{merchantIds.length > 1 ? ' (one fee for all)' : ''}
+            </Text>
             <Text style={styles.summaryValue}>{formatPeso(deliveryFee)}</Text>
           </View>
+          {merchantIds.length > 1 && (
+            <Text style={styles.multiMerchantNote}>
+              You are ordering from {merchantIds.length} restaurants — one order is placed per
+              restaurant and you pay a single delivery fee.
+            </Text>
+          )}
           <View style={[styles.summaryRow, styles.summaryTotalRow]}>
             <Text style={styles.summaryTotalLabel}>Total</Text>
             <Text style={styles.summaryTotalValue}>{formatPeso(total)}</Text>
@@ -309,7 +370,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
-  summaryLabel: { color: colors.textSecondary, fontSize: 14 },
+  summaryLabel: { flex: 1, color: colors.textSecondary, fontSize: 14 },
+  multiMerchantNote: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginBottom: spacing.sm,
+  },
   summaryValue: { fontWeight: '600', color: colors.text, fontSize: 14 },
   summaryTotalRow: {
     borderTopWidth: StyleSheet.hairlineWidth,

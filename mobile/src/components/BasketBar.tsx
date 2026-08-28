@@ -6,11 +6,16 @@ import { colors, formatPeso, radius, spacing } from '../theme';
 import { useCart } from '../context/CartContext';
 
 export function BasketBar() {
-  const { itemCount, subtotal } = useCart();
+  const { itemCount, subtotal, merchantIds } = useCart();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   if (itemCount === 0) return null;
+
+  const label =
+    merchantIds.length > 1
+      ? `View basket · ${merchantIds.length} restaurants`
+      : 'View basket';
 
   return (
     <View style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
@@ -23,7 +28,7 @@ export function BasketBar() {
         <View style={styles.countPill}>
           <Text style={styles.countText}>{itemCount}</Text>
         </View>
-        <Text style={styles.label}>View basket</Text>
+        <Text style={styles.label}>{label}</Text>
         <Text style={styles.total}>{formatPeso(subtotal)}</Text>
       </Pressable>
     </View>
