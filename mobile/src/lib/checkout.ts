@@ -1,4 +1,6 @@
-import { CartItem, DeliveryMode, OrderData, ServiceType } from '../types';
+import { groupCartByMerchant } from './cart';
+import { DeliveryQuote } from './deliveryQuotes';
+import { CartItem, DeliveryMode, OrderData, PaymentMethod, ServiceType } from '../types';
 
 export interface CheckoutFormInput {
   customerName: string;
@@ -199,4 +201,65 @@ export const buildCreateOrderInput = (order: OrderData): CreateOrderInput => {
       subtotal: row.subtotal,
     })),
   };
+};
+
+export interface MerchantOrderFormInput {
+  customerName: string;
+  contactNumber: string;
+  serviceType: ServiceType;
+  address?: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  paymentMethod: PaymentMethod;
+  deliveryMode?: DeliveryMode;
+  referenceNumber?: string;
+  notes?: string;
+}
+
+export interface BuildMerchantOrderInputsArgs {
+  cartItems: readonly CartItem[];
+  quotes: Record<string, DeliveryQuote>;
+  /** The merchant whose order carries the basket's single delivery fee. */
+  primaryMerchantId: string | null;
+  form: MerchantOrderFormInput;
+}
+
+/**
+ * Splits a multi-restaurant basket into one create_order payload per merchant.
+ * Mirrors the web checkout (src/components/Checkout.tsx): the customer pays a
+ * single delivery fee — the furthest merchant's — so only that merchant's order
+ * carries a fee and every other order is charged zero.
+ */
+export const buildMerchantOrderInputs = ({
+  cartItems,
+  quotes,
+  primaryMerchantId,
+  form,
+}: BuildMerchantOrderInputsArgs): CreateOrderInput[] => {
+  const isDelivery = form.serviceType === 'delivery';
+
+  return Object.entries(groupCartByMerchant(cartItems)).map(([merchantId, items]) => {
+    const quote = quotes[merchantId];
+    const subtotal = items.reduce((sum, line) => sum + line.totalPrice * line.quantity, 0);
+    const deliveryFee =
+      isDelivery && merchantId === primaryMerchantId ? quote?.deliveryFee ?? 0 : 0;
+
+    return buildCreateOrderInput({
+      merchantId,
+      items,
+      customerName: form.customerName,
+      contactNumber: form.contactNumber,
+      serviceType: form.serviceType,
+      address: isDelivery ? form.address : undefined,
+      deliveryLatitude: isDelivery ? form.deliveryLatitude : undefined,
+      deliveryLongitude: isDelivery ? form.deliveryLongitude : undefined,
+      distanceKm: isDelivery ? quote?.distanceKm ?? undefined : undefined,
+      deliveryFee: isDelivery ? deliveryFee : undefined,
+      deliveryMode: form.deliveryMode ?? 'priority',
+      paymentMethod: form.paymentMethod,
+      referenceNumber: form.referenceNumber,
+      notes: form.notes,
+      total: subtotal + deliveryFee,
+    });
+  });
 };

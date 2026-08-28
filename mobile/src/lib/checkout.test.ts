@@ -282,7 +282,8 @@ describe('buildMerchantOrderInputs', () => {
       form: { ...form, serviceType: 'pickup', address: undefined },
     });
 
-    expect(inputs.every((i) => i.deliveryFee === 0)).toBe(true);
+    // Pickup orders carry no fee at all — the column stays null, never 0.
+    expect(inputs.every((i) => i.deliveryFee === null)).toBe(true);
     expect(inputs.every((i) => i.address === null)).toBe(true);
     expect(inputs[1].total).toBe(300);
   });

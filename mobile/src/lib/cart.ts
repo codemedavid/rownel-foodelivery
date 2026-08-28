@@ -45,7 +45,9 @@ export const addToCart = (
   selectedVariations?: Record<string, Variation>,
   addOns?: AddOn[]
 ): CartItem[] => {
-  const lineId = `${item.id}::${selectionSignature(selectedVariations, addOns)}`;
+  // Merchant-prefixed so the same item id served by two restaurants can never
+  // collide into one line (baskets hold multiple merchants at once).
+  const lineId = `${item.merchantId}::${item.id}::${selectionSignature(selectedVariations, addOns)}`;
   const existing = cart.find((line) => line.lineId === lineId);
 
   if (existing) {
@@ -79,6 +81,35 @@ export const updateLineQuantity = (
 
 export const removeLine = (cart: readonly CartItem[], lineId: string): CartItem[] =>
   cart.filter((line) => line.lineId !== lineId);
+
+export const removeMerchantLines = (
+  cart: readonly CartItem[],
+  merchantId: string
+): CartItem[] => cart.filter((line) => line.merchantId !== merchantId);
+
+/** Groups lines by merchant, preserving the order merchants were first added. */
+export const groupCartByMerchant = (
+  cart: readonly CartItem[]
+): Record<string, CartItem[]> =>
+  cart.reduce<Record<string, CartItem[]>>((groups, line) => {
+    const existing = groups[line.merchantId];
+    return existing
+      ? { ...groups, [line.merchantId]: [...existing, line] }
+      : { ...groups, [line.merchantId]: [line] };
+  }, {});
+
+export const getCartMerchantIds = (cart: readonly CartItem[]): string[] =>
+  Object.keys(groupCartByMerchant(cart));
+
+export const getMerchantSubtotal = (
+  cart: readonly CartItem[],
+  merchantId: string
+): number =>
+  cart.reduce(
+    (sum, line) =>
+      line.merchantId === merchantId ? sum + line.totalPrice * line.quantity : sum,
+    0
+  );
 
 export const getCartTotal = (cart: readonly CartItem[]): number =>
   cart.reduce((sum, line) => sum + line.totalPrice * line.quantity, 0);
