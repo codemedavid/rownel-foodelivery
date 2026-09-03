@@ -1,15 +1,16 @@
 /**
  * ImageKit image storage.
  *
- * Uploads are signed by the `imagekit-auth` Supabase edge function — the
- * ImageKit private key never reaches the browser. Only the public key and the
- * URL endpoint are client-side values.
+ * Uploads are signed by the same-origin `/api/imagekit-auth` Vercel function —
+ * the ImageKit private key never reaches the browser. Only the public key and
+ * the URL endpoint are client-side values. Same-origin means no CORS
+ * preflight and no dependency on Supabase edge function infrastructure.
  */
 
 import { supabase } from './supabase';
 
 const IMAGEKIT_UPLOAD_URL = 'https://upload.imagekit.io/api/v1/files/upload';
-const AUTH_FUNCTION = 'imagekit-auth';
+const API_ENDPOINT = '/api/imagekit-auth';
 
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
@@ -137,35 +138,52 @@ export const validateImageFile = (file: File, options: ValidateImageOptions = {}
   }
 };
 
+interface ImageKitApiRequest {
+  action: 'auth' | 'delete';
+  filePath?: string;
+}
+
 /**
- * supabase-js collapses every non-2xx edge function response into the same
- * opaque message. The function's own JSON body says what actually went wrong,
- * so prefer it whenever it is available.
+ * Call the same-origin signing/delete endpoint, wrapping both network
+ * failures and non-2xx responses in one `contextLabel: reason` error so
+ * callers always get an actionable message instead of a generic one.
  */
-const describeFunctionError = async (error: unknown): Promise<string> => {
-  const { message, context } =
-    (error as { message?: unknown; context?: { json?: () => Promise<unknown> } }) ?? {};
-  const fallback = typeof message === 'string' && message ? message : String(error);
+const callImageKitApi = async (
+  body: ImageKitApiRequest,
+  contextLabel: string
+): Promise<unknown> => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (typeof context?.json !== 'function') return fallback;
-
+  let response: Response;
   try {
-    const body = (await context.json()) as { error?: unknown } | null;
-    return typeof body?.error === 'string' && body.error ? body.error : fallback;
-  } catch {
-    // Body already consumed, empty, or not JSON — the generic message is all we have.
-    return fallback;
+    response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    throw new Error(`${contextLabel}: ${err instanceof Error ? err.message : String(err)}`);
   }
+
+  const payload = (await response.json().catch(() => null)) as { error?: unknown } | null;
+  if (!response.ok) {
+    const message = typeof payload?.error === 'string' && payload.error ? payload.error : null;
+    throw new Error(`${contextLabel}: ${message ?? `request failed with status ${response.status}`}`);
+  }
+
+  return payload;
 };
 
 const requestUploadAuth = async (): Promise<ImageKitAuthParams> => {
-  const { data, error } = await supabase.functions.invoke(AUTH_FUNCTION, {
-    body: { action: 'auth' },
-  });
+  const data = (await callImageKitApi({ action: 'auth' }, 'Could not authorize the upload')) as
+    | Partial<ImageKitAuthParams>
+    | null;
 
-  if (error) {
-    throw new Error(`Could not authorize the upload: ${await describeFunctionError(error)}`);
-  }
   if (!data?.token || !data?.signature || !data?.publicKey) {
     throw new Error('Could not authorize the upload: incomplete response');
   }
@@ -226,12 +244,6 @@ export const deleteFromImageKit = async (src: string | undefined | null): Promis
   const filePath = extractImageKitFilePath(src);
   if (!filePath) return false;
 
-  const { error } = await supabase.functions.invoke(AUTH_FUNCTION, {
-    body: { action: 'delete', filePath },
-  });
-
-  if (error) {
-    throw new Error(`Could not delete the image: ${await describeFunctionError(error)}`);
-  }
+  await callImageKitApi({ action: 'delete', filePath }, 'Could not delete the image');
   return true;
 };

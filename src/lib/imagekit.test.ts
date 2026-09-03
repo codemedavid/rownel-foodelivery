@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const invokeMock = vi.fn();
+const getSessionMock = vi.fn();
 
 vi.mock('./supabase', () => ({
   supabase: {
-    functions: { invoke: (...args: unknown[]) => invokeMock(...args) },
+    auth: { getSession: (...args: unknown[]) => getSessionMock(...args) },
   },
 }));
 
@@ -21,6 +21,7 @@ const ENDPOINT = 'https://ik.imagekit.io/hvqkkhesl';
 const IK_URL = `${ENDPOINT}/menu-items/burger_abc.jpg`;
 const CLOUDINARY_URL =
   'https://res.cloudinary.com/demo/image/upload/v1/menu-items/menu_123.jpg';
+const API_PATH = '/api/imagekit-auth';
 
 const makeFile = (
   { type = 'image/jpeg', size = 1024, name = 'photo.jpg' } = {}
@@ -30,14 +31,11 @@ const makeFile = (
   return file;
 };
 
-const authResponse = {
-  data: {
-    token: 'tok-1',
-    expire: 1700000000,
-    signature: 'sig-1',
-    publicKey: 'public_test',
-  },
-  error: null,
+const authApiResponse = {
+  token: 'tok-1',
+  expire: 1700000000,
+  signature: 'sig-1',
+  publicKey: 'public_test',
 };
 
 const uploadResponse = {
@@ -50,9 +48,16 @@ const uploadResponse = {
   size: 4096,
 };
 
+const jsonResponse = (body: unknown, ok = true, status = 200) => ({
+  ok,
+  status,
+  json: async () => body,
+});
+
 beforeEach(() => {
   (import.meta.env as Record<string, unknown>).VITE_IMAGEKIT_URL_ENDPOINT = ENDPOINT;
-  invokeMock.mockReset();
+  getSessionMock.mockReset();
+  getSessionMock.mockResolvedValue({ data: { session: { access_token: 'access-tok' } } });
   vi.unstubAllGlobals();
 });
 
@@ -172,12 +177,10 @@ describe('validateImageFile', () => {
 describe('uploadToImageKit', () => {
   it('uploads a signed request to ImageKit and returns the stored file', async () => {
     // Arrange
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => uploadResponse,
-    });
+    const fetchMock = vi.fn(async (url: string) =>
+      url === API_PATH ? jsonResponse(authApiResponse) : jsonResponse(uploadResponse)
+    );
     vi.stubGlobal('fetch', fetchMock);
-    invokeMock.mockResolvedValue(authResponse);
 
     // Act
     const result = await uploadToImageKit(makeFile(), {
@@ -186,13 +189,16 @@ describe('uploadToImageKit', () => {
     });
 
     // Assert
-    expect(invokeMock).toHaveBeenCalledWith('imagekit-auth', {
-      body: { action: 'auth' },
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('https://upload.imagekit.io/api/v1/files/upload');
-    const form = init.body as FormData;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [authUrl, authInit] = fetchMock.mock.calls[0];
+    expect(authUrl).toBe(API_PATH);
+    expect(authInit.method).toBe('POST');
+    expect(authInit.headers.Authorization).toBe('Bearer access-tok');
+    expect(JSON.parse(authInit.body)).toEqual({ action: 'auth' });
+
+    const [uploadUrl, uploadInit] = fetchMock.mock.calls[1];
+    expect(uploadUrl).toBe('https://upload.imagekit.io/api/v1/files/upload');
+    const form = uploadInit.body as FormData;
     expect(form.get('publicKey')).toBe('public_test');
     expect(form.get('token')).toBe('tok-1');
     expect(form.get('signature')).toBe('sig-1');
@@ -204,15 +210,16 @@ describe('uploadToImageKit', () => {
 
   it('never sends the private key from the browser', async () => {
     // Arrange
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => uploadResponse });
+    const fetchMock = vi.fn(async (url: string) =>
+      url === API_PATH ? jsonResponse(authApiResponse) : jsonResponse(uploadResponse)
+    );
     vi.stubGlobal('fetch', fetchMock);
-    invokeMock.mockResolvedValue(authResponse);
 
     // Act
     await uploadToImageKit(makeFile(), { folder: 'menu-items' });
 
     // Assert
-    const form = fetchMock.mock.calls[0][1].body as FormData;
+    const form = fetchMock.mock.calls[1][1].body as FormData;
     expect([...form.keys()]).not.toContain('privateKey');
   });
 
@@ -226,55 +233,42 @@ describe('uploadToImageKit', () => {
     await expect(uploadToImageKit(file, { folder: 'menu-items' })).rejects.toThrow(
       /valid image file/i
     );
-    expect(invokeMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('surfaces a clear error when the signing function fails', async () => {
+  it('surfaces a clear error when the signing endpoint rejects the request', async () => {
     // Arrange
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ error: 'Unauthorized: not signed in' }, false, 401)
+    );
     vi.stubGlobal('fetch', fetchMock);
-    invokeMock.mockResolvedValue({ data: null, error: { message: 'Unauthorized' } });
 
     // Act / Assert
     await expect(uploadToImageKit(makeFile(), { folder: 'menu-items' })).rejects.toThrow(
-      /Unauthorized/
+      /Unauthorized: not signed in/
     );
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('surfaces the edge function response body instead of a generic status error', async () => {
+  it('surfaces a network error when the signing endpoint cannot be reached', async () => {
     // Arrange
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
     vi.stubGlobal('fetch', fetchMock);
-    invokeMock.mockResolvedValue({
-      data: null,
-      error: {
-        message: 'Edge Function returned a non-2xx status code',
-        context: {
-          json: async () => ({ error: 'ImageKit keys are not configured on the server' }),
-        },
-      },
-    });
 
     // Act / Assert
     await expect(uploadToImageKit(makeFile(), { folder: 'menu-items' })).rejects.toThrow(
-      /ImageKit keys are not configured on the server/
+      /Could not authorize the upload/
     );
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('surfaces the ImageKit error message when the upload is rejected', async () => {
     // Arrange
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 400,
-        json: async () => ({ message: 'Invalid signature' }),
-      })
+    const fetchMock = vi.fn(async (url: string) =>
+      url === API_PATH
+        ? jsonResponse(authApiResponse)
+        : jsonResponse({ message: 'Invalid signature' }, false, 400)
     );
-    invokeMock.mockResolvedValue(authResponse);
+    vi.stubGlobal('fetch', fetchMock);
 
     // Act / Assert
     await expect(uploadToImageKit(makeFile(), { folder: 'menu-items' })).rejects.toThrow(
@@ -312,32 +306,42 @@ describe('extractImageKitFilePath', () => {
 });
 
 describe('deleteFromImageKit', () => {
-  it('asks the edge function to delete the file behind an ImageKit URL', async () => {
+  it('asks the API route to delete the file behind an ImageKit URL', async () => {
     // Arrange
-    invokeMock.mockResolvedValue({ data: { ok: true }, error: null });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: true, deleted: true }));
+    vi.stubGlobal('fetch', fetchMock);
 
     // Act
     const deleted = await deleteFromImageKit(IK_URL);
 
     // Assert
-    expect(invokeMock).toHaveBeenCalledWith('imagekit-auth', {
-      body: { action: 'delete', filePath: '/menu-items/burger_abc.jpg' },
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(API_PATH);
+    expect(JSON.parse(init.body)).toEqual({
+      action: 'delete',
+      filePath: '/menu-items/burger_abc.jpg',
     });
     expect(deleted).toBe(true);
   });
 
   it('is a no-op for legacy Cloudinary URLs', async () => {
-    // Arrange / Act
+    // Arrange
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    // Act
     const deleted = await deleteFromImageKit(CLOUDINARY_URL);
 
     // Assert
     expect(deleted).toBe(false);
-    expect(invokeMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('throws when the edge function reports a failure', async () => {
+  it('throws when the API route reports a failure', async () => {
     // Arrange
-    invokeMock.mockResolvedValue({ data: null, error: { message: 'Forbidden' } });
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: 'Forbidden' }, false, 403));
+    vi.stubGlobal('fetch', fetchMock);
 
     // Act / Assert
     await expect(deleteFromImageKit(IK_URL)).rejects.toThrow(/Forbidden/);
