@@ -137,13 +137,34 @@ export const validateImageFile = (file: File, options: ValidateImageOptions = {}
   }
 };
 
+/**
+ * supabase-js collapses every non-2xx edge function response into the same
+ * opaque message. The function's own JSON body says what actually went wrong,
+ * so prefer it whenever it is available.
+ */
+const describeFunctionError = async (error: unknown): Promise<string> => {
+  const { message, context } =
+    (error as { message?: unknown; context?: { json?: () => Promise<unknown> } }) ?? {};
+  const fallback = typeof message === 'string' && message ? message : String(error);
+
+  if (typeof context?.json !== 'function') return fallback;
+
+  try {
+    const body = (await context.json()) as { error?: unknown } | null;
+    return typeof body?.error === 'string' && body.error ? body.error : fallback;
+  } catch {
+    // Body already consumed, empty, or not JSON — the generic message is all we have.
+    return fallback;
+  }
+};
+
 const requestUploadAuth = async (): Promise<ImageKitAuthParams> => {
   const { data, error } = await supabase.functions.invoke(AUTH_FUNCTION, {
     body: { action: 'auth' },
   });
 
   if (error) {
-    throw new Error(`Could not authorize the upload: ${error.message}`);
+    throw new Error(`Could not authorize the upload: ${await describeFunctionError(error)}`);
   }
   if (!data?.token || !data?.signature || !data?.publicKey) {
     throw new Error('Could not authorize the upload: incomplete response');
@@ -210,7 +231,7 @@ export const deleteFromImageKit = async (src: string | undefined | null): Promis
   });
 
   if (error) {
-    throw new Error(`Could not delete the image: ${error.message}`);
+    throw new Error(`Could not delete the image: ${await describeFunctionError(error)}`);
   }
   return true;
 };

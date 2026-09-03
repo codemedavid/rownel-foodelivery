@@ -243,6 +243,27 @@ describe('uploadToImageKit', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('surfaces the edge function response body instead of a generic status error', async () => {
+    // Arrange
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    invokeMock.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Edge Function returned a non-2xx status code',
+        context: {
+          json: async () => ({ error: 'ImageKit keys are not configured on the server' }),
+        },
+      },
+    });
+
+    // Act / Assert
+    await expect(uploadToImageKit(makeFile(), { folder: 'menu-items' })).rejects.toThrow(
+      /ImageKit keys are not configured on the server/
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('surfaces the ImageKit error message when the upload is rejected', async () => {
     // Arrange
     vi.stubGlobal(
