@@ -1,55 +1,30 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import OptimizedImage from './OptimizedImage';
 
-const ENDPOINT = 'https://ik.imagekit.io/hvqkkhesl';
-const IK_URL = `${ENDPOINT}/menu-items/burger.jpg`;
-const CLOUDINARY_URL =
-  'https://res.cloudinary.com/demo/image/upload/v1/menu-items/menu_123.jpg';
-
-beforeEach(() => {
-  (import.meta.env as Record<string, unknown>).VITE_IMAGEKIT_URL_ENDPOINT = ENDPOINT;
-});
+const IMAGE_URL =
+  'https://apbmremibgwoyrddjhcg.supabase.co/storage/v1/object/public/menu-images/menu-items/burger.jpg';
 
 describe('OptimizedImage', () => {
-  it('requests an ImageKit-resized image at the rendered width', () => {
+  it('renders the source unchanged with a width attribute for layout stability', () => {
     // Arrange / Act
-    render(<OptimizedImage src={IK_URL} alt="Burger" width={400} />);
+    render(<OptimizedImage src={IMAGE_URL} alt="Burger" width={400} />);
 
     // Assert
     const img = screen.getByAltText('Burger');
-    expect(img).toHaveAttribute('src', expect.stringContaining('tr=w-400'));
-  });
-
-  it('offers a 2x source for high density displays', () => {
-    // Arrange / Act
-    render(<OptimizedImage src={IK_URL} alt="Burger" width={400} />);
-
-    // Assert
-    const img = screen.getByAltText('Burger');
-    expect(img.getAttribute('srcSet')).toContain('2x');
-    expect(img.getAttribute('srcSet')).toContain('w-800');
-  });
-
-  it('renders legacy Cloudinary images unchanged and without a srcSet', () => {
-    // Arrange / Act
-    render(<OptimizedImage src={CLOUDINARY_URL} alt="Legacy" width={400} />);
-
-    // Assert
-    const img = screen.getByAltText('Legacy');
-    expect(img).toHaveAttribute('src', CLOUDINARY_URL);
-    expect(img.getAttribute('srcSet')).toBeNull();
+    expect(img).toHaveAttribute('src', IMAGE_URL);
+    expect(img).toHaveAttribute('width', '400');
   });
 
   it('lazy loads by default and eagerly loads when marked priority', () => {
     // Arrange / Act
-    const { rerender } = render(<OptimizedImage src={IK_URL} alt="Burger" width={400} />);
+    const { rerender } = render(<OptimizedImage src={IMAGE_URL} alt="Burger" width={400} />);
 
     // Assert
     expect(screen.getByAltText('Burger')).toHaveAttribute('loading', 'lazy');
 
     // Act
-    rerender(<OptimizedImage src={IK_URL} alt="Burger" width={400} isPriority />);
+    rerender(<OptimizedImage src={IMAGE_URL} alt="Burger" width={400} isPriority />);
 
     // Assert
     expect(screen.getByAltText('Burger')).toHaveAttribute('loading', 'eager');
@@ -67,7 +42,7 @@ describe('OptimizedImage', () => {
   it('swaps to the fallback when the image fails to load', () => {
     // Arrange
     render(
-      <OptimizedImage src={IK_URL} alt="Broken" width={400} fallback={<span>No image</span>} />
+      <OptimizedImage src={IMAGE_URL} alt="Broken" width={400} fallback={<span>No image</span>} />
     );
 
     // Act
@@ -80,7 +55,7 @@ describe('OptimizedImage', () => {
   it('forwards className and passes through extra img attributes', () => {
     // Arrange / Act
     render(
-      <OptimizedImage src={IK_URL} alt="Burger" width={400} className="rounded-lg" title="Tasty" />
+      <OptimizedImage src={IMAGE_URL} alt="Burger" width={400} className="rounded-lg" title="Tasty" />
     );
 
     // Assert

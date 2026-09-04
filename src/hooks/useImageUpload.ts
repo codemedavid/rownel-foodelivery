@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { uploadToImageKit, deleteFromImageKit } from '../lib/imagekit';
+import { uploadToStorage, deleteFromStorage } from '../lib/storage';
 import { compressImage } from '../lib/imageCompression';
 
 const MENU_IMAGE_FOLDER = 'menu-items';
@@ -26,7 +26,7 @@ export const useImageUpload = () => {
       );
       setUploadProgress(PROGRESS_AFTER_COMPRESSION);
 
-      const { url } = await uploadToImageKit(compressedFile, { folder: MENU_IMAGE_FOLDER });
+      const { url } = await uploadToStorage(compressedFile, { folder: MENU_IMAGE_FOLDER });
       setUploadProgress(PROGRESS_COMPLETE);
 
       return url;
@@ -42,7 +42,7 @@ export const useImageUpload = () => {
    */
   const deleteImage = async (imageUrl: string): Promise<void> => {
     try {
-      await deleteFromImageKit(imageUrl);
+      await deleteFromStorage(imageUrl);
     } catch {
       // Intentionally swallowed: storage cleanup is not worth failing the edit.
     }

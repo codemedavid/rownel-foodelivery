@@ -4,7 +4,7 @@ import { ArrowLeft, Camera, Loader2, Star, Bike } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRiderProfile, ratingAverage } from '../hooks/useRiderProfile';
 import { compressImage } from '../lib/imageCompression';
-import { uploadToImageKit } from '../lib/imagekit';
+import { uploadToStorage } from '../lib/storage';
 
 const VEHICLE_LABELS: Record<string, string> = {
   motorcycle: 'Motorcycle',
@@ -42,7 +42,7 @@ const RiderProfilePage: React.FC = () => {
     setUploadingPhoto(true);
     try {
       const compressed = await compressImage(file, 800, 0.85);
-      const { url } = await uploadToImageKit(compressed, {
+      const { url } = await uploadToStorage(compressed, {
         folder: 'rider-photos',
         fileName: `rider_${user.id}`,
       });

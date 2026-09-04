@@ -15,7 +15,7 @@ import { useRiderLocation } from '../hooks/useRiderLocation';
 import { useRiderNotifications } from '../hooks/useRiderNotifications';
 import { requestNotificationPermission, notificationPermission } from '../lib/notificationUtils';
 import { compressImage } from '../lib/imageCompression';
-import { uploadToImageKit } from '../lib/imagekit';
+import { uploadToStorage } from '../lib/storage';
 import RiderTrackingMap from './RiderTrackingMap';
 import OrderChat from './OrderChat';
 
@@ -791,7 +791,7 @@ const ProfileTab: React.FC<{
     setUploadingPhoto(true);
     try {
       const compressed = await compressImage(file, 800, 0.85);
-      const { url } = await uploadToImageKit(compressed, {
+      const { url } = await uploadToStorage(compressed, {
         folder: 'rider-photos',
         fileName: `rider_${user.id}`,
       });

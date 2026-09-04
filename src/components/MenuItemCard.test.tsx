@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import MenuItemCard from './MenuItemCard';
 import type { MenuItem } from '../types';
 
-const ENDPOINT = 'https://ik.imagekit.io/hvqkkhesl';
-const IK_URL = `${ENDPOINT}/menu-items/burger.jpg`;
+const IMAGE_URL =
+  'https://apbmremibgwoyrddjhcg.supabase.co/storage/v1/object/public/menu-images/menu-items/burger.jpg';
 const PLACEHOLDER = '☕';
 
 const makeItem = (overrides: Partial<MenuItem> = {}): MenuItem => ({
@@ -28,18 +28,14 @@ const renderCard = (item: MenuItem) =>
     />
   );
 
-beforeEach(() => {
-  (import.meta.env as Record<string, unknown>).VITE_IMAGEKIT_URL_ENDPOINT = ENDPOINT;
-});
-
 describe('MenuItemCard image', () => {
-  it('serves the card image resized for the card, not at full resolution', () => {
+  it('renders the stored image lazily', () => {
     // Arrange / Act
-    renderCard(makeItem({ image: IK_URL }));
+    renderCard(makeItem({ image: IMAGE_URL }));
 
     // Assert
     const img = screen.getByAltText('Cheeseburger');
-    expect(img.getAttribute('src')).toContain('tr=w-');
+    expect(img).toHaveAttribute('src', IMAGE_URL);
     expect(img).toHaveAttribute('loading', 'lazy');
   });
 
@@ -54,7 +50,7 @@ describe('MenuItemCard image', () => {
 
   it('falls back to the placeholder when the image fails to load', () => {
     // Arrange
-    renderCard(makeItem({ image: IK_URL }));
+    renderCard(makeItem({ image: IMAGE_URL }));
 
     // Act
     fireEvent.error(screen.getByAltText('Cheeseburger'));
