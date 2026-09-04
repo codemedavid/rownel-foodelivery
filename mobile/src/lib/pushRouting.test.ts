@@ -5,6 +5,10 @@ describe('parseNotificationRoute', () => {
     expect(parseNotificationRoute({ orderId: 'o1', target: 'admin' })).toBe('/(admin)/order/o1');
   });
 
+  it('routes rider-target notifications to the rider delivery detail', () => {
+    expect(parseNotificationRoute({ orderId: 'o1', target: 'rider' })).toBe('/(rider)/delivery/o1');
+  });
+
   it('routes customer notifications to the customer order screen', () => {
     expect(parseNotificationRoute({ orderId: 'o1', target: 'customer' })).toBe('/order/o1');
     expect(parseNotificationRoute({ orderId: 'o1' })).toBe('/order/o1');

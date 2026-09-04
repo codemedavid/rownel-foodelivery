@@ -1,4 +1,10 @@
-import { canAccessAdminTab, deriveRoleContext, landingRouteFor } from './roles';
+import {
+  canAccessAdminTab,
+  canAccessRiderTab,
+  deriveRoleContext,
+  groupForRole,
+  landingRouteFor,
+} from './roles';
 import type { StaffRecord } from './adminTypes';
 
 const staff = (overrides: Partial<StaffRecord> = {}): StaffRecord => ({
@@ -66,9 +72,37 @@ describe('landingRouteFor', () => {
     expect(landingRouteFor('staff')).toBe('/(admin)/orders');
   });
 
-  it('sends customers and riders to the customer tabs', () => {
+  it('sends riders to their own dashboard', () => {
+    expect(landingRouteFor('rider')).toBe('/(rider)');
+  });
+
+  it('sends customers to the storefront tabs', () => {
     expect(landingRouteFor('customer')).toBe('/(tabs)');
-    expect(landingRouteFor('rider')).toBe('/(tabs)');
+  });
+});
+
+describe('groupForRole', () => {
+  it('maps each role to the route group it belongs in', () => {
+    expect(groupForRole('admin')).toBe('(admin)');
+    expect(groupForRole('staff')).toBe('(admin)');
+    expect(groupForRole('rider')).toBe('(rider)');
+    expect(groupForRole('customer')).toBe('(tabs)');
+  });
+});
+
+describe('canAccessRiderTab', () => {
+  const riderCtx = deriveRoleContext({ app_metadata: { role: 'rider' } }, null);
+  const customerCtx = deriveRoleContext({ app_metadata: {} }, null);
+
+  it('lets riders into every rider tab', () => {
+    for (const tab of ['index', 'deliveries', 'earnings', 'profile'] as const) {
+      expect(canAccessRiderTab(riderCtx, tab)).toBe(true);
+    }
+  });
+
+  it('keeps non-riders out', () => {
+    expect(canAccessRiderTab(customerCtx, 'index')).toBe(false);
+    expect(canAccessRiderTab(deriveRoleContext({ app_metadata: { role: 'admin' } }, null), 'earnings')).toBe(false);
   });
 });
 
