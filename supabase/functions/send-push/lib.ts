@@ -4,6 +4,7 @@
 export interface NotificationRow {
   id: string;
   recipient_user_id: string;
+  kind: string;
   title: string;
   body: string;
   data: Record<string, unknown> | null;
@@ -18,7 +19,7 @@ export interface ExpoPushMessage {
   to: string;
   title: string;
   body: string;
-  sound: "default";
+  sound: string;
   channelId: string;
   data: Record<string, unknown>;
 }
@@ -39,6 +40,16 @@ export interface TicketClassification {
 export const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 export const EXPO_CHUNK_SIZE = 100;
 export const ANDROID_CHANNEL_ID = "orders";
+/** Android channel that carries the custom ring (created by the mobile app). */
+export const NEW_ORDERS_CHANNEL_ID = "new-orders";
+/** Bundled in the mobile app via the expo-notifications plugin (assets/sounds). */
+export const NEW_ORDER_SOUND = "new-order.wav";
+
+export const soundForKind = (kind: string): string =>
+  kind === "new_order" ? NEW_ORDER_SOUND : "default";
+
+export const channelForKind = (kind: string): string =>
+  kind === "new_order" ? NEW_ORDERS_CHANNEL_ID : ANDROID_CHANNEL_ID;
 
 export function chunk<T>(items: readonly T[], size: number): T[][] {
   if (size <= 0) throw new Error("chunk size must be positive");
@@ -78,8 +89,8 @@ export function buildMessages(
         to: token,
         title: n.title,
         body: n.body,
-        sound: "default",
-        channelId: ANDROID_CHANNEL_ID,
+        sound: soundForKind(n.kind),
+        channelId: channelForKind(n.kind),
         data: { ...(n.data ?? {}), notificationId: n.id },
       });
     }

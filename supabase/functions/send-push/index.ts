@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
 
   let query = admin
     .from("notifications")
-    .select("id, recipient_user_id, title, body, data")
+    .select("id, recipient_user_id, kind, title, body, data")
     .is("pushed_at", null)
     .is("push_error", null)
     .limit(SWEEP_LIMIT);

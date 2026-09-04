@@ -19,6 +19,7 @@ export function SegmentedControl<T extends string>({ segments, value, onChange }
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={styles.row}
     >
       {segments.map((segment) => {
@@ -43,7 +44,9 @@ export function SegmentedControl<T extends string>({ segments, value, onChange }
 }
 
 const styles = StyleSheet.create({
-  row: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  // A horizontal ScrollView inside a flex column collapses unless told not to.
+  scroll: { flexGrow: 0, flexShrink: 0 },
+  row: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs, alignItems: 'center' },
   chip: {
     borderRadius: radius.full,
     paddingHorizontal: spacing.md,

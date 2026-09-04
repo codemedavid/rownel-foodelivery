@@ -3,6 +3,7 @@ import { Vibration } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { mapNotification } from '../lib/adminMappers';
 import { presentLocalNotification } from '../lib/notifications';
+import { NEW_ORDER_NOTIFICATION_SOUND, playNewOrderSound } from '../lib/sounds';
 
 interface Options {
   /** When push is registered, the server already delivers a banner; skip the local one. */
@@ -34,13 +35,18 @@ export const useStaffOrderAlerts = (
         },
         (payload) => {
           const notification = mapNotification(payload.new as Record<string, unknown>);
+          const isNewOrder = notification.kind === 'new_order';
           Vibration.vibrate(VIBRATE_PATTERN);
+          // Ring in-app while the app is open (push only plays when backgrounded).
+          if (isNewOrder) playNewOrderSound();
           onNotification?.();
           if (!isPushAvailable) {
-            presentLocalNotification(notification.title, notification.body, {
-              ...notification.data,
-              notificationId: notification.id,
-            });
+            presentLocalNotification(
+              notification.title,
+              notification.body,
+              { ...notification.data, notificationId: notification.id },
+              isNewOrder ? NEW_ORDER_NOTIFICATION_SOUND : 'default'
+            );
           }
         }
       )

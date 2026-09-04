@@ -5,6 +5,9 @@ import Constants from 'expo-constants';
 import { isValidExpoPushToken } from './pushTokens';
 
 export const ORDERS_CHANNEL_ID = 'orders';
+/** Android plays sound per channel, so new orders get their own ringing channel. */
+export const NEW_ORDERS_CHANNEL_ID = 'new-orders';
+const NEW_ORDER_SOUND_FILE = 'new-order.wav';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -22,6 +25,12 @@ export const ensureAndroidChannel = async (): Promise<void> => {
       name: 'Order updates',
       importance: Notifications.AndroidImportance.MAX,
       sound: 'default',
+      vibrationPattern: [0, 250, 250, 250],
+    });
+    await Notifications.setNotificationChannelAsync(NEW_ORDERS_CHANNEL_ID, {
+      name: 'New orders',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: NEW_ORDER_SOUND_FILE,
       vibrationPattern: [0, 250, 250, 250],
     });
   } catch {
@@ -71,12 +80,14 @@ export const getExpoPushToken = async (): Promise<string | null> => {
 export const presentLocalNotification = async (
   title: string,
   body: string,
-  data: Record<string, unknown> = {}
+  data: Record<string, unknown> = {},
+  sound: string = 'default'
 ): Promise<void> => {
   try {
+    const channelId = sound === NEW_ORDER_SOUND_FILE ? NEW_ORDERS_CHANNEL_ID : ORDERS_CHANNEL_ID;
     await Notifications.scheduleNotificationAsync({
-      content: { title, body, data, sound: 'default' },
-      trigger: null,
+      content: { title, body, data, sound },
+      trigger: Platform.OS === 'android' ? { channelId } : null,
     });
   } catch {
     // Local notifications are a convenience; the in-app UI is the source of truth.

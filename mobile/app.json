@@ -33,7 +33,10 @@
         "expo-notifications",
         {
           "color": "#dc2626",
-          "defaultChannel": "orders"
+          "defaultChannel": "orders",
+          "sounds": [
+            "./assets/sounds/new-order.wav"
+          ]
         }
       ]
     ],
