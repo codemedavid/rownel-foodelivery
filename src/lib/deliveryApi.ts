@@ -17,6 +17,7 @@ import type {
   RiderRating,
   StaffOrderStatus,
   StaffRecord,
+  RiderSummary,
 } from './deliveryTypes';
 
 // ---------------------------------------------------------------------------
@@ -221,6 +222,21 @@ export const ordersApi = {
     throwIf(error);
     return (data as { activeDeliveries: number }) ?? { activeDeliveries: 0 };
   },
+
+  /** Staff override: assign any approved, active rider (expires pending offers). */
+  async assignRider(orderId: string, riderId: string): Promise<void> {
+    const { error } = await supabase.rpc('assign_rider_to_order', {
+      p_order_id: orderId,
+      p_rider_id: riderId,
+    });
+    throwIf(error);
+  },
+
+  /** Staff override: clear the rider; auto-dispatch re-runs when the order is ready. */
+  async unassignRider(orderId: string): Promise<void> {
+    const { error } = await supabase.rpc('unassign_rider_from_order', { p_order_id: orderId });
+    throwIf(error);
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -322,6 +338,23 @@ export const ridersApi = {
       .limit(limit);
     throwIf(error);
     return (data ?? []).map(mapOrder);
+  },
+
+  /** Staff/admin: riders eligible for manual assignment with live load. */
+  async listForAssignment(): Promise<RiderSummary[]> {
+    const { data, error } = await supabase.rpc('list_riders_for_assignment');
+    throwIf(error);
+    return ((data as Record<string, any>[]) ?? []).map((row) => ({
+      id: String(row.id),
+      name: String(row.name ?? ''),
+      phone: String(row.phone ?? ''),
+      plateNumber: String(row.plateNumber ?? ''),
+      vehicleType: String(row.vehicleType ?? 'motorcycle'),
+      presenceStatus: (row.presenceStatus as RiderSummary['presenceStatus']) ?? 'offline',
+      lastLocationUpdate: row.lastLocationUpdate ? new Date(row.lastLocationUpdate).getTime() : null,
+      activeOrderCount: Number(row.activeOrderCount ?? 0),
+      maxOrders: Number(row.maxOrders ?? 3),
+    }));
   },
 };
 

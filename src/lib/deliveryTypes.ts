@@ -196,3 +196,16 @@ export interface StaffRecord {
   isActive: boolean;
   createdAt: number;
 }
+
+/** Row from list_riders_for_assignment(): approved+active riders with live load. */
+export interface RiderSummary {
+  id: string;
+  name: string;
+  phone: string;
+  plateNumber: string;
+  vehicleType: string;
+  presenceStatus: 'offline' | 'available' | 'busy';
+  lastLocationUpdate: number | null;
+  activeOrderCount: number;
+  maxOrders: number;
+}

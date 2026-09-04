@@ -150,6 +150,15 @@ function SignedInProfile() {
         <Text style={styles.rowText}>My Orders</Text>
       </Pressable>
 
+      <Pressable
+        style={styles.row}
+        onPress={() => router.push('/notifications')}
+        accessibilityRole="button"
+      >
+        <Ionicons name="notifications-outline" size={20} color={colors.primary} />
+        <Text style={styles.rowText}>Notifications</Text>
+      </Pressable>
+
       <Pressable style={styles.row} onPress={() => signOut()} accessibilityRole="button">
         <Ionicons name="log-out-outline" size={20} color={colors.danger} />
         <Text style={[styles.rowText, { color: colors.danger }]}>Sign Out</Text>

@@ -1,11 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { isTerminalStatus } from '../../src/lib/orderStatus';
+import { useOrderRealtime } from '../../src/hooks/useOrderRealtime';
+import type { OrderUpdatePayload } from '../../src/lib/notificationMessages';
 import { colors, radius, spacing } from '../../src/theme';
 
 const POLL_INTERVAL_MS = 15_000;
+/** Once the realtime socket is live the poll is only a safety net. */
+const RELAXED_POLL_INTERVAL_MS = 60_000;
 
 const STATUS_STEPS = [
   { key: 'pending', label: 'Order placed', emoji: '🧾' },
@@ -20,6 +24,13 @@ export default function OrderStatusScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [status, setStatus] = useState<string | null>(null);
+  const [riderName, setRiderName] = useState<string | null>(null);
+
+  const onRealtimeUpdate = useCallback((payload: OrderUpdatePayload) => {
+    setStatus(payload.status);
+    setRiderName(payload.riderName);
+  }, []);
+  const { isSubscribed } = useOrderRealtime(id, onRealtimeUpdate);
 
   useEffect(() => {
     if (!id) return;
@@ -29,22 +40,24 @@ export default function OrderStatusScreen() {
       try {
         const { data, error } = await supabase.rpc('get_order_public', { p_order_id: id });
         if (cancelled || error || !data) return;
-        const row = data as { status?: string };
+        const row = data as { status?: string; rider_name?: string | null };
         if (row.status) setStatus(row.status);
+        if (row.rider_name !== undefined) setRiderName(row.rider_name ?? null);
       } catch {
         // Keep showing the last known status; the next poll retries.
       }
     };
 
     fetchStatus();
-    const intervalId = setInterval(() => {
-      fetchStatus();
-    }, POLL_INTERVAL_MS);
+    const intervalId = setInterval(
+      fetchStatus,
+      isSubscribed ? RELAXED_POLL_INTERVAL_MS : POLL_INTERVAL_MS
+    );
     return () => {
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, [id]);
+  }, [id, isSubscribed]);
 
   const isCancelled = status === 'cancelled';
   const currentIndex = STATUS_STEPS.findIndex((step) => step.key === status);
@@ -63,6 +76,13 @@ export default function OrderStatusScreen() {
         <Text style={styles.orderIdLabel}>Order reference</Text>
         <Text style={styles.orderIdValue}>{id?.slice(0, 8).toUpperCase()}</Text>
       </View>
+
+      {!!riderName && !isCancelled && (
+        <View style={styles.riderCard}>
+          <Text style={styles.riderLabel}>Your rider</Text>
+          <Text style={styles.riderValue}>🛵 {riderName}</Text>
+        </View>
+      )}
 
       {!isCancelled && (
         <View style={styles.timeline}>
@@ -114,6 +134,16 @@ const styles = StyleSheet.create({
   },
   orderIdLabel: { fontSize: 12, color: colors.textMuted },
   orderIdValue: { fontSize: 22, fontWeight: '800', color: colors.primary, marginTop: 2 },
+  riderCard: {
+    alignSelf: 'stretch',
+    backgroundColor: colors.accentLight,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+    alignItems: 'center',
+  },
+  riderLabel: { fontSize: 12, color: colors.textSecondary },
+  riderValue: { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 2 },
   timeline: {
     alignSelf: 'stretch',
     backgroundColor: colors.surface,

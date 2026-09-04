@@ -5,6 +5,7 @@ import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
 import { useMerchants } from '../hooks/useMerchants';
 import { supabase } from '../lib/supabase';
 import type { Order } from '../lib/deliveryTypes';
+import AssignRiderSelect from './AssignRiderSelect';
 
 interface OrdersManagerProps {
   onBack: () => void;
@@ -37,6 +38,11 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
 
   const [error] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  useEffect(() => {
+    if (!selectedOrder) return;
+    const fresh = orders.find((o) => o.id === selectedOrder.id);
+    if (fresh && fresh !== selectedOrder) setSelectedOrder(fresh);
+  }, [orders, selectedOrder]);
   const [updating, setUpdating] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled'>('all');
@@ -722,6 +728,8 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                   </div>
                 </div>
               )}
+
+              <AssignRiderSelect order={selectedOrder} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>

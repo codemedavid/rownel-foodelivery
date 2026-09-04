@@ -28,8 +28,20 @@
         {
           "locationWhenInUsePermission": "Rownel uses your location to show restaurants that deliver near you."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#dc2626",
+          "defaultChannel": "orders"
+        }
       ]
     ],
-    "scheme": "rownelfood"
+    "scheme": "rownelfood",
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
   }
 }
