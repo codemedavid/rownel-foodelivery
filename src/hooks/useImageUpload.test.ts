@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
-const uploadToStorageMock = vi.fn();
-const deleteFromStorageMock = vi.fn();
+const uploadToImageKitMock = vi.fn();
+const deleteFromImageKitMock = vi.fn();
 const compressImageMock = vi.fn();
 
-vi.mock('../lib/storage', () => ({
-  uploadToStorage: (...args: unknown[]) => uploadToStorageMock(...args),
-  deleteFromStorage: (...args: unknown[]) => deleteFromStorageMock(...args),
+vi.mock('../lib/imagekit', () => ({
+  uploadToImageKit: (...args: unknown[]) => uploadToImageKitMock(...args),
+  deleteFromImageKit: (...args: unknown[]) => deleteFromImageKitMock(...args),
 }));
 
 vi.mock('../lib/imageCompression', () => ({
@@ -16,14 +16,14 @@ vi.mock('../lib/imageCompression', () => ({
 
 import { useImageUpload } from './useImageUpload';
 
-const STORAGE_URL = 'https://apbmremibgwoyrddjhcg.supabase.co/storage/v1/object/public/menu-images/menu-items/burger_xyz.jpg';
+const IK_URL = 'https://ik.imagekit.io/hvqkkhesl/menu-items/burger_xyz.jpg';
 
 const makeFile = ({ type = 'image/jpeg', name = 'photo.jpg' } = {}): File =>
   new File(['x'], name, { type });
 
 beforeEach(() => {
-  uploadToStorageMock.mockReset();
-  deleteFromStorageMock.mockReset();
+  uploadToImageKitMock.mockReset();
+  deleteFromImageKitMock.mockReset();
   compressImageMock.mockReset();
   compressImageMock.mockImplementation(async (file: File) => file);
 });
@@ -33,7 +33,7 @@ describe('useImageUpload', () => {
     // Arrange
     const compressed = makeFile({ name: 'compressed.jpg' });
     compressImageMock.mockResolvedValue(compressed);
-    uploadToStorageMock.mockResolvedValue({ url: STORAGE_URL, fileId: 'file-1' });
+    uploadToImageKitMock.mockResolvedValue({ url: IK_URL, fileId: 'file-1' });
     const { result } = renderHook(() => useImageUpload());
 
     // Act
@@ -44,16 +44,16 @@ describe('useImageUpload', () => {
 
     // Assert
     expect(compressImageMock).toHaveBeenCalledWith(expect.any(File), 1200, 0.8);
-    expect(uploadToStorageMock).toHaveBeenCalledWith(compressed, {
+    expect(uploadToImageKitMock).toHaveBeenCalledWith(compressed, {
       folder: 'menu-items',
     });
-    expect(url).toBe(STORAGE_URL);
+    expect(url).toBe(IK_URL);
   });
 
   it('reports uploading state while the upload is in flight', async () => {
     // Arrange
     let resolveUpload: (value: { url: string }) => void = () => {};
-    uploadToStorageMock.mockReturnValue(
+    uploadToImageKitMock.mockReturnValue(
       new Promise((resolve) => {
         resolveUpload = resolve;
       })
@@ -70,7 +70,7 @@ describe('useImageUpload', () => {
     expect(result.current.uploading).toBe(true);
 
     await act(async () => {
-      resolveUpload({ url: STORAGE_URL });
+      resolveUpload({ url: IK_URL });
       await pending;
     });
     await waitFor(() => expect(result.current.uploading).toBe(false));
@@ -78,7 +78,7 @@ describe('useImageUpload', () => {
 
   it('propagates the upload error and clears the uploading state', async () => {
     // Arrange
-    uploadToStorageMock.mockRejectedValue(new Error('Invalid signature'));
+    uploadToImageKitMock.mockRejectedValue(new Error('Invalid signature'));
     const { result } = renderHook(() => useImageUpload());
 
     // Act / Assert
@@ -92,26 +92,26 @@ describe('useImageUpload', () => {
 
   it('deletes a stored image through ImageKit', async () => {
     // Arrange
-    deleteFromStorageMock.mockResolvedValue(true);
+    deleteFromImageKitMock.mockResolvedValue(true);
     const { result } = renderHook(() => useImageUpload());
 
     // Act
     await act(async () => {
-      await result.current.deleteImage(STORAGE_URL);
+      await result.current.deleteImage(IK_URL);
     });
 
     // Assert
-    expect(deleteFromStorageMock).toHaveBeenCalledWith(STORAGE_URL);
+    expect(deleteFromImageKitMock).toHaveBeenCalledWith(IK_URL);
   });
 
   it('does not reject when deleting an image that cannot be removed', async () => {
     // Arrange
-    deleteFromStorageMock.mockRejectedValue(new Error('Forbidden'));
+    deleteFromImageKitMock.mockRejectedValue(new Error('Forbidden'));
     const { result } = renderHook(() => useImageUpload());
 
     // Act / Assert — removing the reference from the UI must still succeed
     await act(async () => {
-      await expect(result.current.deleteImage(STORAGE_URL)).resolves.toBeUndefined();
+      await expect(result.current.deleteImage(IK_URL)).resolves.toBeUndefined();
     });
   });
 });
