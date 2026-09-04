@@ -45,6 +45,10 @@ export interface Order {
   contactNumber: string;
   serviceType: ServiceType;
   address?: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  merchantLatitude?: number;
+  merchantLongitude?: number;
   distanceKm?: number;
   deliveryFee?: number;
   deliveryMode?: DeliveryMode;

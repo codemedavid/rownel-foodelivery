@@ -32,6 +32,28 @@ describe('mapOrder', () => {
   it('defaults missing items to an empty array', () => {
     expect(mapOrder({ id: 'o', total: 0, status: 'pending' }).order_items).toEqual([]);
   });
+
+  it('maps the delivery and merchant coordinates riders navigate to', () => {
+    const order = mapOrder({
+      id: 'o1',
+      total: 0,
+      status: 'ready',
+      delivery_latitude: 14.5995,
+      delivery_longitude: 120.9842,
+      merchant_latitude: 14.6,
+      merchant_longitude: 120.99,
+    });
+    expect(order.deliveryLatitude).toBe(14.5995);
+    expect(order.deliveryLongitude).toBe(120.9842);
+    expect(order.merchantLatitude).toBe(14.6);
+    expect(order.merchantLongitude).toBe(120.99);
+  });
+
+  it('leaves coordinates undefined when the order has none', () => {
+    const order = mapOrder({ id: 'o1', total: 0, status: 'ready' });
+    expect(order.deliveryLatitude).toBeUndefined();
+    expect(order.merchantLongitude).toBeUndefined();
+  });
 });
 
 describe('mapStaff', () => {

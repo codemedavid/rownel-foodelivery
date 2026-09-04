@@ -77,6 +77,23 @@ export const groupForRole = (role: AppRole): RouteGroup => {
 
 export const isOperationalRole = (role: AppRole): boolean => role === 'admin' || role === 'staff';
 
+const ROUTE_GROUPS: readonly string[] = ['(admin)', '(rider)', '(tabs)'];
+
+/**
+ * Where a signed-in role must be sent given the route group it is currently
+ * in, or null to stay put. Segments outside the role groups (order/[id],
+ * merchant/[id], checkout, …) are deep links and are never hijacked.
+ */
+export const redirectTargetFor = (
+  role: AppRole,
+  topSegment: string | undefined
+): LandingRoute | null => {
+  // The root route renders the customer storefront.
+  const currentGroup = topSegment ?? '(tabs)';
+  if (!ROUTE_GROUPS.includes(currentGroup)) return null;
+  return currentGroup === groupForRole(role) ? null : landingRouteFor(role);
+};
+
 export const canAccessAdminTab = (ctx: RoleContext, tab: AdminTab): boolean => {
   if (ctx.isAdmin) return true;
   if (ctx.isStaff) return STAFF_TABS.includes(tab);

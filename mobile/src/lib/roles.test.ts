@@ -4,6 +4,7 @@ import {
   deriveRoleContext,
   groupForRole,
   landingRouteFor,
+  redirectTargetFor,
 } from './roles';
 import type { StaffRecord } from './adminTypes';
 
@@ -122,5 +123,32 @@ describe('canAccessAdminTab', () => {
     expect(canAccessAdminTab(staffCtx, 'analytics')).toBe(false);
     expect(canAccessAdminTab(staffCtx, 'staff')).toBe(false);
     expect(canAccessAdminTab(staffCtx, 'riders')).toBe(false);
+  });
+});
+
+describe('redirectTargetFor', () => {
+  it('sends a role sitting in the wrong group to its own landing route', () => {
+    expect(redirectTargetFor('rider', '(tabs)')).toBe('/(rider)');
+    expect(redirectTargetFor('rider', '(admin)')).toBe('/(rider)');
+    expect(redirectTargetFor('admin', '(rider)')).toBe('/(admin)/orders');
+    expect(redirectTargetFor('customer', '(rider)')).toBe('/(tabs)');
+  });
+
+  it('treats the root segment as the customer group', () => {
+    expect(redirectTargetFor('rider', undefined)).toBe('/(rider)');
+    expect(redirectTargetFor('customer', undefined)).toBeNull();
+  });
+
+  it('stays put when already in the right group', () => {
+    expect(redirectTargetFor('rider', '(rider)')).toBeNull();
+    expect(redirectTargetFor('staff', '(admin)')).toBeNull();
+    expect(redirectTargetFor('customer', '(tabs)')).toBeNull();
+  });
+
+  it('never hijacks a deep link outside the role groups', () => {
+    for (const segment of ['order', 'merchant', 'item', 'checkout', 'notifications']) {
+      expect(redirectTargetFor('rider', segment)).toBeNull();
+      expect(redirectTargetFor('customer', segment)).toBeNull();
+    }
   });
 });

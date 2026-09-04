@@ -1,4 +1,5 @@
-import { buildMapsUrl } from './mapsLink';
+import { Linking } from 'react-native';
+import { buildMapsUrl, openDirections } from './mapsLink';
 
 describe('buildMapsUrl', () => {
   it('prefers coordinates and uses Apple Maps on iOS', () => {
@@ -24,5 +25,30 @@ describe('buildMapsUrl', () => {
     expect(buildMapsUrl({}, 'ios')).toBeNull();
     expect(buildMapsUrl({ address: '   ' }, 'ios')).toBeNull();
     expect(buildMapsUrl({ latitude: 1 }, 'ios')).toBeNull();
+  });
+});
+
+describe('openDirections', () => {
+  const openURL = jest.spyOn(Linking, 'openURL');
+
+  beforeEach(() => {
+    openURL.mockReset();
+    openURL.mockResolvedValue(true);
+  });
+
+  it('opens the maps app and reports success', async () => {
+    await expect(openDirections({ latitude: 14.5995, longitude: 120.9842 })).resolves.toBe(true);
+    expect(openURL).toHaveBeenCalledTimes(1);
+    expect(openURL.mock.calls[0][0]).toContain('14.5995,120.9842');
+  });
+
+  it('does nothing when there is no destination', async () => {
+    await expect(openDirections({})).resolves.toBe(false);
+    expect(openURL).not.toHaveBeenCalled();
+  });
+
+  it('reports failure instead of throwing when the maps app cannot open', async () => {
+    openURL.mockRejectedValue(new Error('no handler'));
+    await expect(openDirections({ address: 'Manila' })).resolves.toBe(false);
   });
 });
