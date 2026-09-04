@@ -104,7 +104,8 @@ export default async function handler(req: Request): Promise<Response> {
   if (!jwt) return json({ error: 'Unauthorized: not signed in' }, 401);
 
   const { data: userData, error: userErr } = await admin.auth.getUser(jwt);
-  if (userErr || !userData.user) return json({ error: 'Unauthorized: invalid session' }, 401);
+  if (userErr) return json({ error: `Unauthorized: ${userErr.message}` }, 401);
+  if (!userData.user) return json({ error: 'Unauthorized: invalid session' }, 401);
   const caller = userData.user;
 
   let body: Record<string, unknown>;
