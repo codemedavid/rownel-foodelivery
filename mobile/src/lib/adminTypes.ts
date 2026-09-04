@@ -121,8 +121,8 @@ export interface DispatchSettings {
   batchProximityKm: number;
 }
 
-export type NotificationKind = 'new_order' | 'status_change' | 'rider_assigned';
-export type NotificationTarget = 'admin' | 'customer';
+export type NotificationKind = 'new_order' | 'status_change' | 'rider_assigned' | 'new_offer';
+export type NotificationTarget = 'admin' | 'customer' | 'rider';
 
 export interface NotificationData {
   orderId?: string;

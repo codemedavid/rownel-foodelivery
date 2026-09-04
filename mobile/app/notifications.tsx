@@ -14,6 +14,7 @@ const KIND_EMOJI: Record<AppNotification['kind'], string> = {
   new_order: '🧾',
   status_change: '🔔',
   rider_assigned: '🛵',
+  new_offer: '📬',
 };
 
 export default function NotificationsScreen() {

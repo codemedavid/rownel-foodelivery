@@ -8,5 +8,7 @@ export const parseNotificationRoute = (data: unknown): string => {
   if (!data || typeof data !== 'object') return NOTIFICATIONS_ROUTE;
   const { orderId, target } = data as { orderId?: unknown; target?: unknown };
   if (typeof orderId !== 'string' || !orderId) return NOTIFICATIONS_ROUTE;
-  return target === 'admin' ? `/(admin)/order/${orderId}` : `/order/${orderId}`;
+  if (target === 'admin') return `/(admin)/order/${orderId}`;
+  if (target === 'rider') return `/(rider)/delivery/${orderId}`;
+  return `/order/${orderId}`;
 };

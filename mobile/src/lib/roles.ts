@@ -13,6 +13,11 @@ export interface RoleContext {
 
 export type AdminTab = 'orders' | 'analytics' | 'staff' | 'riders' | 'settings';
 
+export type RiderTab = 'index' | 'deliveries' | 'earnings' | 'profile';
+
+/** Expo Router group each role lives in. */
+export type RouteGroup = '(admin)' | '(rider)' | '(tabs)';
+
 const STAFF_TABS: readonly AdminTab[] = ['orders', 'settings'];
 
 export const GUEST_ROLE_CONTEXT: RoleContext = {
@@ -56,8 +61,19 @@ export const deriveRoleContext = (
   return GUEST_ROLE_CONTEXT;
 };
 
-export const landingRouteFor = (role: AppRole): '/(admin)/orders' | '/(tabs)' =>
-  role === 'admin' || role === 'staff' ? '/(admin)/orders' : '/(tabs)';
+export type LandingRoute = '/(admin)/orders' | '/(rider)' | '/(tabs)';
+
+export const landingRouteFor = (role: AppRole): LandingRoute => {
+  if (role === 'admin' || role === 'staff') return '/(admin)/orders';
+  if (role === 'rider') return '/(rider)';
+  return '/(tabs)';
+};
+
+export const groupForRole = (role: AppRole): RouteGroup => {
+  if (role === 'admin' || role === 'staff') return '(admin)';
+  if (role === 'rider') return '(rider)';
+  return '(tabs)';
+};
 
 export const isOperationalRole = (role: AppRole): boolean => role === 'admin' || role === 'staff';
 
@@ -66,3 +82,7 @@ export const canAccessAdminTab = (ctx: RoleContext, tab: AdminTab): boolean => {
   if (ctx.isStaff) return STAFF_TABS.includes(tab);
   return false;
 };
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const canAccessRiderTab = (ctx: RoleContext, _tab: RiderTab): boolean =>
+  ctx.role === 'rider';
