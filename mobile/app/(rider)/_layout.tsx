@@ -50,7 +50,7 @@ export default function RiderLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="dashboard"
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color, size }) => <Ionicons name="bicycle-outline" size={size} color={color} />,

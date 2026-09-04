@@ -13,7 +13,7 @@ export interface RoleContext {
 
 export type AdminTab = 'orders' | 'analytics' | 'staff' | 'riders' | 'settings';
 
-export type RiderTab = 'index' | 'deliveries' | 'earnings' | 'profile';
+export type RiderTab = 'dashboard' | 'deliveries' | 'earnings' | 'profile';
 
 /** Expo Router group each role lives in. */
 export type RouteGroup = '(admin)' | '(rider)' | '(tabs)';
@@ -61,11 +61,13 @@ export const deriveRoleContext = (
   return GUEST_ROLE_CONTEXT;
 };
 
-export type LandingRoute = '/(admin)/orders' | '/(rider)' | '/(tabs)';
+export type LandingRoute = '/(admin)/orders' | '/(rider)/dashboard' | '/(tabs)';
 
 export const landingRouteFor = (role: AppRole): LandingRoute => {
   if (role === 'admin' || role === 'staff') return '/(admin)/orders';
-  if (role === 'rider') return '/(rider)';
+  // Never '/(rider)': a group index would collide with (tabs)/index for the
+  // root "/" route and get served to everyone. See routeStructure.test.ts.
+  if (role === 'rider') return '/(rider)/dashboard';
   return '/(tabs)';
 };
 

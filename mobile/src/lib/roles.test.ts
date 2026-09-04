@@ -73,8 +73,8 @@ describe('landingRouteFor', () => {
     expect(landingRouteFor('staff')).toBe('/(admin)/orders');
   });
 
-  it('sends riders to their own dashboard', () => {
-    expect(landingRouteFor('rider')).toBe('/(rider)');
+  it('sends riders to a named dashboard route, never the root "/" that (tabs) owns', () => {
+    expect(landingRouteFor('rider')).toBe('/(rider)/dashboard');
   });
 
   it('sends customers to the storefront tabs', () => {
@@ -96,13 +96,13 @@ describe('canAccessRiderTab', () => {
   const customerCtx = deriveRoleContext({ app_metadata: {} }, null);
 
   it('lets riders into every rider tab', () => {
-    for (const tab of ['index', 'deliveries', 'earnings', 'profile'] as const) {
+    for (const tab of ['dashboard', 'deliveries', 'earnings', 'profile'] as const) {
       expect(canAccessRiderTab(riderCtx, tab)).toBe(true);
     }
   });
 
   it('keeps non-riders out', () => {
-    expect(canAccessRiderTab(customerCtx, 'index')).toBe(false);
+    expect(canAccessRiderTab(customerCtx, 'dashboard')).toBe(false);
     expect(canAccessRiderTab(deriveRoleContext({ app_metadata: { role: 'admin' } }, null), 'earnings')).toBe(false);
   });
 });
@@ -128,14 +128,14 @@ describe('canAccessAdminTab', () => {
 
 describe('redirectTargetFor', () => {
   it('sends a role sitting in the wrong group to its own landing route', () => {
-    expect(redirectTargetFor('rider', '(tabs)')).toBe('/(rider)');
-    expect(redirectTargetFor('rider', '(admin)')).toBe('/(rider)');
+    expect(redirectTargetFor('rider', '(tabs)')).toBe('/(rider)/dashboard');
+    expect(redirectTargetFor('rider', '(admin)')).toBe('/(rider)/dashboard');
     expect(redirectTargetFor('admin', '(rider)')).toBe('/(admin)/orders');
     expect(redirectTargetFor('customer', '(rider)')).toBe('/(tabs)');
   });
 
   it('treats the root segment as the customer group', () => {
-    expect(redirectTargetFor('rider', undefined)).toBe('/(rider)');
+    expect(redirectTargetFor('rider', undefined)).toBe('/(rider)/dashboard');
     expect(redirectTargetFor('customer', undefined)).toBeNull();
   });
 
