@@ -6,7 +6,8 @@ import {
 
 export { ALLOWED_IMAGE_TYPES, MAX_IMAGE_BYTES } from './storageTypes';
 
-const getPublicOrigin = (): string => {
+/** Return the configured public origin, or throw when an R2 operation needs it. */
+export const getPublicOrigin = (): string => {
   const configured = import.meta.env.VITE_R2_PUBLIC_URL as string | undefined;
   if (!configured) {
     throw new Error(
@@ -51,12 +52,18 @@ export const validateImageFile = (file: File): void => {
 export const extractPublicObjectKey = (src: string | null | undefined): string | null => {
   if (!src) return null;
 
-  // Configuration errors are intentionally not swallowed: callers should get
-  // an actionable VITE_R2_PUBLIC_URL message rather than a silent fallback.
-  const configuredOrigin = getPublicOriginUrl();
+  // Rendering must remain safe when R2 is not configured: callers can still
+  // display legacy, data, blob, or malformed sources unchanged.
+  let configuredOrigin: URL;
+  try {
+    configuredOrigin = getPublicOriginUrl();
+  } catch {
+    return null;
+  }
 
   try {
     const source = new URL(src);
+    if (source.protocol !== 'http:' && source.protocol !== 'https:') return null;
 
     // Credentials are not part of URL.origin, but accepting them would make a
     // lookalike URL appear to be an object on our host.

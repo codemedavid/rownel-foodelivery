@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   buildPublicImageUrl,
   extractPublicObjectKey,
+  getPublicOrigin,
   validateImageFile,
 } from './storage';
 import {
@@ -57,6 +58,13 @@ describe('buildPublicImageUrl', () => {
     expect(buildPublicImageUrl(blob, { width: 400 })).toBe(blob);
     expect(buildPublicImageUrl(undefined, { width: 400 })).toBe('');
     expect(buildPublicImageUrl('', { width: 400 })).toBe('');
+  });
+
+  it('leaves blob URLs unchanged even when their embedded origin matches ours', () => {
+    const blob = `blob:${PUBLIC_URL}/8f6c`;
+
+    expect(extractPublicObjectKey(blob)).toBeNull();
+    expect(buildPublicImageUrl(blob, { width: 400 })).toBe(blob);
   });
 
   it('emits options in stable order and ignores non-positive numeric values', () => {
@@ -122,11 +130,24 @@ describe('validateImageFile', () => {
 });
 
 describe('R2 public URL configuration', () => {
-  it('reports the missing configuration name lazily', () => {
+  it('keeps safe non-R2 sources unchanged when configuration is missing', () => {
     delete (import.meta.env as Record<string, unknown>).VITE_R2_PUBLIC_URL;
 
-    expect(() => buildPublicImageUrl(`${PUBLIC_URL}/a.jpg`, { width: 400 })).toThrow(
-      /VITE_R2_PUBLIC_URL/
-    );
+    const legacy = 'https://ik.imagekit.io/legacy/a.jpg';
+    const data = 'data:image/png;base64,iVBORw0KGgo=';
+    const blob = 'blob:https://images.row-nel.com/8f6c';
+    const malformed = 'not a URL';
+
+    expect(buildPublicImageUrl(legacy, { width: 400 })).toBe(legacy);
+    expect(buildPublicImageUrl(data, { width: 400 })).toBe(data);
+    expect(buildPublicImageUrl(blob, { width: 400 })).toBe(blob);
+    expect(buildPublicImageUrl(malformed, { width: 400 })).toBe(malformed);
+    expect(extractPublicObjectKey(malformed)).toBeNull();
+  });
+
+  it('reports the missing configuration name for an operation requiring R2', () => {
+    delete (import.meta.env as Record<string, unknown>).VITE_R2_PUBLIC_URL;
+
+    expect(() => getPublicOrigin()).toThrow(/VITE_R2_PUBLIC_URL/);
   });
 });
