@@ -225,7 +225,14 @@ function publicKeyFromReference(
   category: AssetCategory,
   configuredPublicUrl: string,
 ): string | null {
-  if (reference.includes('\\') || rawUrlPathHasDotSegment(reference)) return null;
+  if (
+    !/^https?:\/\//i.test(reference) ||
+    /[\u0000-\u001F\u007F]/.test(reference) ||
+    reference.includes('\\') ||
+    rawUrlPathHasDotSegment(reference)
+  ) {
+    return null;
+  }
   let url: URL;
   let publicUrl: URL;
   try {

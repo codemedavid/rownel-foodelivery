@@ -413,6 +413,27 @@ describe('createStorageHandler', () => {
     );
   });
 
+  it('accepts a conventional absolute URL with a mixed-case HTTPS scheme', async () => {
+    const deleteObject = vi.fn().mockResolvedValue(true);
+    const deps = makeDependencies({
+      r2: { ...makeDependencies().r2, deleteObject },
+    });
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'delete',
+        category: 'menu-item',
+        context: { merchantId: 'merchant-1' },
+        reference: 'HtTpS://images.row-nel.com/menu-items/a.jpg',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deleteObject).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'menu-items/a.jpg',
+    );
+  });
+
   it.each([
     'https://images.row-nel.com.evil.test/menu-items/a.jpg',
     'https://evil.test/menu-items/a.jpg',
@@ -421,6 +442,14 @@ describe('createStorageHandler', () => {
     '/menu-items/a.jpg',
     'https://images.row-nel.com/promotions/a.jpg',
     'https://images.row-nel.com/cdn-cgi/image/width=100/menu-items/a.jpg',
+    'https:images.row-nel.com/promotions/../menu-items/a.jpg',
+    'https:/images.row-nel.com/promotions/%2e%2e/menu-items/a.jpg',
+    'https://images.row-nel.com/promotions/..\t/menu-items/a.jpg',
+    'https://images.row-nel.com/promotions/..\n/menu-items/a.jpg',
+    'https://images.row-nel.com/promotions/..\r/menu-items/a.jpg',
+    'https://images.row-nel.com/menu-items/a\u0000.jpg',
+    'https://images.row-nel.com/menu-items/a\u001F.jpg',
+    'https://images.row-nel.com/menu-items/a\u007F.jpg',
     'https://images.row-nel.com/promotions/../menu-items/a.jpg',
     'https://images.row-nel.com/promotions/%2e%2e/menu-items/a.jpg',
     'https://images.row-nel.com/menu-items/%2e/a.jpg',
