@@ -434,9 +434,36 @@ describe('createStorageHandler', () => {
     );
   });
 
+  it('retains exact-origin matching for a configured public URL port', async () => {
+    const deleteObject = vi.fn().mockResolvedValue(true);
+    const deps = makeDependencies({
+      config: {
+        publicBucket: 'rownel-public-images',
+        privateBucket: 'rownel-private-images',
+        publicUrl: 'https://images.row-nel.com:8443',
+      },
+      r2: { ...makeDependencies().r2, deleteObject },
+    });
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'delete',
+        category: 'menu-item',
+        context: { merchantId: 'merchant-1' },
+        reference: 'HTTPS://images.row-nel.com:8443/menu-items/a.jpg',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deleteObject).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'menu-items/a.jpg',
+    );
+  });
+
   it.each([
     'https://images.row-nel.com.evil.test/menu-items/a.jpg',
     'https://evil.test/menu-items/a.jpg',
+    'https://images.row-nel.com:8443/menu-items/a.jpg',
     'https://user:password@images.row-nel.com/menu-items/a.jpg',
     'ftp://images.row-nel.com/menu-items/a.jpg',
     '/menu-items/a.jpg',
@@ -444,6 +471,8 @@ describe('createStorageHandler', () => {
     'https://images.row-nel.com/cdn-cgi/image/width=100/menu-items/a.jpg',
     'https:images.row-nel.com/promotions/../menu-items/a.jpg',
     'https:/images.row-nel.com/promotions/%2e%2e/menu-items/a.jpg',
+    'https:///images.row-nel.com/menu-items/a.jpg',
+    'https:////images.row-nel.com/menu-items/a.jpg',
     'https://images.row-nel.com/promotions/..\t/menu-items/a.jpg',
     'https://images.row-nel.com/promotions/..\n/menu-items/a.jpg',
     'https://images.row-nel.com/promotions/..\r/menu-items/a.jpg',

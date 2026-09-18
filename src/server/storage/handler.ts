@@ -226,7 +226,7 @@ function publicKeyFromReference(
   configuredPublicUrl: string,
 ): string | null {
   if (
-    !/^https?:\/\//i.test(reference) ||
+    !/^https?:\/\/[^/\\?#\s\u0000-\u001F\u007F]/i.test(reference) ||
     /[\u0000-\u001F\u007F]/.test(reference) ||
     reference.includes('\\') ||
     rawUrlPathHasDotSegment(reference)
