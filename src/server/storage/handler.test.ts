@@ -159,13 +159,6 @@ describe('createStorageHandler', () => {
     {
       action: 'create-upload',
       category: 'menu-item',
-      mimeType: 'IMAGE/JPEG',
-      size: 1,
-      context: { merchantId: 'merchant-1' },
-    },
-    {
-      action: 'create-upload',
-      category: 'menu-item',
       mimeType: 'image/svg+xml',
       size: 1,
       context: { merchantId: 'merchant-1' },
@@ -211,6 +204,36 @@ describe('createStorageHandler', () => {
     expect(await response.json()).toEqual({ error: 'Invalid request' });
     expect(deps.authorize).not.toHaveBeenCalled();
     expect(deps.r2.signPut).not.toHaveBeenCalled();
+  });
+
+  it('normalizes uppercase upload MIME before key creation and signing', async () => {
+    const createObjectKey = vi.fn().mockReturnValue('menu-items/generated.jpg');
+    const signPut = vi.fn().mockResolvedValue('https://signed.example/put');
+    const deps = makeDependencies({
+      r2: { ...makeDependencies().r2, createObjectKey, signPut },
+    });
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'create-upload',
+        category: 'menu-item',
+        mimeType: 'IMAGE/JPEG',
+        size: 1,
+        context: { merchantId: 'merchant-1' },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(createObjectKey).toHaveBeenCalledWith(
+      'menu-item',
+      'image/jpeg',
+      { merchantId: 'merchant-1' },
+    );
+    expect(signPut).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'menu-items/generated.jpg',
+      'image/jpeg',
+      300,
+    );
   });
 
   it('returns a private grant with the server actor as receipt key owner', async () => {
@@ -369,6 +392,27 @@ describe('createStorageHandler', () => {
     );
   });
 
+  it('decodes a legitimate encoded filename while ignoring query and fragment', async () => {
+    const deleteObject = vi.fn().mockResolvedValue(true);
+    const deps = makeDependencies({
+      r2: { ...makeDependencies().r2, deleteObject },
+    });
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'delete',
+        category: 'menu-item',
+        context: { merchantId: 'merchant-1' },
+        reference: 'https://images.row-nel.com/menu-items/a%2Db.jpg?width=100#display',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deleteObject).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'menu-items/a-b.jpg',
+    );
+  });
+
   it.each([
     'https://images.row-nel.com.evil.test/menu-items/a.jpg',
     'https://evil.test/menu-items/a.jpg',
@@ -377,6 +421,9 @@ describe('createStorageHandler', () => {
     '/menu-items/a.jpg',
     'https://images.row-nel.com/promotions/a.jpg',
     'https://images.row-nel.com/cdn-cgi/image/width=100/menu-items/a.jpg',
+    'https://images.row-nel.com/promotions/../menu-items/a.jpg',
+    'https://images.row-nel.com/promotions/%2e%2e/menu-items/a.jpg',
+    'https://images.row-nel.com/menu-items/%2e/a.jpg',
     'https://images.row-nel.com/menu-items/%2e%2e/promotions/a.jpg',
     'https://images.row-nel.com/menu-items/a%2fb.jpg',
     'https://images.row-nel.com/menu-items/a%5cb.jpg',

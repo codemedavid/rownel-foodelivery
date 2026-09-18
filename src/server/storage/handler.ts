@@ -136,9 +136,11 @@ function parseStorageRequest(value: unknown): ParsedStorageRequest | null {
   if (!context || !hasRequiredContext(value.category, context)) return null;
 
   if (value.action === 'create-upload') {
+    const normalizedMime =
+      typeof value.mimeType === 'string' ? value.mimeType.toLowerCase() : null;
     if (
-      typeof value.mimeType !== 'string' ||
-      !(ALLOWED_IMAGE_TYPES as readonly string[]).includes(value.mimeType) ||
+      !normalizedMime ||
+      !(ALLOWED_IMAGE_TYPES as readonly string[]).includes(normalizedMime) ||
       typeof value.size !== 'number' ||
       !Number.isFinite(value.size) ||
       !Number.isInteger(value.size) ||
@@ -150,7 +152,7 @@ function parseStorageRequest(value: unknown): ParsedStorageRequest | null {
     return {
       action: value.action,
       category: value.category,
-      mimeType: value.mimeType,
+      mimeType: normalizedMime,
       size: value.size,
       context,
     };
@@ -194,12 +196,36 @@ function hasSafeCategoryKeyShape(key: string, category: AssetCategory): boolean 
   );
 }
 
+function rawUrlPathHasDotSegment(reference: string): boolean {
+  const schemeEnd = reference.indexOf('://');
+  if (schemeEnd < 0) return false;
+  const pathStart = reference.indexOf('/', schemeEnd + 3);
+  if (pathStart < 0) return false;
+  const queryStart = reference.indexOf('?', pathStart);
+  const fragmentStart = reference.indexOf('#', pathStart);
+  const pathEnd = Math.min(
+    queryStart < 0 ? reference.length : queryStart,
+    fragmentStart < 0 ? reference.length : fragmentStart,
+  );
+  return reference
+    .slice(pathStart, pathEnd)
+    .split('/')
+    .some((segment) => {
+      try {
+        const decoded = decodeURIComponent(segment);
+        return decoded === '.' || decoded === '..';
+      } catch {
+        return false;
+      }
+    });
+}
+
 function publicKeyFromReference(
   reference: string,
   category: AssetCategory,
   configuredPublicUrl: string,
 ): string | null {
-  if (reference.includes('\\')) return null;
+  if (reference.includes('\\') || rawUrlPathHasDotSegment(reference)) return null;
   let url: URL;
   let publicUrl: URL;
   try {
