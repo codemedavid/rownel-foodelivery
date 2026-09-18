@@ -14,6 +14,7 @@ import {
   type StorageRepository,
 } from './authorization';
 import type { R2StorageContext } from './r2';
+import type { RemoteImage } from './remoteImport';
 
 const GRANT_EXPIRY_SECONDS = 300;
 const CONTEXT_ID = /^[A-Za-z0-9_-]+$/;
@@ -34,6 +35,12 @@ export type StorageRequest =
       context: StorageContext;
     }
   | {
+      action: 'import-url';
+      category: AssetCategory;
+      sourceUrl: string;
+      context: StorageContext;
+    }
+  | {
       action: 'create-download';
       category: 'receipt' | 'rider-photo';
       context: StorageContext;
@@ -47,6 +54,7 @@ export type StorageRequest =
 
 type StorageResponse =
   | UploadGrant
+  | { objectKey: string; publicUrl?: string }
   | { downloadUrl: string; expiresAt: number }
   | { ok: true; deleted: boolean };
 
@@ -69,6 +77,8 @@ export interface StorageR2Operations {
   signPut(bucket: string, key: string, mimeType: string, expiresSeconds?: number): Promise<string>;
   signGet(bucket: string, key: string, expiresSeconds?: number): Promise<string>;
   deleteObject(bucket: string, key: string): Promise<boolean>;
+  putObject(bucket: string, key: string, mimeType: string, bytes: Uint8Array): Promise<void>;
+  headObject(bucket: string, key: string): Promise<boolean>;
 }
 
 export interface StorageHandlerDependencies {
@@ -82,6 +92,7 @@ export interface StorageHandlerDependencies {
     context: StorageContext,
   ) => Promise<AuthorizationResult>;
   r2: StorageR2Operations;
+  fetchRemoteImage(sourceUrl: string): Promise<RemoteImage>;
   config: {
     publicBucket: string;
     privateBucket: string;
@@ -154,6 +165,22 @@ function parseStorageRequest(value: unknown): ParsedStorageRequest | null {
       category: value.category,
       mimeType: normalizedMime,
       size: value.size,
+      context,
+    };
+  }
+
+  if (value.action === 'import-url') {
+    if (
+      typeof value.sourceUrl !== 'string' ||
+      value.sourceUrl.trim().length === 0 ||
+      value.sourceUrl.length > 4096
+    ) {
+      return null;
+    }
+    return {
+      action: value.action,
+      category: value.category,
+      sourceUrl: value.sourceUrl,
       context,
     };
   }
@@ -393,6 +420,35 @@ export function createStorageHandler(deps: StorageHandlerDependencies) {
           : deps.config.privateBucket;
       const deleted = await deps.r2.deleteObject(bucket, objectKey);
       const response: StorageResponse = { ok: true, deleted };
+      return json(response);
+    }
+
+    if (body.action === 'import-url') {
+      const image = await deps.fetchRemoteImage(body.sourceUrl);
+      const categoryConfig = ASSET_CATEGORIES[body.category];
+      const keyContext =
+        body.category === 'receipt'
+          ? { ...body.context, ownerId: actor.id }
+          : body.context;
+      const objectKey = deps.r2.createObjectKey(
+        body.category,
+        image.mimeType,
+        keyContext,
+      );
+      const bucket =
+        categoryConfig.visibility === 'public'
+          ? deps.config.publicBucket
+          : deps.config.privateBucket;
+      await deps.r2.putObject(bucket, objectKey, image.mimeType, image.bytes);
+      if (!(await deps.r2.headObject(bucket, objectKey))) {
+        throw new Error('Storage verification failed');
+      }
+      const response: StorageResponse = {
+        objectKey,
+        ...(categoryConfig.visibility === 'public'
+          ? { publicUrl: deps.r2.publicUrl(objectKey) }
+          : {}),
+      };
       return json(response);
     }
 

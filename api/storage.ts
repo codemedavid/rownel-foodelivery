@@ -5,10 +5,12 @@ import {
 } from '../src/server/storage/authorization';
 import { createStorageHandler } from '../src/server/storage/handler';
 import { createR2Store, type R2Config } from '../src/server/storage/r2';
+import { fetchRemoteImage as fetchRemoteImageFromUrl } from '../src/server/storage/remoteImport';
 
 export const config = { runtime: 'edge' };
 
 const LEGACY_ADMIN_EMAIL = 'admin@clickeats.com';
+const CLOUDFLARE_DOH_URL = 'https://cloudflare-dns.com/dns-query';
 
 interface ServerConfig extends R2Config {
   supabaseUrl: string;
@@ -122,6 +124,45 @@ function createRepository(admin: SupabaseClient): StorageRepository {
   };
 }
 
+interface DnsJsonAnswer {
+  type?: unknown;
+  data?: unknown;
+}
+
+interface DnsJsonResponse {
+  Answer?: unknown;
+}
+
+async function resolveDnsRecord(hostname: string, type: 'A' | 'AAAA'): Promise<string[]> {
+  const url = new URL(CLOUDFLARE_DOH_URL);
+  url.searchParams.set('name', hostname);
+  url.searchParams.set('type', type);
+  const response = await globalThis.fetch(url.toString(), {
+    headers: { accept: 'application/dns-json' },
+    credentials: 'omit',
+  });
+  if (!response.ok) throw new Error('DNS resolution failed');
+
+  const payload = (await response.json()) as DnsJsonResponse;
+  if (payload.Answer === undefined) return [];
+  if (!Array.isArray(payload.Answer)) throw new Error('DNS resolution failed');
+  const expectedType = type === 'A' ? 1 : 28;
+  return (payload.Answer as DnsJsonAnswer[])
+    .filter(
+      (answer): answer is DnsJsonAnswer & { data: string } =>
+        answer?.type === expectedType && typeof answer.data === 'string',
+    )
+    .map((answer) => answer.data);
+}
+
+async function resolvePublicAddresses(hostname: string): Promise<string[]> {
+  const [ipv4, ipv6] = await Promise.all([
+    resolveDnsRecord(hostname, 'A'),
+    resolveDnsRecord(hostname, 'AAAA'),
+  ]);
+  return [...ipv4, ...ipv6];
+}
+
 export default async function handler(request: Request): Promise<Response> {
   const serverConfig = readServerConfig();
   if (!serverConfig) return json({ error: 'Storage service is not configured' }, 500);
@@ -142,6 +183,12 @@ export default async function handler(request: Request): Promise<Response> {
       },
       repository,
       r2,
+      fetchRemoteImage(sourceUrl) {
+        return fetchRemoteImageFromUrl(sourceUrl, {
+          fetch: globalThis.fetch,
+          resolvePublicAddresses,
+        });
+      },
       config: {
         publicBucket: serverConfig.publicBucket,
         privateBucket: serverConfig.privateBucket,

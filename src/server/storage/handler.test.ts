@@ -20,6 +20,11 @@ function makeDependencies(
     authenticate: vi.fn().mockResolvedValue(actor),
     repository: makeRepository(),
     authorize: vi.fn().mockResolvedValue({ allowed: true }),
+    fetchRemoteImage: vi.fn().mockResolvedValue({
+      bytes: Uint8Array.from([0xff, 0xd8, 0xff]),
+      mimeType: 'image/jpeg',
+      finalUrl: 'https://example.com/image.jpg',
+    }),
     r2: {
       createObjectKey: vi.fn().mockReturnValue('menu-items/merchant-1/generated.jpg'),
       publicUrl: vi.fn().mockReturnValue(
@@ -28,6 +33,8 @@ function makeDependencies(
       signPut: vi.fn().mockResolvedValue('https://signed.example/put'),
       signGet: vi.fn().mockResolvedValue('https://signed.example/get'),
       deleteObject: vi.fn().mockResolvedValue(true),
+      putObject: vi.fn().mockResolvedValue(undefined),
+      headObject: vi.fn().mockResolvedValue(true),
     },
     config: {
       publicBucket: 'rownel-public-images',
@@ -51,6 +58,178 @@ function request(body: unknown, authorization = 'Bearer valid'): Request {
 }
 
 describe('createStorageHandler', () => {
+  it('authorizes a URL import before fetching or writing storage', async () => {
+    const deps = makeDependencies({
+      authorize: vi.fn().mockResolvedValue({ allowed: false }),
+    });
+
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'import-url',
+        category: 'menu-item',
+        sourceUrl: 'https://example.com/image.jpg',
+        context: { merchantId: 'merchant-1' },
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(deps.fetchRemoteImage).not.toHaveBeenCalled();
+    expect(deps.r2.putObject).not.toHaveBeenCalled();
+    expect(deps.r2.headObject).not.toHaveBeenCalled();
+  });
+
+  it('stores a public URL import using its detected MIME and returns a stable reference', async () => {
+    const bytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
+    const fetchRemoteImage = vi.fn().mockResolvedValue({
+      bytes,
+      mimeType: 'image/png' as const,
+      finalUrl: 'https://cdn.example/final',
+    });
+    const createObjectKey = vi
+      .fn()
+      .mockReturnValue('menu-items/merchant-1/generated.png');
+    const deps = makeDependencies({
+      fetchRemoteImage,
+      r2: {
+        ...makeDependencies().r2,
+        createObjectKey,
+        publicUrl: vi.fn((key: string) => `https://images.row-nel.com/${key}`),
+      },
+    });
+
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'import-url',
+        category: 'menu-item',
+        sourceUrl: 'https://cdn.example/original.jpg',
+        context: { merchantId: 'merchant-1' },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      objectKey: 'menu-items/merchant-1/generated.png',
+      publicUrl: 'https://images.row-nel.com/menu-items/merchant-1/generated.png',
+    });
+    expect(fetchRemoteImage).toHaveBeenCalledWith('https://cdn.example/original.jpg');
+    expect(createObjectKey).toHaveBeenCalledWith('menu-item', 'image/png', {
+      merchantId: 'merchant-1',
+    });
+    expect(deps.r2.putObject).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'menu-items/merchant-1/generated.png',
+      'image/png',
+      bytes,
+    );
+    expect(deps.r2.headObject).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'menu-items/merchant-1/generated.png',
+    );
+  });
+
+  it('returns only an object key for a verified private import', async () => {
+    const bytes = Uint8Array.from([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]);
+    const createObjectKey = vi
+      .fn()
+      .mockReturnValue('receipts/customer-1/order-1/generated.gif');
+    const deps = makeDependencies({
+      authenticate: vi.fn().mockResolvedValue({ id: 'customer-1', role: 'customer' }),
+      fetchRemoteImage: vi.fn().mockResolvedValue({
+        bytes,
+        mimeType: 'image/gif',
+        finalUrl: 'https://example.com/receipt',
+      }),
+      r2: { ...makeDependencies().r2, createObjectKey },
+    });
+
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'import-url',
+        category: 'receipt',
+        sourceUrl: 'https://example.com/receipt',
+        context: { orderId: 'order-1' },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      objectKey: 'receipts/customer-1/order-1/generated.gif',
+    });
+    expect(createObjectKey).toHaveBeenCalledWith('receipt', 'image/gif', {
+      orderId: 'order-1',
+      ownerId: 'customer-1',
+    });
+    expect(deps.r2.putObject).toHaveBeenCalledWith(
+      'rownel-private-images',
+      'receipts/customer-1/order-1/generated.gif',
+      'image/gif',
+      bytes,
+    );
+  });
+
+  it('returns no reference when an imported object cannot be written', async () => {
+    const putObject = vi.fn().mockRejectedValue(new Error('provider secret'));
+    const deps = makeDependencies({
+      r2: { ...makeDependencies().r2, putObject },
+    });
+
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'import-url',
+        category: 'site-logo',
+        sourceUrl: 'https://example.com/image.jpg',
+        context: {},
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'Storage operation failed' });
+    expect(deps.r2.headObject).not.toHaveBeenCalled();
+    expect(deps.r2.publicUrl).not.toHaveBeenCalled();
+  });
+
+  it('returns no reference when an imported object cannot be verified', async () => {
+    const deps = makeDependencies({
+      r2: { ...makeDependencies().r2, headObject: vi.fn().mockResolvedValue(false) },
+    });
+
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'import-url',
+        category: 'site-logo',
+        sourceUrl: 'https://example.com/image.jpg',
+        context: {},
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: 'Storage operation failed' });
+    expect(deps.r2.publicUrl).not.toHaveBeenCalled();
+  });
+
+  it('sanitizes remote import errors', async () => {
+    const deps = makeDependencies({
+      fetchRemoteImage: vi
+        .fn()
+        .mockRejectedValue(new Error('https://user:secret@example.com/private response body')),
+    });
+
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'import-url',
+        category: 'site-logo',
+        sourceUrl: 'https://example.com/image.jpg',
+        context: {},
+      }),
+    );
+
+    expect(response.status).toBe(500);
+    const payload = await response.json();
+    expect(payload).toEqual({ error: 'Storage operation failed' });
+    expect(JSON.stringify(payload)).not.toMatch(/secret|response body|example\.com/);
+    expect(deps.r2.putObject).not.toHaveBeenCalled();
+  });
+
   it('returns a scoped public PUT grant without exposing credentials', async () => {
     const deps = makeDependencies();
     const response = await createStorageHandler(deps)(
@@ -195,6 +374,21 @@ describe('createStorageHandler', () => {
       category: 'menu-item',
       context: { merchantId: 'bad/id' },
       reference: 'https://images.row-nel.com/menu-items/merchant-1/a.jpg',
+    },
+    { action: 'import-url', category: 'site-logo', sourceUrl: '', context: {} },
+    { action: 'import-url', category: 'site-logo', sourceUrl: '   ', context: {} },
+    { action: 'import-url', category: 'site-logo', sourceUrl: 12, context: {} },
+    {
+      action: 'import-url',
+      category: 'site-logo',
+      sourceUrl: `https://example.com/${'x'.repeat(4096)}`,
+      context: {},
+    },
+    {
+      action: 'import-url',
+      category: 'menu-item',
+      sourceUrl: 'https://example.com/image.jpg',
+      context: {},
     },
   ])('returns 400 for malformed storage input %#', async (body) => {
     const deps = makeDependencies();
