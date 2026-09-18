@@ -175,6 +175,20 @@ function parseStorageRequest(value: unknown): ParsedStorageRequest | null {
   return null;
 }
 
+function categoryScopeSegments(category: AssetCategory): number {
+  if (category === 'receipt') return 2;
+  if (
+    category === 'menu-item' ||
+    category === 'merchant-logo' ||
+    category === 'merchant-cover' ||
+    category === 'payment-qr' ||
+    category === 'rider-photo'
+  ) {
+    return 1;
+  }
+  return 0;
+}
+
 function hasSafeCategoryKeyShape(key: string, category: AssetCategory): boolean {
   if (
     !key ||
@@ -187,8 +201,9 @@ function hasSafeCategoryKeyShape(key: string, category: AssetCategory): boolean 
 
   const prefixSegments = ASSET_CATEGORIES[category].prefix.split('/');
   const segments = key.split('/');
-  const ownerSegments = ASSET_CATEGORIES[category].visibility === 'private' ? 1 : 0;
-  if (segments.length !== prefixSegments.length + ownerSegments + 1) return false;
+  if (segments.length !== prefixSegments.length + categoryScopeSegments(category) + 1) {
+    return false;
+  }
   if (!prefixSegments.every((segment, index) => segments[index] === segment)) return false;
   return (
     segments.slice(prefixSegments.length, -1).every((segment) => SAFE_KEY_SEGMENT.test(segment)) &&
@@ -269,16 +284,37 @@ function publicKeyFromReference(
   return hasSafeCategoryKeyShape(key, category) ? key : null;
 }
 
+function canDeletePublicKeyScope(
+  key: string,
+  category: AssetCategory,
+  actor: StorageActor,
+  context: StorageContext,
+): boolean {
+  if (actor.role !== 'staff') return true;
+  if (categoryScopeSegments(category) === 0) return true;
+  const scopeIndex = ASSET_CATEGORIES[category].prefix.split('/').length;
+  const merchantScope = key.split('/')[scopeIndex];
+  return (
+    Boolean(context.merchantId) &&
+    merchantScope !== 'global' &&
+    merchantScope === context.merchantId
+  );
+}
+
 function privateKeyFromReference(
   reference: string,
   category: 'receipt' | 'rider-photo',
   actor: StorageActor,
+  context: StorageContext,
 ): string | null {
   if (!hasSafeCategoryKeyShape(reference, category)) return null;
   const ownerIndex = ASSET_CATEGORIES[category].prefix.split('/').length;
-  const ownerId = reference.split('/')[ownerIndex];
-  if (category === 'receipt' && actor.role === 'customer' && ownerId !== actor.id) {
-    return null;
+  const segments = reference.split('/');
+  const ownerId = segments[ownerIndex];
+  if (category === 'receipt') {
+    const orderId = segments[ownerIndex + 1];
+    if (orderId !== context.orderId) return null;
+    if (actor.role === 'customer' && ownerId !== actor.id) return null;
   }
   if (category === 'rider-photo' && actor.role === 'rider' && ownerId !== actor.id) {
     return null;
@@ -342,8 +378,15 @@ export function createStorageHandler(deps: StorageHandlerDependencies) {
               body.reference,
               body.category as 'receipt' | 'rider-photo',
               actor,
+              body.context,
             );
       if (!objectKey) return json({ error: 'Invalid request' }, 400);
+      if (
+        categoryConfig.visibility === 'public' &&
+        !canDeletePublicKeyScope(objectKey, body.category, actor, body.context)
+      ) {
+        return json({ error: 'Invalid request' }, 400);
+      }
       const bucket =
         categoryConfig.visibility === 'public'
           ? deps.config.publicBucket

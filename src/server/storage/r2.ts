@@ -37,6 +37,11 @@ const MIME_EXTENSIONS: Record<(typeof ALLOWED_IMAGE_TYPES)[number], string> = {
 
 const DEFAULT_EXPIRY_SECONDS = 300;
 const SAFE_SEGMENT = /^[A-Za-z0-9_-]+$/;
+const MERCHANT_SCOPED_CATEGORIES: readonly AssetCategory[] = [
+  'menu-item',
+  'merchant-logo',
+  'merchant-cover',
+];
 
 function encodePath(key: string): string {
   return key.split('/').map((segment) => encodeURIComponent(segment)).join('/');
@@ -128,12 +133,30 @@ export function createR2Store(config: R2Config, dependencies: R2Dependencies = {
       const objectId = id ?? globalThis.crypto.randomUUID();
       assertSafeSegment(objectId, 'id');
 
+      if (MERCHANT_SCOPED_CATEGORIES.includes(category)) {
+        if (!context.merchantId) {
+          throw new Error(`${category} object keys require merchantId`);
+        }
+        assertSafeSegment(context.merchantId, 'merchantId');
+        return `${categoryConfig.prefix}/${context.merchantId}/${objectId}.${extension}`;
+      }
+
+      if (category === 'payment-qr') {
+        const merchantScope = context.merchantId ?? 'global';
+        assertSafeSegment(merchantScope, 'merchantId');
+        return `${categoryConfig.prefix}/${merchantScope}/${objectId}.${extension}`;
+      }
+
       if (category === 'receipt') {
         if (!context.ownerId) {
           throw new Error('receipt object keys require ownerId');
         }
+        if (!context.orderId) {
+          throw new Error('receipt object keys require orderId');
+        }
         assertSafeSegment(context.ownerId, 'ownerId');
-        return `${categoryConfig.prefix}/${context.ownerId}/${objectId}.${extension}`;
+        assertSafeSegment(context.orderId, 'orderId');
+        return `${categoryConfig.prefix}/${context.ownerId}/${context.orderId}/${objectId}.${extension}`;
       }
 
       if (category === 'rider-photo') {

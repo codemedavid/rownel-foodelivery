@@ -22,17 +22,35 @@ const rejectedMessage = async (operation: () => Promise<unknown>): Promise<strin
 };
 
 describe('R2 key generation and signing', () => {
-  it('generates an opaque public key under the category prefix', () => {
+  it('generates a merchant-scoped menu-item key', () => {
     const store = createR2Store(config);
 
     expect(
       store.createObjectKey(
         'menu-item',
         'image/jpeg',
-        {},
+        { merchantId: 'merchant-1' },
         '00000000-0000-4000-8000-000000000000',
       ),
-    ).toBe('menu-items/00000000-0000-4000-8000-000000000000.jpg');
+    ).toBe('menu-items/merchant-1/00000000-0000-4000-8000-000000000000.jpg');
+  });
+
+  it('scopes merchant public keys and keeps global public keys distinct', () => {
+    const store = createR2Store(config);
+    const id = '00000000-0000-4000-8000-000000000000';
+
+    expect(store.createObjectKey('merchant-logo', 'image/png', { merchantId: 'm-1' }, id))
+      .toBe(`merchants/logos/m-1/${id}.png`);
+    expect(store.createObjectKey('merchant-cover', 'image/webp', { merchantId: 'm-1' }, id))
+      .toBe(`merchants/covers/m-1/${id}.webp`);
+    expect(store.createObjectKey('payment-qr', 'image/png', { merchantId: 'm-1' }, id))
+      .toBe(`payment-methods/m-1/${id}.png`);
+    expect(store.createObjectKey('payment-qr', 'image/png', {}, id))
+      .toBe(`payment-methods/global/${id}.png`);
+    expect(store.createObjectKey('site-logo', 'image/png', {}, id))
+      .toBe(`site/logo/${id}.png`);
+    expect(store.createObjectKey('promotion', 'image/png', {}, id))
+      .toBe(`promotions/${id}.png`);
   });
 
   it('generates private receipt and rider-photo keys with required owners', () => {
@@ -41,8 +59,8 @@ describe('R2 key generation and signing', () => {
     const riderId = '22222222-2222-4222-8222-222222222222';
     const id = '33333333-3333-4333-8333-333333333333';
 
-    expect(store.createObjectKey('receipt', 'image/png', { ownerId }, id)).toBe(
-      `receipts/${ownerId}/${id}.png`,
+    expect(store.createObjectKey('receipt', 'image/png', { ownerId, orderId: 'order-1' }, id)).toBe(
+      `receipts/${ownerId}/order-1/${id}.png`,
     );
     expect(store.createObjectKey('rider-photo', 'image/webp', { riderId }, id)).toBe(
       `rider-photos/${riderId}/${id}.webp`,
@@ -50,6 +68,9 @@ describe('R2 key generation and signing', () => {
     expect(() => store.createObjectKey('receipt', 'image/png', {}, id)).toThrow(
       /ownerId/i,
     );
+    expect(() =>
+      store.createObjectKey('receipt', 'image/png', { ownerId }, id),
+    ).toThrow(/orderId/i);
     expect(() => store.createObjectKey('rider-photo', 'image/webp', {}, id)).toThrow(
       /riderId/i,
     );
@@ -62,21 +83,46 @@ describe('R2 key generation and signing', () => {
       /MIME/i,
     );
     expect(() =>
-      store.createObjectKey('receipt', 'image/jpeg', { ownerId: '../escape' }),
+      store.createObjectKey('receipt', 'image/jpeg', {
+        ownerId: '../escape',
+        orderId: 'order-1',
+      }),
     ).toThrow(/ownerId/i);
+    expect(() =>
+      store.createObjectKey('receipt', 'image/jpeg', {
+        ownerId: 'owner-1',
+        orderId: '../escape',
+      }),
+    ).toThrow(/orderId/i);
     expect(() =>
       store.createObjectKey('rider-photo', 'image/jpeg', { riderId: 'rider/id' }),
     ).toThrow(/riderId/i);
     expect(() =>
-      store.createObjectKey('menu-item', 'image/jpeg', {}, '../escape'),
+      store.createObjectKey(
+        'menu-item',
+        'image/jpeg',
+        { merchantId: 'merchant-1' },
+        '../escape',
+      ),
     ).toThrow(/id/i);
+    for (const category of ['menu-item', 'merchant-logo', 'merchant-cover'] as const) {
+      expect(() => store.createObjectKey(category, 'image/jpeg', {})).toThrow(
+        /merchantId/i,
+      );
+      expect(() =>
+        store.createObjectKey(category, 'image/jpeg', { merchantId: '../escape' }),
+      ).toThrow(/merchantId/i);
+    }
+    expect(() =>
+      store.createObjectKey('payment-qr', 'image/jpeg', { merchantId: '../escape' }),
+    ).toThrow(/merchantId/i);
   });
 
   it('builds an exact encoded public URL without a trailing slash', () => {
     const store = createR2Store(config);
 
-    expect(store.publicUrl('merchants/logos/a menu.jpg')).toBe(
-      'https://images.row-nel.com/merchants/logos/a%20menu.jpg',
+    expect(store.publicUrl('merchants/logos/m-1/a menu.jpg')).toBe(
+      'https://images.row-nel.com/merchants/logos/m-1/a%20menu.jpg',
     );
   });
 
@@ -85,7 +131,7 @@ describe('R2 key generation and signing', () => {
 
     const signed = await store.signPut(
       config.publicBucket,
-      'menu-items/a.jpg',
+      'menu-items/m-1/a.jpg',
       'image/jpeg',
       300,
     );
@@ -106,7 +152,7 @@ describe('R2 key generation and signing', () => {
     });
 
     await expect(
-      store.signGet(config.privateBucket, 'receipts/owner/file.png'),
+      store.signGet(config.privateBucket, 'receipts/owner/order/file.png'),
     ).resolves.toContain('X-Amz-Expires=300');
     expect(sign).toHaveBeenCalledOnce();
   });
@@ -118,7 +164,7 @@ describe('R2 key generation and signing', () => {
     const store = createR2Store(config, { signer: { sign }, fetch: vi.fn() });
 
     const message = await rejectedMessage(() =>
-      store.signGet(config.privateBucket, 'receipts/owner/file.png'),
+      store.signGet(config.privateBucket, 'receipts/owner/order/file.png'),
     );
 
     expect(message).toBe('R2 GET signing failed');
@@ -135,14 +181,14 @@ describe('R2 key generation and signing', () => {
       .mockResolvedValueOnce(response(500));
     const store = createR2Store(config, { fetch });
 
-    await expect(store.deleteObject(config.publicBucket, 'menu-items/a.jpg')).resolves.toBe(
+    await expect(store.deleteObject(config.publicBucket, 'menu-items/m-1/a.jpg')).resolves.toBe(
       true,
     );
-    await expect(store.deleteObject(config.publicBucket, 'menu-items/missing.jpg')).resolves.toBe(
+    await expect(store.deleteObject(config.publicBucket, 'menu-items/m-1/missing.jpg')).resolves.toBe(
       false,
     );
     const message = await rejectedMessage(() =>
-      store.deleteObject(config.publicBucket, 'menu-items/broken.jpg'),
+      store.deleteObject(config.publicBucket, 'menu-items/m-1/broken.jpg'),
     );
     expect(message).toMatch(/delete.*500/i);
     expect(message).not.toMatch(/secret|X-Amz|https?:\/\//i);
@@ -157,7 +203,7 @@ describe('R2 key generation and signing', () => {
     const store = createR2Store(config, { fetch });
 
     const message = await rejectedMessage(() =>
-      store.deleteObject(config.publicBucket, 'menu-items/network-error.jpg'),
+      store.deleteObject(config.publicBucket, 'menu-items/m-1/network-error.jpg'),
     );
 
     expect(message).toBe('R2 delete operation failed (network error)');
@@ -171,16 +217,16 @@ describe('R2 key generation and signing', () => {
     const store = createR2Store(config, { fetch });
     const bytes = new Uint8Array([1, 2, 3]);
 
-    await expect(store.headObject(config.privateBucket, 'receipts/owner/file.png')).resolves.toBe(
+    await expect(store.headObject(config.privateBucket, 'receipts/owner/order/file.png')).resolves.toBe(
       true,
     );
-    await expect(store.headObject(config.privateBucket, 'receipts/owner/missing.png')).resolves.toBe(
+    await expect(store.headObject(config.privateBucket, 'receipts/owner/order/missing.png')).resolves.toBe(
       false,
     );
 
     fetch.mockResolvedValueOnce(response(200));
     await expect(
-      store.putObject(config.privateBucket, 'receipts/owner/file.png', 'image/png', bytes),
+      store.putObject(config.privateBucket, 'receipts/owner/order/file.png', 'image/png', bytes),
     ).resolves.toBeUndefined();
 
     const request = fetch.mock.calls[2]?.[0] as Request;

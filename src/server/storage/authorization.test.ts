@@ -314,7 +314,7 @@ describe('authorizeStorageAction', () => {
       merchantId: 'merchant-1',
       customerUserId: 'customer-1',
       assignedRiderId: 'rider-1',
-      receiptObjectKey: 'receipts/customer-1/trusted.png',
+      receiptObjectKey: 'receipts/customer-1/order-1/trusted.png',
     };
 
     it.each(['create-upload', 'import-url'] as const)(

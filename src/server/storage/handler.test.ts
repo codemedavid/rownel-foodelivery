@@ -21,9 +21,9 @@ function makeDependencies(
     repository: makeRepository(),
     authorize: vi.fn().mockResolvedValue({ allowed: true }),
     r2: {
-      createObjectKey: vi.fn().mockReturnValue('menu-items/generated.jpg'),
+      createObjectKey: vi.fn().mockReturnValue('menu-items/merchant-1/generated.jpg'),
       publicUrl: vi.fn().mockReturnValue(
-        'https://images.row-nel.com/menu-items/generated.jpg',
+        'https://images.row-nel.com/menu-items/merchant-1/generated.jpg',
       ),
       signPut: vi.fn().mockResolvedValue('https://signed.example/put'),
       signGet: vi.fn().mockResolvedValue('https://signed.example/get'),
@@ -69,8 +69,8 @@ describe('createStorageHandler', () => {
     const payload = await response.json();
     expect(payload).toEqual({
       uploadUrl: 'https://signed.example/put',
-      objectKey: 'menu-items/generated.jpg',
-      publicUrl: 'https://images.row-nel.com/menu-items/generated.jpg',
+      objectKey: 'menu-items/merchant-1/generated.jpg',
+      publicUrl: 'https://images.row-nel.com/menu-items/merchant-1/generated.jpg',
       expiresAt: 1_300_000,
     });
     expect(JSON.stringify(payload)).not.toMatch(
@@ -83,7 +83,7 @@ describe('createStorageHandler', () => {
     );
     expect(deps.r2.signPut).toHaveBeenCalledWith(
       'rownel-public-images',
-      'menu-items/generated.jpg',
+      'menu-items/merchant-1/generated.jpg',
       'image/jpeg',
       300,
     );
@@ -188,13 +188,13 @@ describe('createStorageHandler', () => {
       action: 'delete',
       category: 'menu-item',
       context: { merchantId: '' },
-      reference: 'https://images.row-nel.com/menu-items/a.jpg',
+      reference: 'https://images.row-nel.com/menu-items/merchant-1/a.jpg',
     },
     {
       action: 'delete',
       category: 'menu-item',
       context: { merchantId: 'bad/id' },
-      reference: 'https://images.row-nel.com/menu-items/a.jpg',
+      reference: 'https://images.row-nel.com/menu-items/merchant-1/a.jpg',
     },
   ])('returns 400 for malformed storage input %#', async (body) => {
     const deps = makeDependencies();
@@ -207,7 +207,7 @@ describe('createStorageHandler', () => {
   });
 
   it('normalizes uppercase upload MIME before key creation and signing', async () => {
-    const createObjectKey = vi.fn().mockReturnValue('menu-items/generated.jpg');
+    const createObjectKey = vi.fn().mockReturnValue('menu-items/merchant-1/generated.jpg');
     const signPut = vi.fn().mockResolvedValue('https://signed.example/put');
     const deps = makeDependencies({
       r2: { ...makeDependencies().r2, createObjectKey, signPut },
@@ -230,14 +230,16 @@ describe('createStorageHandler', () => {
     );
     expect(signPut).toHaveBeenCalledWith(
       'rownel-public-images',
-      'menu-items/generated.jpg',
+      'menu-items/merchant-1/generated.jpg',
       'image/jpeg',
       300,
     );
   });
 
   it('returns a private grant with the server actor as receipt key owner', async () => {
-    const createObjectKey = vi.fn().mockReturnValue('receipts/customer-1/generated.png');
+    const createObjectKey = vi.fn().mockReturnValue(
+      'receipts/customer-1/order-1/generated.png',
+    );
     const signPut = vi.fn().mockResolvedValue('https://signed.example/private-put');
     const deps = makeDependencies({
       authenticate: vi.fn().mockResolvedValue({ id: 'customer-1', role: 'customer' }),
@@ -257,7 +259,7 @@ describe('createStorageHandler', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       uploadUrl: 'https://signed.example/private-put',
-      objectKey: 'receipts/customer-1/generated.png',
+      objectKey: 'receipts/customer-1/order-1/generated.png',
       expiresAt: 1_300_000,
     });
     expect(createObjectKey).toHaveBeenCalledWith('receipt', 'image/png', {
@@ -266,7 +268,7 @@ describe('createStorageHandler', () => {
     });
     expect(signPut).toHaveBeenCalledWith(
       'rownel-private-images',
-      'receipts/customer-1/generated.png',
+      'receipts/customer-1/order-1/generated.png',
       'image/png',
       300,
     );
@@ -295,6 +297,64 @@ describe('createStorageHandler', () => {
     expect(createObjectKey).toHaveBeenCalledWith('rider-photo', 'image/webp', {
       riderId: 'rider-1',
     });
+  });
+
+  it('signs merchant and global payment upload keys from authorized context', async () => {
+    const createObjectKey = vi
+      .fn()
+      .mockReturnValueOnce('payment-methods/merchant-1/merchant.png')
+      .mockReturnValueOnce('payment-methods/global/global.png');
+    const signPut = vi
+      .fn()
+      .mockResolvedValueOnce('https://signed.example/merchant-payment')
+      .mockResolvedValueOnce('https://signed.example/global-payment');
+    const deps = makeDependencies({
+      r2: { ...makeDependencies().r2, createObjectKey, signPut },
+    });
+    const handler = createStorageHandler(deps);
+
+    const merchantResponse = await handler(
+      request({
+        action: 'create-upload',
+        category: 'payment-qr',
+        mimeType: 'image/png',
+        size: 100,
+        context: { merchantId: 'merchant-1' },
+      }),
+    );
+    const globalResponse = await handler(
+      request({
+        action: 'create-upload',
+        category: 'payment-qr',
+        mimeType: 'image/png',
+        size: 100,
+        context: {},
+      }),
+    );
+
+    expect(merchantResponse.status).toBe(200);
+    expect(globalResponse.status).toBe(200);
+    expect(createObjectKey).toHaveBeenNthCalledWith(
+      1,
+      'payment-qr',
+      'image/png',
+      { merchantId: 'merchant-1' },
+    );
+    expect(createObjectKey).toHaveBeenNthCalledWith(2, 'payment-qr', 'image/png', {});
+    expect(signPut).toHaveBeenNthCalledWith(
+      1,
+      'rownel-public-images',
+      'payment-methods/merchant-1/merchant.png',
+      'image/png',
+      300,
+    );
+    expect(signPut).toHaveBeenNthCalledWith(
+      2,
+      'rownel-public-images',
+      'payment-methods/global/global.png',
+      'image/png',
+      300,
+    );
   });
 
   it('returns 403 without invoking storage when resource authorization is denied', async () => {
@@ -380,7 +440,7 @@ describe('createStorageHandler', () => {
         category: 'menu-item',
         context: { merchantId: 'merchant-1' },
         reference:
-          'https://images.row-nel.com/menu-items/generated.jpg?width=100#display',
+          'https://images.row-nel.com/menu-items/merchant-1/generated.jpg?width=100#display',
       }),
     );
 
@@ -388,7 +448,128 @@ describe('createStorageHandler', () => {
     expect(await response.json()).toEqual({ ok: true, deleted: false });
     expect(deleteObject).toHaveBeenCalledWith(
       'rownel-public-images',
-      'menu-items/generated.jpg',
+      'menu-items/merchant-1/generated.jpg',
+    );
+  });
+
+  it('lets real authorized staff delete a key scoped to their merchant', async () => {
+    const repository = makeRepository();
+    vi.mocked(repository.getStaff).mockResolvedValue({
+      active: true,
+      allMerchants: false,
+      merchantIds: ['merchant-a'],
+    });
+    const deleteObject = vi.fn().mockResolvedValue(true);
+    const deps = makeDependencies({
+      authenticate: vi.fn().mockResolvedValue({ id: 'staff-1', role: 'staff' }),
+      repository,
+      authorize: undefined,
+      r2: { ...makeDependencies().r2, deleteObject },
+    });
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'delete',
+        category: 'menu-item',
+        context: { merchantId: 'merchant-a' },
+        reference:
+          'https://images.row-nel.com/menu-items/merchant-a/generated.jpg',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deleteObject).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'menu-items/merchant-a/generated.jpg',
+    );
+  });
+
+  it('prevents real authorized staff from deleting another merchant key', async () => {
+    const repository = makeRepository();
+    vi.mocked(repository.getStaff).mockResolvedValue({
+      active: true,
+      allMerchants: false,
+      merchantIds: ['merchant-a'],
+    });
+    const deleteObject = vi.fn().mockResolvedValue(true);
+    const deps = makeDependencies({
+      authenticate: vi.fn().mockResolvedValue({ id: 'staff-1', role: 'staff' }),
+      repository,
+      authorize: undefined,
+      r2: { ...makeDependencies().r2, deleteObject },
+    });
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'delete',
+        category: 'menu-item',
+        context: { merchantId: 'merchant-a' },
+        reference:
+          'https://images.row-nel.com/menu-items/merchant-b/generated.jpg',
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(deleteObject).not.toHaveBeenCalled();
+  });
+
+  it('lets an admin delete any structurally valid merchant key', async () => {
+    const deleteObject = vi.fn().mockResolvedValue(true);
+    const deps = makeDependencies({
+      authorize: undefined,
+      r2: { ...makeDependencies().r2, deleteObject },
+    });
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'delete',
+        category: 'menu-item',
+        context: { merchantId: 'merchant-a' },
+        reference:
+          'https://images.row-nel.com/menu-items/merchant-b/generated.jpg',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deleteObject).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'menu-items/merchant-b/generated.jpg',
+    );
+  });
+
+  it('keeps global payment methods admin-only at the embedded key scope', async () => {
+    const repository = makeRepository();
+    vi.mocked(repository.getStaff).mockResolvedValue({
+      active: true,
+      allMerchants: false,
+      merchantIds: ['merchant-a'],
+    });
+    const staffDelete = vi.fn().mockResolvedValue(true);
+    const staffDeps = makeDependencies({
+      authenticate: vi.fn().mockResolvedValue({ id: 'staff-1', role: 'staff' }),
+      repository,
+      authorize: undefined,
+      r2: { ...makeDependencies().r2, deleteObject: staffDelete },
+    });
+    const body = {
+      action: 'delete',
+      category: 'payment-qr',
+      context: { merchantId: 'merchant-a' },
+      reference: 'https://images.row-nel.com/payment-methods/global/code.png',
+    };
+
+    const staffResponse = await createStorageHandler(staffDeps)(request(body));
+    const adminDelete = vi.fn().mockResolvedValue(true);
+    const adminDeps = makeDependencies({
+      r2: { ...makeDependencies().r2, deleteObject: adminDelete },
+    });
+    const adminResponse = await createStorageHandler(adminDeps)(
+      request({ ...body, context: {} }),
+    );
+
+    expect(staffResponse.status).toBe(400);
+    expect(staffDelete).not.toHaveBeenCalled();
+    expect(adminResponse.status).toBe(200);
+    expect(adminDelete).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'payment-methods/global/code.png',
     );
   });
 
@@ -402,14 +583,15 @@ describe('createStorageHandler', () => {
         action: 'delete',
         category: 'menu-item',
         context: { merchantId: 'merchant-1' },
-        reference: 'https://images.row-nel.com/menu-items/a%2Db.jpg?width=100#display',
+        reference:
+          'https://images.row-nel.com/menu-items/merchant-1/a%2Db.jpg?width=100#display',
       }),
     );
 
     expect(response.status).toBe(200);
     expect(deleteObject).toHaveBeenCalledWith(
       'rownel-public-images',
-      'menu-items/a-b.jpg',
+      'menu-items/merchant-1/a-b.jpg',
     );
   });
 
@@ -423,14 +605,14 @@ describe('createStorageHandler', () => {
         action: 'delete',
         category: 'menu-item',
         context: { merchantId: 'merchant-1' },
-        reference: 'HtTpS://images.row-nel.com/menu-items/a.jpg',
+        reference: 'HtTpS://images.row-nel.com/menu-items/merchant-1/a.jpg',
       }),
     );
 
     expect(response.status).toBe(200);
     expect(deleteObject).toHaveBeenCalledWith(
       'rownel-public-images',
-      'menu-items/a.jpg',
+      'menu-items/merchant-1/a.jpg',
     );
   });
 
@@ -449,45 +631,48 @@ describe('createStorageHandler', () => {
         action: 'delete',
         category: 'menu-item',
         context: { merchantId: 'merchant-1' },
-        reference: 'HTTPS://images.row-nel.com:8443/menu-items/a.jpg',
+        reference: 'HTTPS://images.row-nel.com:8443/menu-items/merchant-1/a.jpg',
       }),
     );
 
     expect(response.status).toBe(200);
     expect(deleteObject).toHaveBeenCalledWith(
       'rownel-public-images',
-      'menu-items/a.jpg',
+      'menu-items/merchant-1/a.jpg',
     );
   });
 
   it.each([
-    'https://images.row-nel.com.evil.test/menu-items/a.jpg',
-    'https://evil.test/menu-items/a.jpg',
-    'https://images.row-nel.com:8443/menu-items/a.jpg',
-    'https://user:password@images.row-nel.com/menu-items/a.jpg',
-    'ftp://images.row-nel.com/menu-items/a.jpg',
-    '/menu-items/a.jpg',
+    'https://images.row-nel.com.evil.test/menu-items/merchant-1/a.jpg',
+    'https://evil.test/menu-items/merchant-1/a.jpg',
+    'https://images.row-nel.com:8443/menu-items/merchant-1/a.jpg',
+    'https://user:password@images.row-nel.com/menu-items/merchant-1/a.jpg',
+    'ftp://images.row-nel.com/menu-items/merchant-1/a.jpg',
+    '/menu-items/merchant-1/a.jpg',
     'https://images.row-nel.com/promotions/a.jpg',
-    'https://images.row-nel.com/cdn-cgi/image/width=100/menu-items/a.jpg',
+    'https://images.row-nel.com/cdn-cgi/image/width=100/menu-items/merchant-1/a.jpg',
     'https:images.row-nel.com/promotions/../menu-items/a.jpg',
     'https:/images.row-nel.com/promotions/%2e%2e/menu-items/a.jpg',
     'https:///images.row-nel.com/menu-items/a.jpg',
     'https:////images.row-nel.com/menu-items/a.jpg',
     'https://images.row-nel.com/promotions/..\t/menu-items/a.jpg',
-    'https://images.row-nel.com/promotions/..\n/menu-items/a.jpg',
-    'https://images.row-nel.com/promotions/..\r/menu-items/a.jpg',
-    'https://images.row-nel.com/menu-items/a\u0000.jpg',
-    'https://images.row-nel.com/menu-items/a\u001F.jpg',
-    'https://images.row-nel.com/menu-items/a\u007F.jpg',
+    'https://images.row-nel.com/promotions/..\t/menu-items/merchant-1/a.jpg',
+    'https://images.row-nel.com/promotions/..\n/menu-items/merchant-1/a.jpg',
+    'https://images.row-nel.com/promotions/..\r/menu-items/merchant-1/a.jpg',
+    'https://images.row-nel.com/menu-items/merchant-1/a\u0000.jpg',
+    'https://images.row-nel.com/menu-items/merchant-1/a\u001F.jpg',
+    'https://images.row-nel.com/menu-items/merchant-1/a\u007F.jpg',
     'https://images.row-nel.com/promotions/../menu-items/a.jpg',
     'https://images.row-nel.com/promotions/%2e%2e/menu-items/a.jpg',
-    'https://images.row-nel.com/menu-items/%2e/a.jpg',
-    'https://images.row-nel.com/menu-items/%2e%2e/promotions/a.jpg',
-    'https://images.row-nel.com/menu-items/a%2fb.jpg',
-    'https://images.row-nel.com/menu-items/a%5cb.jpg',
-    'https://images.row-nel.com/menu-items\\a.jpg',
-    'https://images.row-nel.com/menu-items//a.jpg',
-    'https://images.row-nel.com/menu-items/a.svg',
+    'https://images.row-nel.com/promotions/../menu-items/merchant-1/a.jpg',
+    'https://images.row-nel.com/promotions/%2e%2e/menu-items/merchant-1/a.jpg',
+    'https://images.row-nel.com/menu-items/merchant-1/%2e/a.jpg',
+    'https://images.row-nel.com/promotions/%2e%2e/menu-items/merchant-1/a.jpg',
+    'https://images.row-nel.com/menu-items/merchant-1/a%2fb.jpg',
+    'https://images.row-nel.com/menu-items/merchant-1/a%5cb.jpg',
+    'https://images.row-nel.com/menu-items/merchant-1\\a.jpg',
+    'https://images.row-nel.com/menu-items/merchant-1//a.jpg',
+    'https://images.row-nel.com/menu-items/merchant-1/a.svg',
   ])('rejects an unsafe public deletion reference: %s', async (reference) => {
     const deps = makeDependencies();
     const response = await createStorageHandler(deps)(
@@ -564,7 +749,7 @@ describe('createStorageHandler', () => {
       merchantId: 'merchant-1',
       customerUserId: 'customer-1',
       assignedRiderId: null,
-      receiptObjectKey: 'receipts/customer-1/stored.jpg',
+      receiptObjectKey: 'receipts/customer-1/order-1/stored.jpg',
     });
 
     const response = await createStorageHandler(deps)(
@@ -572,7 +757,7 @@ describe('createStorageHandler', () => {
         action: 'delete',
         category: 'receipt',
         context: { orderId: 'order-1' },
-        reference: 'receipts/customer-1/old.jpg',
+        reference: 'receipts/customer-1/order-1/old.jpg',
       }),
     );
 
@@ -580,7 +765,7 @@ describe('createStorageHandler', () => {
     expect(await response.json()).toEqual({ ok: true, deleted: true });
     expect(deleteObject).toHaveBeenCalledWith(
       'rownel-private-images',
-      'receipts/customer-1/old.jpg',
+      'receipts/customer-1/order-1/old.jpg',
     );
   });
 
@@ -588,12 +773,12 @@ describe('createStorageHandler', () => {
     {
       role: 'admin' as const,
       id: 'admin-1',
-      reference: 'receipts/customer-2/old.jpg',
+      reference: 'receipts/customer-2/order-1/old.jpg',
     },
     {
       role: 'staff' as const,
       id: 'staff-1',
-      reference: 'receipts/customer-2/old.jpg',
+      reference: 'receipts/customer-2/order-1/old.jpg',
     },
   ])('lets authorized $role delete any structurally valid receipt key', async (entry) => {
     const repository = makeRepository();
@@ -628,6 +813,77 @@ describe('createStorageHandler', () => {
     expect(deps.r2.deleteObject).toHaveBeenCalledWith(
       'rownel-private-images',
       entry.reference,
+    );
+  });
+
+  it('prevents scoped staff from deleting a receipt key for another order', async () => {
+    const repository = makeRepository();
+    vi.mocked(repository.getOrder).mockResolvedValue({
+      id: 'order-a',
+      merchantId: 'merchant-a',
+      customerUserId: 'customer-1',
+      assignedRiderId: null,
+      receiptObjectKey: 'receipts/customer-1/order-a/stored.jpg',
+    });
+    vi.mocked(repository.getStaff).mockResolvedValue({
+      active: true,
+      allMerchants: false,
+      merchantIds: ['merchant-a'],
+    });
+    const deleteObject = vi.fn().mockResolvedValue(true);
+    const deps = makeDependencies({
+      authenticate: vi.fn().mockResolvedValue({ id: 'staff-1', role: 'staff' }),
+      repository,
+      authorize: undefined,
+      r2: { ...makeDependencies().r2, deleteObject },
+    });
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'delete',
+        category: 'receipt',
+        context: { orderId: 'order-a' },
+        reference: 'receipts/customer-1/order-b/old.jpg',
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(deleteObject).not.toHaveBeenCalled();
+  });
+
+  it('lets scoped staff delete a receipt key for the authorized order', async () => {
+    const repository = makeRepository();
+    vi.mocked(repository.getOrder).mockResolvedValue({
+      id: 'order-a',
+      merchantId: 'merchant-a',
+      customerUserId: 'customer-1',
+      assignedRiderId: null,
+      receiptObjectKey: 'receipts/customer-1/order-a/stored.jpg',
+    });
+    vi.mocked(repository.getStaff).mockResolvedValue({
+      active: true,
+      allMerchants: false,
+      merchantIds: ['merchant-a'],
+    });
+    const deleteObject = vi.fn().mockResolvedValue(true);
+    const deps = makeDependencies({
+      authenticate: vi.fn().mockResolvedValue({ id: 'staff-1', role: 'staff' }),
+      repository,
+      authorize: undefined,
+      r2: { ...makeDependencies().r2, deleteObject },
+    });
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'delete',
+        category: 'receipt',
+        context: { orderId: 'order-a' },
+        reference: 'receipts/customer-1/order-a/old.jpg',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deleteObject).toHaveBeenCalledWith(
+      'rownel-private-images',
+      'receipts/customer-1/order-a/old.jpg',
     );
   });
 
@@ -745,7 +1001,7 @@ describe('createStorageHandler', () => {
       overrides: {
         authorize: vi.fn().mockResolvedValue({
           allowed: true,
-          objectKey: 'receipts/customer-1/a.jpg',
+          objectKey: 'receipts/customer-1/order-1/a.jpg',
         }),
       },
       body: {
