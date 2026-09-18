@@ -13,7 +13,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
-        'src/lib/imagekit.ts',
+        'src/lib/storage.ts',
+        'src/lib/storageTypes.ts',
         'src/lib/imageCatalog.ts',
         'src/hooks/useImageUpload.ts',
         'src/components/OptimizedImage.tsx',
