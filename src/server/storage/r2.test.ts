@@ -12,6 +12,15 @@ const config = {
 
 const response = (status: number) => new Response(null, { status });
 
+const rejectedMessage = async (operation: () => Promise<unknown>): Promise<string> => {
+  try {
+    await operation();
+    return 'NO_ERROR';
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+};
+
 describe('R2 key generation and signing', () => {
   it('generates an opaque public key under the category prefix', () => {
     const store = createR2Store(config);
@@ -40,6 +49,9 @@ describe('R2 key generation and signing', () => {
     );
     expect(() => store.createObjectKey('receipt', 'image/png', {}, id)).toThrow(
       /ownerId/i,
+    );
+    expect(() => store.createObjectKey('rider-photo', 'image/webp', {}, id)).toThrow(
+      /riderId/i,
     );
   });
 
@@ -99,6 +111,22 @@ describe('R2 key generation and signing', () => {
     expect(sign).toHaveBeenCalledOnce();
   });
 
+  it('sanitizes signer failures for GET URLs', async () => {
+    const sensitiveMessage =
+      'secret at https://account.r2.cloudflarestorage.com/bucket/key?X-Amz-Signature=secret';
+    const sign = vi.fn().mockRejectedValue(new Error(sensitiveMessage));
+    const store = createR2Store(config, { signer: { sign }, fetch: vi.fn() });
+
+    const message = await rejectedMessage(() =>
+      store.signGet(config.privateBucket, 'receipts/owner/file.png'),
+    );
+
+    expect(message).toBe('R2 GET signing failed');
+    expect(message).not.toContain('secret');
+    expect(message).not.toContain('https://');
+    expect(message).not.toContain('X-Amz');
+  });
+
   it('deletes successfully, treats 404 as absent, and sanitizes errors', async () => {
     const fetch = vi
       .fn()
@@ -113,12 +141,29 @@ describe('R2 key generation and signing', () => {
     await expect(store.deleteObject(config.publicBucket, 'menu-items/missing.jpg')).resolves.toBe(
       false,
     );
-    await expect(store.deleteObject(config.publicBucket, 'menu-items/broken.jpg')).rejects.toThrow(
-      /delete.*500/i,
+    const message = await rejectedMessage(() =>
+      store.deleteObject(config.publicBucket, 'menu-items/broken.jpg'),
     );
-    await expect(store.deleteObject(config.publicBucket, 'menu-items/broken.jpg')).rejects.not.toThrow(
-      /secret|X-Amz|https?:\/\//i,
+    expect(message).toMatch(/delete.*500/i);
+    expect(message).not.toMatch(/secret|X-Amz|https?:\/\//i);
+  });
+
+  it('sanitizes network failures without exposing sensitive fetch text', async () => {
+    const fetch = vi.fn().mockRejectedValue(
+      new Error(
+        'secret at https://account.r2.cloudflarestorage.com/bucket/key?X-Amz-Signature=secret',
+      ),
     );
+    const store = createR2Store(config, { fetch });
+
+    const message = await rejectedMessage(() =>
+      store.deleteObject(config.publicBucket, 'menu-items/network-error.jpg'),
+    );
+
+    expect(message).toBe('R2 delete operation failed (network error)');
+    expect(message).not.toContain('secret');
+    expect(message).not.toContain('https://');
+    expect(message).not.toContain('X-Amz');
   });
 
   it('heads successfully, treats 404 as absent, and puts matching bytes and MIME', async () => {

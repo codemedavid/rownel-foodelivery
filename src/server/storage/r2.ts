@@ -176,10 +176,10 @@ export function createR2Store(config: R2Config, dependencies: R2Dependencies = {
     ): Promise<string> {
       const url = new URL(objectUrl(bucket, key));
       url.searchParams.set('X-Amz-Expires', String(expiresSeconds));
-      const request = await signer.sign(url.toString(), {
+      const request = await signedRequest('GET', bucket, key, {
         method: 'GET',
         aws: { signQuery: true, allHeaders: true },
-      });
+      }, url.toString());
       return request.url;
     },
 
