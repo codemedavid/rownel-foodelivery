@@ -115,7 +115,9 @@ async function authorizeReceipt(
   if (action !== 'create-download' && action !== 'delete') return DENIED;
   if (actor.role === 'rider') return DENIED;
   const order = await repo.getOrder(context.orderId);
-  if (!order?.receiptObjectKey) return DENIED;
+  if (!order) return DENIED;
+  const receiptObjectKey = order.receiptObjectKey;
+  if (action === 'create-download' && !receiptObjectKey) return DENIED;
 
   let authorized = actor.role === 'admin';
   if (actor.role === 'customer') authorized = order.customerUserId === actor.id;
@@ -124,9 +126,11 @@ async function authorizeReceipt(
   }
   if (!authorized) return DENIED;
 
-  return action === 'create-download'
-    ? { allowed: true, objectKey: order.receiptObjectKey }
-    : ALLOWED;
+  if (action === 'create-download') {
+    if (!receiptObjectKey) return DENIED;
+    return { allowed: true, objectKey: receiptObjectKey };
+  }
+  return ALLOWED;
 }
 
 export async function authorizeStorageAction(

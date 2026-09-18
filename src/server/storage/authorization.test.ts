@@ -443,8 +443,7 @@ describe('authorizeStorageAction', () => {
       { action: 'create-download' as const, order: null },
       { action: 'create-download' as const, order: { ...receiptOrder, receiptObjectKey: null } },
       { action: 'delete' as const, order: null },
-      { action: 'delete' as const, order: { ...receiptOrder, receiptObjectKey: null } },
-    ])('denies $action when its record or key is missing', async ({ action, order }) => {
+    ])('denies $action when its required record data is missing', async ({ action, order }) => {
       await expect(
         authorizeStorageAction(
           repository({ getOrder: vi.fn().mockResolvedValue(order) }),
@@ -454,6 +453,27 @@ describe('authorizeStorageAction', () => {
           { orderId: 'order-1' },
         ),
       ).resolves.toEqual({ allowed: false });
+    });
+
+    it.each([
+      { role: 'customer' as const, id: 'customer-1' },
+      { role: 'admin' as const, id: 'admin-1' },
+      { role: 'staff' as const, id: 'staff-1' },
+    ])('allows an authorized $role to delete when the stored key is null', async ({ role, id }) => {
+      const repo = repository({
+        getOrder: vi.fn().mockResolvedValue({ ...receiptOrder, receiptObjectKey: null }),
+        getStaff: vi.fn().mockResolvedValue({
+          active: true,
+          allMerchants: false,
+          merchantIds: ['merchant-1'],
+        }),
+      });
+
+      await expect(
+        authorizeStorageAction(repo, actor(role, id), 'delete', 'receipt', {
+          orderId: 'order-1',
+        }),
+      ).resolves.toEqual({ allowed: true });
     });
 
     it('allows admin receipt operations only when the required order data exists', async () => {
