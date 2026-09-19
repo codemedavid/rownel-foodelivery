@@ -5,7 +5,7 @@ import {
   PINNED_REMOTE_ADDRESSES,
   type PinnedRequestInit,
   type RemoteImage,
-} from './remoteImport';
+} from './remoteImport.js';
 
 const CLOUDFLARE_DOH_URL = 'https://cloudflare-dns.com/dns-query';
 

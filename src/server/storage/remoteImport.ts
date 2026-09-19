@@ -1,4 +1,4 @@
-import { MAX_IMAGE_BYTES } from '../../lib/storageTypes';
+import { MAX_IMAGE_BYTES } from '../../lib/storageTypes.js';
 
 export interface RemoteImage {
   bytes: Uint8Array;

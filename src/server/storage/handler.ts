@@ -5,16 +5,16 @@ import {
   type AssetCategory,
   type StorageContext,
   type UploadGrant,
-} from '../../lib/storageTypes';
+} from '../../lib/storageTypes.js';
 import {
   authorizeStorageAction,
   type AuthorizationResult,
   type StorageAction,
   type StorageActor,
   type StorageRepository,
-} from './authorization';
-import type { R2StorageContext } from './r2';
-import type { RemoteImage } from './remoteImport';
+} from './authorization.js';
+import type { R2StorageContext } from './r2.js';
+import type { RemoteImage } from './remoteImport.js';
 
 const GRANT_EXPIRY_SECONDS = 300;
 const CONTEXT_ID = /^[A-Za-z0-9_-]+$/;

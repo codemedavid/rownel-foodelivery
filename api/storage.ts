@@ -2,10 +2,10 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 import {
   type StorageActor,
   type StorageRepository,
-} from '../src/server/storage/authorization';
-import { createStorageHandler } from '../src/server/storage/handler';
-import { createR2Store, type R2Config } from '../src/server/storage/r2';
-import { createPinnedRemoteImageFetcher } from '../src/server/storage/storageNetwork';
+} from '../src/server/storage/authorization.js';
+import { createStorageHandler } from '../src/server/storage/handler.js';
+import { createR2Store, type R2Config } from '../src/server/storage/r2.js';
+import { createPinnedRemoteImageFetcher } from '../src/server/storage/storageNetwork.js';
 
 // Runs on Vercel's Node.js runtime, not Edge: `import-url` must connect to the exact
 // address it validated while still presenting the original hostname for TLS, and only

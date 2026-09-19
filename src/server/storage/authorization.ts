@@ -2,7 +2,7 @@ import {
   ASSET_CATEGORIES,
   type AssetCategory,
   type StorageContext,
-} from '../../lib/storageTypes';
+} from '../../lib/storageTypes.js';
 
 export interface StorageActor {
   id: string;
