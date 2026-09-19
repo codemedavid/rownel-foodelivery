@@ -32,3 +32,5 @@ coverage
 
 # Vercel CLI project link (created by `vercel link` / `vercel dev`)
 .vercel
+.env*
+!.env.example
