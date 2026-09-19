@@ -52,6 +52,12 @@ export interface ImageTransform {
 export interface UploadGrant {
   uploadUrl: string;
   objectKey: string;
+  /**
+   * The exact Content-Type the PUT must carry. It is signed into the upload URL, so R2
+   * rejects the upload if the browser sends anything else — including the same type in a
+   * different case. Always send this value rather than the one you asked for.
+   */
+  mimeType: string;
   publicUrl?: string;
   expiresAt: number;
 }

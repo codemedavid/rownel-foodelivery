@@ -14,7 +14,7 @@ import {
   type StorageRepository,
 } from './authorization.js';
 import type { R2StorageContext } from './r2.js';
-import type { RemoteImage } from './remoteImport.js';
+import { RemoteImageError, type RemoteImage } from './remoteImport.js';
 
 const GRANT_EXPIRY_SECONDS = 300;
 const CONTEXT_ID = /^[A-Za-z0-9_-]+$/;
@@ -428,7 +428,16 @@ export function createStorageHandler(deps: StorageHandlerDependencies) {
     }
 
     if (body.action === 'import-url') {
-      const image = await deps.fetchRemoteImage(body.sourceUrl);
+      // A source that is unreachable, private, oversized or not an image is the caller's
+      // mistake, so it answers 400 with the reason. Anything past this point is our own
+      // storage failing and stays behind the opaque 500 the outer catch produces.
+      let image: RemoteImage;
+      try {
+        image = await deps.fetchRemoteImage(body.sourceUrl);
+      } catch (error) {
+        if (error instanceof RemoteImageError) return json({ error: error.message }, 400);
+        throw error;
+      }
       const categoryConfig = ASSET_CATEGORIES[body.category];
       const keyContext =
         body.category === 'receipt'
@@ -476,6 +485,7 @@ export function createStorageHandler(deps: StorageHandlerDependencies) {
     const response: StorageResponse = {
       uploadUrl,
       objectKey,
+      mimeType: normalizedMime,
       ...(categoryConfig.visibility === 'public'
         ? { publicUrl: deps.r2.publicUrl(objectKey) }
         : {}),

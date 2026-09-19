@@ -1,5 +1,21 @@
 import { MAX_IMAGE_BYTES } from '../../lib/storageTypes.js';
 
+/**
+ * A remote import that failed because of the source, not because of us: a URL that is not
+ * HTTPS, a host that resolves somewhere private, an upstream error status, a body that is
+ * too large, or bytes that are not a supported image.
+ *
+ * The handler answers these with 400 and the message verbatim, so every message here must
+ * stay safe to show a caller: no URL, no resolved address, no internal detail. Faults on
+ * our own side keep throwing a plain Error and stay behind the opaque 500.
+ */
+export class RemoteImageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RemoteImageError';
+  }
+}
+
 export interface RemoteImage {
   bytes: Uint8Array;
   mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
@@ -196,9 +212,9 @@ function discardReader(reader: ReadableStreamDefaultReader<Uint8Array>): void {
 }
 
 function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-  if (signal.aborted) return Promise.reject(new Error('Remote image import timed out'));
+  if (signal.aborted) return Promise.reject(new RemoteImageError('Remote image import timed out'));
   return new Promise<T>((resolve, reject) => {
-    const abort = () => reject(new Error('Remote image import timed out'));
+    const abort = () => reject(new RemoteImageError('Remote image import timed out'));
     signal.addEventListener('abort', abort, { once: true });
     void promise.then(
       (value) => {
@@ -218,7 +234,7 @@ async function readBody(
   maxBytes: number,
   signal: AbortSignal,
 ): Promise<Uint8Array> {
-  if (!response.body) throw new Error('Remote image response did not include a body');
+  if (!response.body) throw new RemoteImageError('Remote image response did not include a body');
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -229,7 +245,7 @@ async function readBody(
       total += result.value.byteLength;
       if (total > maxBytes) {
         discardReader(reader);
-        throw new Error('Remote image exceeds the maximum allowed size');
+        throw new RemoteImageError('Remote image exceeds the maximum allowed size');
       }
       chunks.push(result.value);
     }
@@ -248,13 +264,13 @@ async function readBody(
 
 function assertSafeUrl(url: URL): void {
   if (url.protocol !== 'https:') {
-    throw new Error('Remote image URL must use HTTPS');
+    throw new RemoteImageError('Remote image URL must use HTTPS');
   }
   if (url.username || url.password) {
-    throw new Error('Remote image URL must not include credentials');
+    throw new RemoteImageError('Remote image URL must not include credentials');
   }
   if (url.port && url.port !== '443') {
-    throw new Error('Remote image URL must use the default HTTPS port');
+    throw new RemoteImageError('Remote image URL must use the default HTTPS port');
   }
   const hostname = url.hostname.replace(/\.$/, '').toLowerCase();
   if (
@@ -265,11 +281,11 @@ function assertSafeUrl(url: URL): void {
     hostname === 'internal' ||
     hostname.endsWith('.internal')
   ) {
-    throw new Error('Remote image host must resolve only to public addresses');
+    throw new RemoteImageError('Remote image host must resolve only to public addresses');
   }
   const kind = addressKind(hostname);
   if (kind && !isPublicAddress(hostname)) {
-    throw new Error('Remote image host must resolve only to public addresses');
+    throw new RemoteImageError('Remote image host must resolve only to public addresses');
   }
 }
 
@@ -285,10 +301,10 @@ async function assertPublicDestination(
   try {
     addresses = await abortable(resolvePublicAddresses(hostname, signal), signal);
   } catch {
-    throw new Error('Remote image host could not be safely resolved');
+    throw new RemoteImageError('Remote image host could not be safely resolved');
   }
   if (addresses.length === 0 || addresses.some((address) => !isPublicAddress(address))) {
-    throw new Error('Remote image host must resolve only to public addresses');
+    throw new RemoteImageError('Remote image host must resolve only to public addresses');
   }
   return addresses;
 }
@@ -305,7 +321,7 @@ export async function fetchRemoteImage(
   try {
     url = new URL(sourceUrl);
   } catch {
-    throw new Error('Remote image URL is invalid');
+    throw new RemoteImageError('Remote image URL is invalid');
   }
   assertSafeUrl(url);
   const controller = new AbortController();
@@ -342,44 +358,44 @@ export async function fetchRemoteImage(
           controller.signal,
         );
       } catch {
-        if (controller.signal.aborted) throw new Error('Remote image import timed out');
-        throw new Error('Remote image could not be fetched');
+        if (controller.signal.aborted) throw new RemoteImageError('Remote image import timed out');
+        throw new RemoteImageError('Remote image could not be fetched');
       }
 
       if ([301, 302, 303, 307, 308].includes(response.status)) {
         discardBody(response.body);
         const location = response.headers.get('location');
-        if (!location) throw new Error('Remote image redirect is missing Location');
+        if (!location) throw new RemoteImageError('Remote image redirect is missing Location');
         if (redirectCount >= maxRedirects) {
-          throw new Error('Remote image import encountered too many redirects');
+          throw new RemoteImageError('Remote image import encountered too many redirects');
         }
         try {
           url = new URL(location, url);
         } catch {
-          throw new Error('Remote image redirect URL is invalid');
+          throw new RemoteImageError('Remote image redirect URL is invalid');
         }
         redirectCount += 1;
         continue;
       }
       if (!response.ok) {
         discardBody(response.body);
-        throw new Error(`Remote image fetch failed with status ${response.status}`);
+        throw new RemoteImageError(`Remote image fetch failed with status ${response.status}`);
       }
       const contentLengthValue = response.headers.get('content-length');
       if (contentLengthValue && /^\d+$/.test(contentLengthValue)) {
         const contentLength = Number(contentLengthValue);
         if (Number.isFinite(contentLength) && contentLength > maxBytes) {
           discardBody(response.body);
-          throw new Error('Remote image exceeds the maximum allowed size');
+          throw new RemoteImageError('Remote image exceeds the maximum allowed size');
         }
       }
       const bytes = await readBody(response, maxBytes, controller.signal);
       const mimeType = detectMimeType(bytes);
-      if (!mimeType) throw new Error('Remote response is not a supported image');
+      if (!mimeType) throw new RemoteImageError('Remote response is not a supported image');
       return { bytes, mimeType, finalUrl: url.toString() };
     }
   } catch (error) {
-    if (controller.signal.aborted) throw new Error('Remote image import timed out');
+    if (controller.signal.aborted) throw new RemoteImageError('Remote image import timed out');
     throw error;
   } finally {
     clearTimeout(timer);

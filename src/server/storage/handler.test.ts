@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { MAX_IMAGE_BYTES } from '../../lib/storageTypes';
 import type { StorageRepository } from './authorization';
 import { createStorageHandler, type StorageHandlerDependencies } from './handler';
+import { RemoteImageError } from './remoteImport';
 
 const actor = { id: 'admin-1', role: 'admin' as const };
 
@@ -249,6 +250,7 @@ describe('createStorageHandler', () => {
     expect(payload).toEqual({
       uploadUrl: 'https://signed.example/put',
       objectKey: 'menu-items/merchant-1/generated.jpg',
+      mimeType: 'image/jpeg',
       publicUrl: 'https://images.row-nel.com/menu-items/merchant-1/generated.jpg',
       expiresAt: 1_300_000,
     });
@@ -454,6 +456,7 @@ describe('createStorageHandler', () => {
     expect(await response.json()).toEqual({
       uploadUrl: 'https://signed.example/private-put',
       objectKey: 'receipts/customer-1/order-1/generated.png',
+      mimeType: 'image/png',
       expiresAt: 1_300_000,
     });
     expect(createObjectKey).toHaveBeenCalledWith('receipt', 'image/png', {
@@ -1244,6 +1247,104 @@ describe('createStorageHandler', () => {
     expect(serialized).toBe('{"error":"Storage operation failed"}');
     expect(serialized).not.toMatch(
       /sample-secret|access-id|account-id|rownel-public-images|rownel-private-images|X-Amz|signed\.example/i,
+    );
+  });
+});
+
+// `import-url` is the one action whose failure is usually the caller's fault: a URL that is
+// not HTTPS, that resolves somewhere private, that 404s, or that serves something which is
+// not an image. Collapsing all of those into the catch-all 500 tells an admin who pasted a
+// bad link that our storage is broken, and it makes a blocked SSRF attempt look identical
+// to a real outage in the logs. Only a genuine fault on our side should read as 500.
+describe('createStorageHandler URL import failures', () => {
+  const importRequest = request({
+    action: 'import-url',
+    category: 'menu-item',
+    sourceUrl: 'http://example.com/image.jpg',
+    context: { merchantId: 'merchant-1' },
+  });
+
+  it('reports a rejected source URL as a client error naming the reason', async () => {
+    const deps = makeDependencies({
+      fetchRemoteImage: vi
+        .fn()
+        .mockRejectedValue(new RemoteImageError('Remote image URL must use HTTPS')),
+    });
+
+    const response = await createStorageHandler(deps)(importRequest.clone());
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: 'Remote image URL must use HTTPS',
+    });
+    expect(deps.r2.putObject).not.toHaveBeenCalled();
+  });
+
+  it('reports a blocked private destination without writing anything', async () => {
+    const deps = makeDependencies({
+      fetchRemoteImage: vi
+        .fn()
+        .mockRejectedValue(
+          new RemoteImageError('Remote image host must resolve only to public addresses'),
+        ),
+    });
+
+    const response = await createStorageHandler(deps)(importRequest.clone());
+
+    expect(response.status).toBe(400);
+    expect(deps.r2.putObject).not.toHaveBeenCalled();
+    expect(deps.r2.headObject).not.toHaveBeenCalled();
+  });
+
+  it('still hides an unexpected fault behind the opaque server error', async () => {
+    const deps = makeDependencies({
+      fetchRemoteImage: vi.fn().mockRejectedValue(new Error('socket died at 10.0.0.5')),
+    });
+
+    const response = await createStorageHandler(deps)(importRequest.clone());
+
+    expect(response.status).toBe(500);
+    expect(JSON.stringify(await response.json())).toBe('{"error":"Storage operation failed"}');
+  });
+
+  it('keeps a storage fault after a successful fetch on the server side of the line', async () => {
+    const deps = makeDependencies();
+    vi.mocked(deps.r2.putObject).mockRejectedValue(new Error('R2 put operation failed (503)'));
+
+    const response = await createStorageHandler(deps)(importRequest.clone());
+
+    expect(response.status).toBe(500);
+  });
+});
+
+// The presigned PUT signs `content-type` into X-Amz-SignedHeaders, so R2 rejects the upload
+// unless the browser reproduces that header byte for byte. The handler lowercases the
+// caller's mimeType before signing, which means a caller that sent `image/JPEG` and then
+// echoes its own string back on the PUT gets an opaque 403 from R2 that names nothing. The
+// grant therefore has to state the exact value that was signed.
+describe('createStorageHandler upload grant content type', () => {
+  it('states the content-type the browser must send back on the PUT', async () => {
+    const deps = makeDependencies();
+
+    const response = await createStorageHandler(deps)(
+      request({
+        action: 'create-upload',
+        category: 'menu-item',
+        mimeType: 'image/JPEG',
+        size: 1_024,
+        context: { merchantId: 'merchant-1' },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const grant = (await response.json()) as { mimeType: string };
+
+    expect(grant.mimeType).toBe('image/jpeg');
+    expect(deps.r2.signPut).toHaveBeenCalledWith(
+      'rownel-public-images',
+      'menu-items/merchant-1/generated.jpg',
+      grant.mimeType,
+      300,
     );
   });
 });

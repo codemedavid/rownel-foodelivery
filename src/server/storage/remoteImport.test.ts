@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  RemoteImageError,
   fetchRemoteImage,
   PINNED_REMOTE_ADDRESSES,
   type PinnedRemoteAddresses,
@@ -367,7 +368,10 @@ describe('fetchRemoteImage', () => {
       });
 
       await vi.advanceTimersByTimeAsync(25);
-      expect(rejection).toEqual(new Error('Remote image import timed out'));
+      // A timeout is the source's failure, not ours, so it must carry the type the
+      // handler answers 400 on rather than falling through to the opaque 500.
+      expect(rejection).toBeInstanceOf(RemoteImageError);
+      expect((rejection as Error).message).toBe('Remote image import timed out');
     } finally {
       vi.useRealTimers();
     }
