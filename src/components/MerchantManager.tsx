@@ -138,6 +138,10 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
     setEditingMerchant(null);
     setMerchantFormErrors({});
     setMerchantFormData({
+      // Logo and cover object keys are scoped by merchant id, so a merchant
+      // being created needs one before its images can be uploaded. Postgres
+      // accepts the same value on insert, so the key and the row agree.
+      id: crypto.randomUUID(),
       name: '',
       description: '',
       category: 'restaurant',
@@ -474,7 +478,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
         // Create new merchant
         const { error } = await supabase
           .from('merchants')
-          .insert(merchantData);
+          .insert({ ...merchantData, ...(merchantFormData.id ? { id: merchantFormData.id } : {}) });
 
         if (error) throw error;
         alert('Merchant created successfully');
@@ -828,6 +832,9 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
 
               <div className="mb-6">
                 <ImageUpload
+                  category="menu-item"
+                  label="Menu Item Image"
+                  context={{ merchantId: selectedMerchant?.id }}
                   currentImage={itemFormData.image}
                   onImageChange={(imageUrl) => setItemFormData({ ...itemFormData, image: imageUrl })}
                 />
@@ -1365,6 +1372,9 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">Logo</label>
                   <ImageUpload
+                    category="merchant-logo"
+                    label="Logo"
+                    context={{ merchantId: merchantFormData.id }}
                     currentImage={merchantFormData.logoUrl}
                     onImageChange={(imageUrl) => setMerchantFormData({ ...merchantFormData, logoUrl: imageUrl })}
                   />
@@ -1373,6 +1383,9 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">Cover Image</label>
                   <ImageUpload
+                    category="merchant-cover"
+                    label="Cover Image"
+                    context={{ merchantId: merchantFormData.id }}
                     currentImage={merchantFormData.coverImageUrl}
                     onImageChange={(imageUrl) => setMerchantFormData({ ...merchantFormData, coverImageUrl: imageUrl })}
                   />

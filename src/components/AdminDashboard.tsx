@@ -527,6 +527,9 @@ const AdminDashboard: React.FC = () => {
 
             <div className="mb-8">
               <ImageUpload
+                category="menu-item"
+                label="Menu Item Image"
+                context={{ merchantId: formData.merchantId }}
                 currentImage={formData.image}
                 onImageChange={(imageUrl) => setFormData({ ...formData, image: imageUrl })}
               />

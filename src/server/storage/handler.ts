@@ -1,6 +1,7 @@
 import {
   ALLOWED_IMAGE_TYPES,
   ASSET_CATEGORIES,
+  hasRequiredContext,
   MAX_IMAGE_BYTES,
   type AssetCategory,
   type StorageContext,
@@ -20,12 +21,6 @@ const GRANT_EXPIRY_SECONDS = 300;
 const CONTEXT_ID = /^[A-Za-z0-9_-]+$/;
 const SAFE_KEY_SEGMENT = /^[A-Za-z0-9_-]+$/;
 const SAFE_IMAGE_FILE = /^[A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp|gif)$/;
-const MERCHANT_CONTEXT_CATEGORIES: readonly AssetCategory[] = [
-  'menu-item',
-  'merchant-logo',
-  'merchant-cover',
-];
-
 export type StorageRequest =
   | {
       action: 'create-upload';
@@ -132,13 +127,6 @@ function parseContext(value: unknown): StorageContext | null {
     context[key] = id;
   }
   return context;
-}
-
-function hasRequiredContext(category: AssetCategory, context: StorageContext): boolean {
-  if (MERCHANT_CONTEXT_CATEGORIES.includes(category)) return Boolean(context.merchantId);
-  if (category === 'receipt') return Boolean(context.orderId);
-  if (category === 'rider-photo') return Boolean(context.riderId);
-  return true;
 }
 
 function parseStorageRequest(value: unknown): ParsedStorageRequest | null {

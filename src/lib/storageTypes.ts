@@ -40,6 +40,32 @@ export interface StorageContext {
   riderId?: string;
 }
 
+/**
+ * The context id a category cannot be stored without, or null when it needs none.
+ *
+ * An object key is scoped by this id, so the server rejects a request that omits
+ * it. The browser reads the same rule to disable an upload control it cannot yet
+ * satisfy, rather than letting the user pick a file and collecting a 400.
+ */
+export const REQUIRED_CONTEXT_KEY: Record<AssetCategory, keyof StorageContext | null> = {
+  'menu-item': 'merchantId',
+  'merchant-logo': 'merchantId',
+  'merchant-cover': 'merchantId',
+  'site-logo': null,
+  promotion: null,
+  'payment-qr': null,
+  receipt: 'orderId',
+  'rider-photo': 'riderId',
+};
+
+export function hasRequiredContext(
+  category: AssetCategory,
+  context: StorageContext
+): boolean {
+  const key = REQUIRED_CONTEXT_KEY[category];
+  return key === null || Boolean(context[key]);
+}
+
 export interface ImageTransform {
   width?: number;
   height?: number;

@@ -55,7 +55,7 @@ const SiteSettingsManager: React.FC = () => {
       
       // Upload new logo if selected
       if (logoFile) {
-        const uploadedUrl = await uploadImage(logoFile, 'site-logo');
+        const uploadedUrl = await uploadImage(logoFile, { category: 'site-logo' });
         logoUrl = uploadedUrl;
       }
 
