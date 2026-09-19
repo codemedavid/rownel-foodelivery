@@ -28,8 +28,6 @@ const STATUS_STEPS = [
   { key: 'completed', label: 'Completed', icon: CheckCircle, color: 'text-green-600' },
 ] as const;
 
-const ACTIVE_STATUSES = new Set(['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery']);
-
 interface LocalOrderRecord {
   orderId: string;
   merchantId: string;
@@ -164,8 +162,8 @@ function OrderDetail({ order }: { order: Order }) {
             <div key={item.id} className="flex justify-between items-start text-sm">
               <div>
                 <p className="font-medium">{item.name}</p>
-                {item.variation && <p className="text-gray-400 text-xs">{(item.variation as any).name}</p>}
-                {item.addOns && Array.isArray(item.addOns) && item.addOns.length > 0 && (
+                {item.variation ? <p className="text-gray-400 text-xs">{(item.variation as any).name}</p> : null}
+                {Array.isArray(item.addOns) && item.addOns.length > 0 && (
                   <p className="text-gray-400 text-xs">+ {(item.addOns as any[]).map((a) => a.name).join(', ')}</p>
                 )}
                 <p className="text-gray-400 text-xs">x{item.quantity}</p>

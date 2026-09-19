@@ -50,6 +50,24 @@ describe('useImageUpload', () => {
     expect(url).toBe(IK_URL);
   });
 
+  it('uploads into the caller-supplied folder instead of the menu default', async () => {
+    // Arrange
+    const compressed = makeFile({ name: 'logo.png' });
+    compressImageMock.mockResolvedValue(compressed);
+    uploadToImageKitMock.mockResolvedValue({ url: IK_URL, fileId: 'file-2' });
+    const { result } = renderHook(() => useImageUpload());
+
+    // Act
+    await act(async () => {
+      await result.current.uploadImage(makeFile(), 'site-logo');
+    });
+
+    // Assert
+    expect(uploadToImageKitMock).toHaveBeenCalledWith(compressed, {
+      folder: 'site-logo',
+    });
+  });
+
   it('reports uploading state while the upload is in flight', async () => {
     // Arrange
     let resolveUpload: (value: { url: string }) => void = () => {};

@@ -154,7 +154,7 @@ const MenuItemCard: React.FC<MenuItemCardProps> = ({
           </div>
         </div>
 
-        {item.trackInventory && item.stockQuantity !== null && (
+        {item.trackInventory && item.stockQuantity != null && (
           <div className="mt-3">
             {item.stockQuantity > (item.lowStockThreshold ?? 0) ? (
               <div className="flex items-center space-x-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">

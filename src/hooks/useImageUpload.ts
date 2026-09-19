@@ -14,7 +14,16 @@ export const useImageUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const uploadImage = async (file: File): Promise<string> => {
+  /**
+   * `folder` selects the storage prefix. It defaults to the menu folder because
+   * that is the common case, but callers uploading non-menu assets (the site
+   * logo, for example) must pass their own or their image lands among the menu
+   * items.
+   */
+  const uploadImage = async (
+    file: File,
+    folder: string = MENU_IMAGE_FOLDER
+  ): Promise<string> => {
     setUploading(true);
     setUploadProgress(0);
 
@@ -26,7 +35,7 @@ export const useImageUpload = () => {
       );
       setUploadProgress(PROGRESS_AFTER_COMPRESSION);
 
-      const { url } = await uploadToImageKit(compressedFile, { folder: MENU_IMAGE_FOLDER });
+      const { url } = await uploadToImageKit(compressedFile, { folder });
       setUploadProgress(PROGRESS_COMPLETE);
 
       return url;

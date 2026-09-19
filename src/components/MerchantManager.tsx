@@ -294,7 +294,9 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
 
         if (newItemError) throw newItemError;
 
-        const nestedInsertTasks: Promise<void>[] = [];
+        // Supabase query builders are thenables, not real Promises, so the results of
+        // `.then(...)` are PromiseLike. `Promise.all` accepts those unchanged.
+        const nestedInsertTasks: PromiseLike<void>[] = [];
 
         if (item.variation_groups?.length) {
           nestedInsertTasks.push(
@@ -1301,7 +1303,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                   {merchantFormErrors.address && (
                     <p className="mt-2 text-xs text-red-600">{merchantFormErrors.address}</p>
                   )}
-                  {merchantFormData.latitude !== null && merchantFormData.longitude !== null ? (
+                  {merchantFormData.latitude != null && merchantFormData.longitude != null ? (
                     <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       Location pinned ({merchantFormData.latitude.toFixed(6)}, {merchantFormData.longitude.toFixed(6)})
