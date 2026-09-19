@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-18
 
-**Status:** Approved
+**Status:** Approved — revised 2026-09-19 to match the accepted implementation (see Revision Log)
 
 **Scope:** Replace ImageKit with Cloudflare R2 for public and private image storage across the web app, mobile app, server endpoints, and catalog migration tools.
 
@@ -27,6 +27,19 @@
 Use the existing Vercel API layer to authenticate callers and issue narrowly scoped R2 presigned URLs. Web and mobile clients upload image bytes directly to R2 rather than proxying them through Vercel.
 
 This approach keeps the current application topology, prevents R2 credentials from reaching clients, and avoids Vercel request-size and bandwidth overhead. A Cloudflare Worker gateway was rejected because it would introduce another authentication-aware backend. Vercel-proxied uploads were rejected because they would route every image byte through a serverless function.
+
+### Function runtime
+
+`api/storage.ts` runs on the Vercel **Node.js** runtime, not the Edge runtime. The `import-url` action must connect to the exact IP address it validated (DNS-rebinding defense) while still presenting the original hostname for SNI and certificate validation. Edge `fetch` exposes no socket-level hook for that, so the only Edge option would be to connect by IP and override `Host`, which breaks TLS verification. Node's `undici` `Agent` accepts a per-request `connect.lookup`, which gives pinning without weakening TLS. Signing, authorization, and the other actions are runtime-neutral, so the whole route moves rather than splitting it into two functions.
+
+Consequences:
+
+- The route must export the **`fetch` Web Standard shape** (`export default { fetch(request: Request): Promise<Response> }`). On the Node.js runtime a bare default-exported function is interpreted as the legacy `(req, res)` handler and would receive an `IncomingMessage` instead of a `Request`, failing on every call. This differs from the Edge runtime, where a bare default function is correct, and is the one place the runtime change is visible in the code.
+- The route uses undici's own `fetch` with its `Agent`; mixing Node's bundled `fetch` with a dispatcher from the npm `undici` copy is unsupported and can fail at runtime.
+- Everything under `api/` is a deployable route, so helpers live under `src/server/`.
+- Cold starts are slightly slower than Edge, which is acceptable for an authenticated admin/staff/rider endpoint.
+
+`api/imagekit-auth.ts` stays on the Edge runtime with its bare default function; the two routes deliberately use different shapes because they run on different runtimes.
 
 ## Cloudflare and DNS Topology
 
@@ -56,25 +69,40 @@ The intended private schema is:
 
 Legacy URL columns remain readable until their data has been migrated and the compatibility window ends. Removing those columns is a later cleanup, not part of the initial cutover.
 
+### Receipt lifecycle
+
+A receipt is attached to an **existing** order. The `create-upload` and `import-url` receipt actions require an `orderId`, and the order must belong to the authenticated customer (or the caller must be an administrator). There is no pre-order receipt upload: the current web and mobile checkout flows do not upload receipt files, and `orders.receipt_url` is only ever populated from the order payload. The design therefore does not add a checkout-time upload, and any future receipt UI must run after order creation. Guest orders (no `customer_user_id`) cannot upload receipts through this API.
+
+### Mobile scope
+
+The mobile app maps `receipt_url` and `photo_url` into admin types but has no storage client. During the migration window mobile keeps rendering the legacy URL fields and must never render an object key as an image source. A mobile private-URL client that calls `POST /api/storage` with the Supabase session is a follow-up outside this migration; until it exists, admin/rider screens on mobile show the legacy URL or an unavailable state.
+
 ## Object Key Structure
 
 The server, not the client, generates object keys. A caller selects an allowed asset category and supplies metadata; it cannot supply an arbitrary destination key.
 
+Object keys are authorization boundaries, not just storage paths. Every category whose access is scoped to a merchant or owner embeds that scope in the key, so a delete or read request can be checked against the key without trusting client input.
+
 Public prefixes:
 
-- `menu-items/<uuid>.<ext>`
-- `merchants/logos/<uuid>.<ext>`
-- `merchants/covers/<uuid>.<ext>`
-- `site/logo/<uuid>.<ext>`
-- `promotions/<uuid>.<ext>`
-- `payment-methods/<uuid>.<ext>`
+- `menu-items/<merchant-id>/<uuid>.<ext>`
+- `merchants/logos/<merchant-id>/<uuid>.<ext>`
+- `merchants/covers/<merchant-id>/<uuid>.<ext>`
+- `payment-methods/<merchant-id>/<uuid>.<ext>` for merchant QR codes, `payment-methods/global/<uuid>.<ext>` for platform-wide ones
+- `site/logo/<uuid>.<ext>` (admin only, unscoped)
+- `promotions/<uuid>.<ext>` (admin only, unscoped)
 
 Private prefixes:
 
-- `receipts/<customer-id>/<uuid>.<ext>`
+- `receipts/<owner-user-id>/<order-id>/<uuid>.<ext>`
 - `rider-photos/<rider-id>/<uuid>.<ext>`
 
-The extension is derived from the validated MIME type. User filenames are metadata only and never form path segments. UUID-based keys prevent collisions and avoid exposing names, order numbers, phone numbers, or other personal information.
+Rules:
+
+- The extension is derived from the validated MIME type. User filenames are metadata only and never form path segments.
+- Scope segments come from server-validated context (staff merchant scope, the authenticated rider, the authenticated order owner), never from a client-supplied key.
+- Migrated legacy receipts use the order's `customer_user_id` as the owner segment. Orders placed without an account use the literal owner segment `guest`; such receipts are readable by administrators and merchant-scoped staff only, which matches the current rule that guests have no authenticated read path.
+- Keys that do not match a category's exact shape are treated as foreign and are never deleted or served through the API.
 
 ## Server API
 
@@ -120,7 +148,15 @@ Deletion is idempotent: an already absent object satisfies the request.
 
 The existing free-form URL field becomes an explicit import action. The endpoint accepts a public HTTPS source URL, validates it against server-side request-forgery rules, follows only safe redirects, enforces response size and time limits, validates the actual content type, and copies the bytes into the appropriate R2 bucket. The returned value is an R2 URL or object key; third-party URLs are never saved directly for new records.
 
-Private, loopback, link-local, reserved, and cloud-metadata address ranges are rejected before every request and after every redirect. DNS results are validated to prevent hostname rebinding. Downloads stop when they exceed the configured byte limit.
+Private, loopback, link-local, reserved, and cloud-metadata address ranges are rejected before every request and after every redirect. Downloads stop when they exceed the configured byte limit.
+
+Hardening requirements that the first implementation missed and that are now mandatory:
+
+- **Pinned connections.** The validated A/AAAA answers are passed to the transport, which connects only to those addresses while keeping the original hostname for SNI and certificate validation. Validating DNS and then letting the runtime resolve again is a time-of-check/time-of-use hole.
+- **Request-local pinning.** Pinned addresses travel with the request (a symbol-keyed field on the `RequestInit`), never through a shared hostname map, so concurrent imports cannot cross-contaminate.
+- **DNS-over-HTTPS status.** A Cloudflare DoH reply is only trusted when HTTP 200 **and** JSON `Status === 0`. A failed lookup for either family fails the whole import; a true NODATA answer for one family is allowed when the other family returned a public address.
+- **Transition addresses.** IPv4-mapped (`::ffff:0:0/96`) and 6to4 (`2002::/16`) IPv6 addresses are classified by their embedded IPv4 address; Teredo (`2001::/32`) is rejected outright.
+- **Bounded cleanup.** The 20-second budget covers resolution, every redirect hop, streaming, and cleanup. Cancelling a redirect body, an oversized body, or a stalled reader never waits past the deadline; on timeout the transport is destroyed rather than awaited.
 
 ## Client Storage Module
 
@@ -281,6 +317,10 @@ API helpers are separated from the platform handler so authorization and request
 12. Verify representative assets across the web and mobile apps, including private authorization paths.
 13. Monitor errors and leave ImageKit intact during the validation window.
 14. Plan ImageKit credential and asset removal as a separately approved cleanup.
+
+## Revision Log
+
+- **2026-09-19** — Reconciled with the accepted Tasks 1–4 and the Task 5 review: scoped object-key layout replaces the flat layout; `payment-methods/global`; `receipts/<owner>/<order>` with the `guest` owner rule for migrated guest orders; storage route moved from Edge to the Node.js runtime so `import-url` can pin connections; explicit receipt lifecycle and mobile scope; remote-import hardening requirements listed. The previous Edge-runtime and flat-key statements are superseded.
 
 ## Success Criteria
 
