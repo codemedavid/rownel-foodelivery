@@ -93,50 +93,59 @@ Migration tooling must generate this layout by importing `createR2Store` from `s
 
 Two facts about receipts that later tasks depend on: receipts attach only to an existing order the caller owns (no checkout-time upload exists or is planned), and mobile has no storage client, so mobile keeps rendering legacy URL fields and never renders an object key.
 
-## Current Work: Task 5 Is Not Yet Accepted
+## Task 5 Is Accepted
 
-The initial implementation is committed:
+Task 5 passed implementation, security review, and code/security-quality review.
 
-- `30c612e` — `feat: import remote images safely into R2`
+- `30c612e` — `feat: import remote images safely into R2` (initial implementation)
+- `1300c2c` — `fix: pin remote image imports to validated addresses` (remediation)
 
-It added:
+The remediation closed the four findings that blocked `30c612e`, plus three more
+raised during its own review, and moved the route to the Vercel Node.js runtime.
+It added `src/server/storage/storageNetwork.ts` (DoH resolver and pinned undici
+transport), `storageNetwork.test.ts`, and `apiStorageModule.test.ts`.
 
-- `src/server/storage/remoteImport.ts`
-- `src/server/storage/remoteImport.test.ts`
-- the `import-url` action in `src/server/storage/handler.ts`
-- production wiring in `api/storage.ts`
+At `1300c2c`: 266 focused storage tests and 526 full-suite tests pass, the
+targeted TypeScript check is clean, the project check matches the 68-error
+baseline exactly, and the production build succeeds with `undici` absent from the
+client bundle.
 
-At that commit, 226 focused storage tests and 486 full-suite tests passed, targeted TypeScript passed, and the production build passed. However, specification review rejected it for four Important security/robustness gaps:
+Verified against the real network as well as mocks: live Cloudflare DoH
+resolution, a live pinned HTTPS import, and refusal of `localtest.me` — a genuine
+public hostname that resolves to `127.0.0.1`, which is the actual rebinding
+vector rather than a simulated one.
 
-1. DNS results were validated but discarded before the actual connection, leaving a DNS-rebinding time-of-check/time-of-use gap. The transport must connect to a validated/pinned address while preserving the original HTTPS hostname for SNI and certificate validation.
-2. Cloudflare DoH HTTP-200 responses did not check the DNS JSON `Status`; a failed AAAA lookup could be treated like successful NODATA when A succeeded. Any family lookup failure must fail closed; true NODATA may remain empty.
-3. IPv6 `2002::/16` 6to4 addresses could embed private, loopback, or metadata IPv4 destinations. Reject that transition range or validate its embedded IPv4 address.
-4. Cleanup could exceed the whole-operation timeout by awaiting a stalled `reader.cancel()`. Redirect and oversized `Content-Length` response bodies also need bounded discard/cancellation and terminal abort behavior.
+### One item still open, by design
 
-The remediation subagent was interrupted to prepare this handoff. It left **uncommitted work in progress**. Preserve and inspect it before deciding whether to finish or replace it:
+Nothing in the code is outstanding, but the Vercel runtime behaviour cannot be
+proven locally. A unit test shows what the module exports; it cannot show what
+Vercel's loader does with it. **Task 15 step 3 remains a required gate:** after
+deploying, confirm a POST to `/api/storage` without a token returns **401**
+(handler reached) rather than 404 or 500 (handler not reached). If it does not,
+re-read the Function runtime section of the design spec before changing anything.
 
-- modified `package.json`
-- modified `package-lock.json`
-- modified `src/server/storage/remoteImport.ts`
-- untracked `api/storageNetwork.ts`
-- untracked `src/server/storage/storageNetwork.test.ts`
+### What the remediation changed
 
-The WIP adds `undici` and begins passing validated addresses to a pinned transport. It has not completed review and must not be considered production-ready. Run `git diff` first. Do not amend `30c612e`; commit the remediation separately.
+1. Validated addresses now travel with each request and the transport connects only
+   to them, keeping the original hostname for SNI and certificate validation.
+2. The route moved from the Edge to the Node.js runtime, and with it to Vercel's
+   `fetch` Web Standard export.
+3. The transport moved from `api/` to `src/server/storage/`, since Vercel deploys
+   every `api/*.ts` as a route.
+4. One transport per import, torn down in a `finally`; dispatchers are destroyed
+   when their body settles rather than outliving the request.
+5. Production uses the fail-closed DoH resolver that checks JSON `Status`.
+6. 6to4 is classified by its embedded IPv4; Teredo rejection is locked in by tests.
+7. Cancellation is never awaited, and redirect, failed, and oversized bodies are
+   all discarded.
+8. DNS lookups receive the operation's abort signal.
+9. Requests ask for `accept-encoding: identity`, so counted bytes are wire bytes.
+10. A latent bug surfaced while removing an `as never` cast that had been hiding a
+    real signature mismatch: Node may express the wanted address family as the
+    string `'IPv4'`/`'IPv6'`, which the numeric-only filter would have matched
+    against nothing, stranding the connection. Now normalized and tested.
 
-### Blocking findings on the WIP (2026-09-19 review)
-
-These were found by reading the WIP against the deployed configuration. Fix them as part of the remediation; the full plan's Task 5 Step 3b lists the exact steps and tests.
-
-1. **The transport cannot run where the route runs.** `api/storage.ts` exports `config = { runtime: 'edge' }`, but `undici`'s `Agent({ connect: { lookup } })` needs Node sockets. On Edge the code will fail at import or at first use. Pinning is not possible on Edge without breaking SNI/certificate validation, so the route moves to the Node.js runtime. This is a design change and is recorded in the spec's Function runtime section.
-
-   **Moving the runtime also changes the required export shape.** Vercel's Node.js runtime recognises a Web handler only from the `fetch` Web Standard export (`export default { fetch: handleStorageRequest }`). A bare default-exported function is the Edge convention; on Node it is read as the legacy `(req, res)` handler and the route would receive an `IncomingMessage` instead of a `Request`, failing on every request with a 500. `api/imagekit-auth.ts` keeps its bare default function because it stays on Edge.
-2. **`api/storageNetwork.ts` is in the wrong directory.** Vercel deploys every `api/*.ts` as a route; this file has no default export. Move it to `src/server/storage/storageNetwork.ts` and update the test import.
-3. **Dispatchers leak on success.** `createPinnedFetchTransport` only destroys a dispatcher on error or on `abort()`. Create one transport per `import-url` request, close each dispatcher after its body is consumed or cancelled, and call `transport.abort()` in a `finally` in `api/storage.ts`.
-4. **Production still uses the unhardened resolver.** `api/storage.ts` keeps an inline DoH resolver that ignores JSON `Status`. Replace it with `createCloudflareDnsResolver()` from the transport module.
-5. **Not yet addressed by the WIP at all:** 6to4 `2002::/16` (and Teredo `2001::/32`) classification, and bounded cleanup (`readBody` still awaits `reader.cancel()` without a deadline; redirect and rejected bodies are never cancelled).
-6. Keep using undici's own `fetch` with its `Agent` (the WIP does). Mixing Node's bundled `fetch` with the npm `undici` dispatcher is unsupported and can fail at runtime.
-
-### Task 5 acceptance checklist
+### Task 5 acceptance checklist (all satisfied at `1300c2c`)
 
 - Keep the exported `fetchRemoteImage` contract from the full plan.
 - `api/storage.ts` runs on the Node.js runtime; the pinned transport and DoH resolver live in `src/server/storage/storageNetwork.ts`; nothing without a default handler lives under `api/`.
@@ -158,7 +167,7 @@ These were found by reading the WIP against the deployed configuration. Fix them
 
 ## Remaining Tasks
 
-After Task 5 is accepted, execute the full plan in order:
+Task 5 is accepted. Execute the remainder of the plan in order:
 
 1. Task 6 — refactor browser upload library and `useImageUpload`.
 2. Task 7 — convert every public upload call site; make categories explicit; implement URL import and safe replacement cleanup.
