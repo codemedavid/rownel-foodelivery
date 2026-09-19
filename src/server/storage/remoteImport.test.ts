@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchRemoteImage } from './remoteImport';
+import {
+  fetchRemoteImage,
+  PINNED_REMOTE_ADDRESSES,
+  type PinnedRemoteAddresses,
+  type PinnedRequestInit,
+} from './remoteImport';
 
 describe('fetchRemoteImage', () => {
   it('rejects a non-HTTPS source before DNS or fetch', async () => {
@@ -58,6 +63,13 @@ describe('fetchRemoteImage', () => {
     'https://240.0.0.1/image.jpg',
     'https://[2001:db8::1]/image.jpg',
     'https://[ff02::1]/image.jpg',
+    // 6to4 (2002::/16) tunnels carry an embedded IPv4 destination.
+    'https://[2002:7f00:1::1]/image.jpg',
+    'https://[2002:a9fe:a9fe::1]/image.jpg',
+    'https://[2002:c0a8:101::1]/image.jpg',
+    'https://[2002:a00:1::1]/image.jpg',
+    // Teredo (2001::/32) is a transition range, never a public origin.
+    'https://[2001:0:5ef5:79fd::1]/image.jpg',
     'https://localhost/image.jpg',
     'https://service.local/image.jpg',
     'https://service.internal/image.jpg',
@@ -122,7 +134,7 @@ describe('fetchRemoteImage', () => {
       finalUrl: 'https://example.com/image',
     });
 
-    expect(resolvePublicAddresses).toHaveBeenCalledWith('example.com');
+    expect(resolvePublicAddresses).toHaveBeenCalledWith('example.com', expect.any(AbortSignal));
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://example.com/image',
       expect.objectContaining({
@@ -356,6 +368,203 @@ describe('fetchRemoteImage', () => {
 
       await vi.advanceTimersByTimeAsync(25);
       expect(rejection).toEqual(new Error('Remote image import timed out'));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it.each([
+    ['loopback', '2002:7f00:1::1'],
+    ['cloud metadata', '2002:a9fe:a9fe::1'],
+    ['a private network', '2002:c0a8:101::1'],
+  ])('rejects a 6to4 DNS answer embedding %s', async (_label, address) => {
+    const fetchImpl = vi.fn<typeof fetch>();
+
+    await expect(
+      fetchRemoteImage('https://example.com/image.jpg', {
+        fetch: fetchImpl,
+        resolvePublicAddresses: vi.fn().mockResolvedValue([address]),
+      }),
+    ).rejects.toThrow(/public/i);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('accepts a 6to4 address whose embedded IPv4 is public', async () => {
+    // 2002:5db8:d822::/48 embeds 93.184.216.34.
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(Uint8Array.from([0xff, 0xd8, 0xff, 1])));
+
+    await expect(
+      fetchRemoteImage('https://example.com/image.jpg', {
+        fetch: fetchImpl,
+        resolvePublicAddresses: vi.fn().mockResolvedValue(['2002:5db8:d822::1']),
+      }),
+    ).resolves.toMatchObject({ mimeType: 'image/jpeg' });
+  });
+
+  it('does not wait for a stalled cancel when the body exceeds the limit', async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(Uint8Array.from([0xff, 0xd8, 0xff]));
+        controller.enqueue(Uint8Array.from([1, 2]));
+      },
+      cancel: () => new Promise<void>(() => undefined),
+    });
+
+    await expect(
+      fetchRemoteImage(
+        'https://example.com/image',
+        {
+          fetch: vi.fn<typeof fetch>().mockResolvedValue(new Response(body)),
+          resolvePublicAddresses: vi.fn().mockResolvedValue(['93.184.216.34']),
+        },
+        { maxBytes: 4 },
+      ),
+    ).rejects.toThrow(/maximum allowed size/);
+  });
+
+  it('cancels a redirect response body before following it', async () => {
+    const cancel = vi.fn();
+    const redirectBody = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('<html>moved</html>'));
+      },
+      cancel,
+    });
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(redirectBody, {
+          status: 302,
+          headers: { location: 'https://example.com/final.jpg' },
+        }),
+      )
+      .mockImplementationOnce(async () => {
+        expect(cancel).toHaveBeenCalledOnce();
+        return new Response(Uint8Array.from([0xff, 0xd8, 0xff, 1]));
+      });
+
+    await expect(
+      fetchRemoteImage('https://example.com/image', {
+        fetch: fetchImpl,
+        resolvePublicAddresses: vi.fn().mockResolvedValue(['93.184.216.34']),
+      }),
+    ).resolves.toMatchObject({ mimeType: 'image/jpeg' });
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it('cancels the body of an unsuccessful response', async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('not found'));
+      },
+      cancel,
+    });
+
+    await expect(
+      fetchRemoteImage('https://example.com/image', {
+        fetch: vi.fn<typeof fetch>().mockResolvedValue(new Response(body, { status: 404 })),
+        resolvePublicAddresses: vi.fn().mockResolvedValue(['93.184.216.34']),
+      }),
+    ).rejects.toThrow(/status 404/);
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it('cancels the body of an oversized Content-Length response', async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(Uint8Array.from([0xff, 0xd8, 0xff]));
+      },
+      cancel,
+    });
+
+    await expect(
+      fetchRemoteImage('https://example.com/image', {
+        fetch: vi.fn<typeof fetch>().mockResolvedValue(
+          new Response(body, { headers: { 'content-length': String(10 * 1024 * 1024 + 1) } }),
+        ),
+        resolvePublicAddresses: vi.fn().mockResolvedValue(['93.184.216.34']),
+      }),
+    ).rejects.toThrow(/maximum allowed size/);
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it('pins each request to the addresses validated for its own hostname', async () => {
+    const seen: Array<{ url: string; pinned: PinnedRemoteAddresses }> = [];
+    const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
+      seen.push({
+        url: String(input),
+        pinned: (init as PinnedRequestInit)[PINNED_REMOTE_ADDRESSES],
+      });
+      return new Response(Uint8Array.from([0xff, 0xd8, 0xff, 1]));
+    });
+
+    await fetchRemoteImage('https://images.example/photo', {
+      fetch: fetchImpl,
+      resolvePublicAddresses: vi.fn().mockResolvedValue(['93.184.216.34']),
+    });
+
+    expect(seen).toEqual([
+      {
+        url: 'https://images.example/photo',
+        pinned: { hostname: 'images.example', addresses: ['93.184.216.34'] },
+      },
+    ]);
+  });
+
+  it('re-pins to the redirect target rather than reusing the first hostname', async () => {
+    const pinned: PinnedRemoteAddresses[] = [];
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce(async (_input, init) => {
+        pinned.push((init as PinnedRequestInit)[PINNED_REMOTE_ADDRESSES]);
+        return new Response(null, {
+          status: 302,
+          headers: { location: 'https://cdn.example/final.jpg' },
+        });
+      })
+      .mockImplementationOnce(async (_input, init) => {
+        pinned.push((init as PinnedRequestInit)[PINNED_REMOTE_ADDRESSES]);
+        return new Response(Uint8Array.from([0xff, 0xd8, 0xff, 1]));
+      });
+
+    await fetchRemoteImage('https://images.example/photo', {
+      fetch: fetchImpl,
+      resolvePublicAddresses: vi
+        .fn()
+        .mockResolvedValueOnce(['93.184.216.34'])
+        .mockResolvedValueOnce(['172.217.0.1', '93.184.216.34'])
+        .mockResolvedValue(['198.41.0.4']),
+    });
+
+    expect(pinned).toEqual([
+      { hostname: 'images.example', addresses: ['93.184.216.34'] },
+      { hostname: 'cdn.example', addresses: ['172.217.0.1', '93.184.216.34'] },
+    ]);
+  });
+  it('hands the operation signal to the resolver so a timeout cancels the lookup', async () => {
+    vi.useFakeTimers();
+    try {
+      let dnsSignal: AbortSignal | undefined;
+      const resolvePublicAddresses = vi.fn(
+        async (_hostname: string, signal?: AbortSignal): Promise<string[]> => {
+          dnsSignal = signal;
+          return new Promise<string[]>(() => undefined);
+        },
+      );
+      const result = fetchRemoteImage(
+        'https://example.com/image',
+        { fetch: vi.fn<typeof fetch>(), resolvePublicAddresses },
+        { timeoutMs: 25 },
+      );
+      const assertion = expect(result).rejects.toThrow('Remote image import timed out');
+
+      await vi.advanceTimersByTimeAsync(25);
+      await assertion;
+      expect(dnsSignal).toBeInstanceOf(AbortSignal);
+      expect(dnsSignal?.aborted).toBe(true);
     } finally {
       vi.useRealTimers();
     }

@@ -5,12 +5,19 @@ import {
 } from '../src/server/storage/authorization';
 import { createStorageHandler } from '../src/server/storage/handler';
 import { createR2Store, type R2Config } from '../src/server/storage/r2';
-import { fetchRemoteImage as fetchRemoteImageFromUrl } from '../src/server/storage/remoteImport';
+import { createPinnedRemoteImageFetcher } from '../src/server/storage/storageNetwork';
 
-export const config = { runtime: 'edge' };
+// Runs on Vercel's Node.js runtime, not Edge: `import-url` must connect to the exact
+// address it validated while still presenting the original hostname for TLS, and only
+// Node sockets expose the connection hook that makes that possible.
+//
+// The Node.js runtime selects a Web handler from the `fetch` Web Standard export. A bare
+// default-exported function would instead be read as the legacy (req, res) Node handler,
+// so the export shape below is load-bearing and is covered by apiStorageModule.test.ts.
 
 const LEGACY_ADMIN_EMAIL = 'admin@clickeats.com';
-const CLOUDFLARE_DOH_URL = 'https://cloudflare-dns.com/dns-query';
+
+const importRemoteImage = createPinnedRemoteImageFetcher();
 
 interface ServerConfig extends R2Config {
   supabaseUrl: string;
@@ -124,46 +131,7 @@ function createRepository(admin: SupabaseClient): StorageRepository {
   };
 }
 
-interface DnsJsonAnswer {
-  type?: unknown;
-  data?: unknown;
-}
-
-interface DnsJsonResponse {
-  Answer?: unknown;
-}
-
-async function resolveDnsRecord(hostname: string, type: 'A' | 'AAAA'): Promise<string[]> {
-  const url = new URL(CLOUDFLARE_DOH_URL);
-  url.searchParams.set('name', hostname);
-  url.searchParams.set('type', type);
-  const response = await globalThis.fetch(url.toString(), {
-    headers: { accept: 'application/dns-json' },
-    credentials: 'omit',
-  });
-  if (!response.ok) throw new Error('DNS resolution failed');
-
-  const payload = (await response.json()) as DnsJsonResponse;
-  if (payload.Answer === undefined) return [];
-  if (!Array.isArray(payload.Answer)) throw new Error('DNS resolution failed');
-  const expectedType = type === 'A' ? 1 : 28;
-  return (payload.Answer as DnsJsonAnswer[])
-    .filter(
-      (answer): answer is DnsJsonAnswer & { data: string } =>
-        answer?.type === expectedType && typeof answer.data === 'string',
-    )
-    .map((answer) => answer.data);
-}
-
-async function resolvePublicAddresses(hostname: string): Promise<string[]> {
-  const [ipv4, ipv6] = await Promise.all([
-    resolveDnsRecord(hostname, 'A'),
-    resolveDnsRecord(hostname, 'AAAA'),
-  ]);
-  return [...ipv4, ...ipv6];
-}
-
-export default async function handler(request: Request): Promise<Response> {
+async function handleStorageRequest(request: Request): Promise<Response> {
   const serverConfig = readServerConfig();
   if (!serverConfig) return json({ error: 'Storage service is not configured' }, 500);
 
@@ -183,12 +151,7 @@ export default async function handler(request: Request): Promise<Response> {
       },
       repository,
       r2,
-      fetchRemoteImage(sourceUrl) {
-        return fetchRemoteImageFromUrl(sourceUrl, {
-          fetch: globalThis.fetch,
-          resolvePublicAddresses,
-        });
-      },
+      fetchRemoteImage: importRemoteImage,
       config: {
         publicBucket: serverConfig.publicBucket,
         privateBucket: serverConfig.privateBucket,
@@ -199,3 +162,5 @@ export default async function handler(request: Request): Promise<Response> {
     return json({ error: 'Storage operation failed' }, 500);
   }
 }
+
+export default { fetch: handleStorageRequest };

@@ -8,13 +8,38 @@ export interface RemoteImage {
 
 export interface RemoteImportDependencies {
   fetch: typeof fetch;
-  resolvePublicAddresses(hostname: string): Promise<string[]>;
+  /**
+   * Resolve a hostname to its public addresses. The signal carries the whole
+   * operation's deadline, so a slow or hostile nameserver cannot hold a lookup open
+   * after the import has already given up on it.
+   */
+  resolvePublicAddresses(hostname: string, signal: AbortSignal): Promise<string[]>;
 }
 
 export interface RemoteImportOptions {
   maxBytes?: number;
   timeoutMs?: number;
   maxRedirects?: number;
+}
+
+export interface PinnedRemoteAddresses {
+  hostname: string;
+  addresses: readonly string[];
+}
+
+export const PINNED_REMOTE_ADDRESSES: unique symbol = Symbol('pinnedRemoteAddresses');
+
+export type PinnedRequestInit = RequestInit & {
+  [PINNED_REMOTE_ADDRESSES]: PinnedRemoteAddresses;
+};
+
+/**
+ * Reduce a URL hostname to the form used for validation and pinning: IPv6 literals
+ * without their brackets, and no trailing DNS root dot. Validation and pinning must
+ * agree on what counts as the same host, so both sides use this one definition.
+ */
+export function normalizeHostname(hostname: string): string {
+  return hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '');
 }
 
 function parseIpv4(address: string): number[] | null {
@@ -79,9 +104,23 @@ function isPublicIpv6(address: string): boolean {
     return isPublicIpv4(mapped);
   }
 
+  // 6to4 (2002::/16) tunnels embed an IPv4 destination in groups 1 and 2, so a
+  // 6to4 address is only as safe as the IPv4 address it carries.
+  if (groups[0] === 0x2002) {
+    const embedded = [
+      groups[1] >> 8,
+      groups[1] & 0xff,
+      groups[2] >> 8,
+      groups[2] & 0xff,
+    ].join('.');
+    return isPublicIpv4(embedded);
+  }
+
   const first = groups[0];
   if (first < 0x2000 || first > 0x3fff) return false;
-  // IANA special-purpose and documentation ranges within 2000::/3.
+  // IANA special-purpose and documentation ranges within 2000::/3. The 2001::/23
+  // protocol-assignment block covers Teredo (2001::/32) and the other transition
+  // mechanisms, none of which is a legitimate public image origin.
   if (first === 0x2001 && groups[1] <= 0x01ff) return false;
   if (first === 0x2001 && groups[1] === 0x0db8) return false;
   if (first === 0x3fff && groups[1] <= 0x0fff) return false;
@@ -131,6 +170,31 @@ function detectMimeType(
   return null;
 }
 
+/**
+ * Release a response body we are not going to read.
+ *
+ * The result is deliberately never awaited: a hostile or stalled peer must not be
+ * able to hold the whole import open through its cancellation promise. Freeing the
+ * underlying socket is the transport's job, which destroys its dispatcher per
+ * request.
+ */
+function discardBody(body: ReadableStream<Uint8Array> | null): void {
+  if (!body) return;
+  try {
+    void body.cancel().catch(() => undefined);
+  } catch {
+    // An already-locked or already-errored body needs no further cleanup.
+  }
+}
+
+function discardReader(reader: ReadableStreamDefaultReader<Uint8Array>): void {
+  try {
+    void reader.cancel().catch(() => undefined);
+  } catch {
+    // Cancellation is best effort; the caller's original error is what matters.
+  }
+}
+
 function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   if (signal.aborted) return Promise.reject(new Error('Remote image import timed out'));
   return new Promise<T>((resolve, reject) => {
@@ -164,13 +228,13 @@ async function readBody(
       if (result.done) break;
       total += result.value.byteLength;
       if (total > maxBytes) {
-        await reader.cancel().catch(() => undefined);
+        discardReader(reader);
         throw new Error('Remote image exceeds the maximum allowed size');
       }
       chunks.push(result.value);
     }
   } catch (error) {
-    await reader.cancel().catch(() => undefined);
+    discardReader(reader);
     throw error;
   }
   const bytes = new Uint8Array(total);
@@ -213,29 +277,30 @@ async function assertPublicDestination(
   url: URL,
   resolvePublicAddresses: RemoteImportDependencies['resolvePublicAddresses'],
   signal: AbortSignal,
-): Promise<void> {
-  const hostname = url.hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '');
-  if (addressKind(hostname)) return;
+): Promise<string[]> {
+  const hostname = normalizeHostname(url.hostname);
+  if (addressKind(hostname)) return [hostname];
 
   let addresses: string[];
   try {
-    addresses = await abortable(resolvePublicAddresses(hostname), signal);
+    addresses = await abortable(resolvePublicAddresses(hostname, signal), signal);
   } catch {
     throw new Error('Remote image host could not be safely resolved');
   }
   if (addresses.length === 0 || addresses.some((address) => !isPublicAddress(address))) {
     throw new Error('Remote image host must resolve only to public addresses');
   }
+  return addresses;
 }
 
 export async function fetchRemoteImage(
   sourceUrl: string,
   deps: RemoteImportDependencies,
-  _options: RemoteImportOptions = {},
+  options: RemoteImportOptions = {},
 ): Promise<RemoteImage> {
-  const maxBytes = _options.maxBytes ?? MAX_IMAGE_BYTES;
-  const timeoutMs = _options.timeoutMs ?? 20_000;
-  const maxRedirects = _options.maxRedirects ?? 3;
+  const maxBytes = options.maxBytes ?? MAX_IMAGE_BYTES;
+  const timeoutMs = options.timeoutMs ?? 20_000;
+  const maxRedirects = options.maxRedirects ?? 3;
   let url: URL;
   try {
     url = new URL(sourceUrl);
@@ -249,16 +314,31 @@ export async function fetchRemoteImage(
     let redirectCount = 0;
     while (true) {
       assertSafeUrl(url);
-      await assertPublicDestination(url, deps.resolvePublicAddresses, controller.signal);
+      const addresses = await assertPublicDestination(
+        url,
+        deps.resolvePublicAddresses,
+        controller.signal,
+      );
       let response: Response;
       try {
+        const requestInit: PinnedRequestInit = {
+          redirect: 'manual',
+          credentials: 'omit',
+          signal: controller.signal,
+          headers: {
+            accept: 'image/jpeg,image/png,image/webp,image/gif',
+            // Count wire bytes, not decompressed bytes: transparent decompression
+            // would let a small compressed body expand past the size ceiling before
+            // the ceiling can be applied.
+            'accept-encoding': 'identity',
+          },
+          [PINNED_REMOTE_ADDRESSES]: {
+            hostname: normalizeHostname(url.hostname),
+            addresses,
+          },
+        };
         response = await abortable(
-          deps.fetch(url.toString(), {
-            redirect: 'manual',
-            credentials: 'omit',
-            signal: controller.signal,
-            headers: { accept: 'image/jpeg,image/png,image/webp,image/gif' },
-          }),
+          deps.fetch(url.toString(), requestInit),
           controller.signal,
         );
       } catch {
@@ -267,6 +347,7 @@ export async function fetchRemoteImage(
       }
 
       if ([301, 302, 303, 307, 308].includes(response.status)) {
+        discardBody(response.body);
         const location = response.headers.get('location');
         if (!location) throw new Error('Remote image redirect is missing Location');
         if (redirectCount >= maxRedirects) {
@@ -281,12 +362,14 @@ export async function fetchRemoteImage(
         continue;
       }
       if (!response.ok) {
+        discardBody(response.body);
         throw new Error(`Remote image fetch failed with status ${response.status}`);
       }
       const contentLengthValue = response.headers.get('content-length');
       if (contentLengthValue && /^\d+$/.test(contentLengthValue)) {
         const contentLength = Number(contentLengthValue);
         if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+          discardBody(response.body);
           throw new Error('Remote image exceeds the maximum allowed size');
         }
       }
