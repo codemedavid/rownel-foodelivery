@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { SiteSettings, SiteSetting } from '../types';
+import { SiteSettings } from '../types';
 
 export const useSiteSettings = () => {
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);

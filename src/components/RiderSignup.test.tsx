@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -7,7 +6,6 @@ import RiderSignup from './RiderSignup';
 
 // ── Mock supabase ─────────────────────────────────────────────────────────────
 const mockSignUp = vi.fn();
-const mockInsertChain = { eq: vi.fn() };
 const mockFrom = vi.fn();
 
 vi.mock('../lib/supabase', () => ({

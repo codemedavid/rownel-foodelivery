@@ -267,6 +267,9 @@ function publicKeyFromReference(
   category: AssetCategory,
   configuredPublicUrl: string,
 ): string | null {
+  // Matching control characters is the point here: a reference carrying NUL, a
+  // C0/C1 control or DEL is rejected outright rather than parsed.
+  /* eslint-disable no-control-regex */
   if (
     !/^https?:\/\/[^/\\?#\s\u0000-\u001F\u007F]/i.test(reference) ||
     /[\u0000-\u001F\u007F]/.test(reference) ||
@@ -275,6 +278,7 @@ function publicKeyFromReference(
   ) {
     return null;
   }
+  /* eslint-enable no-control-regex */
   let url: URL;
   let publicUrl: URL;
   try {

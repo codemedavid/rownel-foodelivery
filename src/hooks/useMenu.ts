@@ -147,7 +147,7 @@ export const useMenu = (merchantId?: string) => {
 
       // Insert variation groups if any
       if (item.variationGroups && item.variationGroups.length > 0) {
-        const { data: insertedGroups, error: groupsError } = await supabase
+        const { error: groupsError } = await supabase
           .from('variation_groups')
           .insert(
             item.variationGroups.map(vg => ({
@@ -222,7 +222,6 @@ export const useMenu = (merchantId?: string) => {
 
   const updateMenuItem = async (id: string, updates: Partial<MenuItem>) => {
     try {
-      console.log('[DEBUG] updateMenuItem called with:', { id, updates });
       
       // Build update object, only including defined values
       const updateData: any = {};
@@ -242,16 +241,14 @@ export const useMenu = (merchantId?: string) => {
       if (updates.stockQuantity !== undefined) updateData.stock_quantity = updates.stockQuantity;
       if (updates.lowStockThreshold !== undefined) updateData.low_stock_threshold = updates.lowStockThreshold;
 
-      console.log('[DEBUG] updateData being sent to Supabase:', updateData);
 
       // Update menu item
-      const { data, error: itemError } = await supabase
+      const { error: itemError } = await supabase
         .from('menu_items')
         .update(updateData)
         .eq('id', id)
         .select();
 
-      console.log('[DEBUG] Supabase response:', { data, error: itemError });
 
       if (itemError) throw itemError;
 

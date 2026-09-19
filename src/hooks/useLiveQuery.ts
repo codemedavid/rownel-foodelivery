@@ -54,10 +54,8 @@ export function useLiveQuery<T>(
         setLoading(false);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!enabled) {
       generationRef.current++;
@@ -95,7 +93,6 @@ export function useLiveQuery<T>(
       if (timer) clearInterval(timer);
       if (channel) supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, pollMs, ...deps]);
 
   return { data, loading, error, refetch };

@@ -223,6 +223,10 @@ export function createPinnedFetchTransport(
       void dispatcher.destroy().catch(() => undefined);
     };
 
+    // Strip the pinned-addresses symbol before the init reaches the real fetch:
+    // it is this module's private channel, not a request option. The discarded
+    // binding is the removal, which is what the rule cannot see.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [PINNED_REMOTE_ADDRESSES]: _pinned, ...standardInit } = init as PinnedRequestInit;
     let response: Response;
     try {

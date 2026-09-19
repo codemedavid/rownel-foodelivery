@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Clock, Minus, Plus, ShoppingCart } from 'lucide-react';
-import { AddOn, MenuItem, Variation } from '../types';
+import { AddOn, Variation } from '../types';
 import { useMerchant } from '../contexts/MerchantContext';
 import { useMenuContext } from '../contexts/MenuContext';
 import { useCartContext } from '../contexts/CartContext';

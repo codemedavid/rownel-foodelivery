@@ -74,7 +74,7 @@ const AdminDashboard: React.FC = () => {
       try {
         setIsProcessing(true);
         await deleteMenuItem(id);
-      } catch (error) {
+      } catch {
         alert('Failed to delete item. Please try again.');
       } finally {
         setIsProcessing(false);
@@ -96,9 +96,6 @@ const AdminDashboard: React.FC = () => {
       lowStockThreshold: Math.max(0, Math.floor(Number(formData.lowStockThreshold ?? 0)))
     };
 
-    console.log('[DEBUG] handleSaveItem - formData:', formData);
-    console.log('[DEBUG] handleSaveItem - payload:', payload);
-    console.log('[DEBUG] handleSaveItem - editingItem:', editingItem);
 
     if (payload.trackInventory && (payload.stockQuantity === null || Number.isNaN(payload.stockQuantity))) {
       alert('Please provide a valid stock quantity when inventory tracking is enabled.');
@@ -107,7 +104,6 @@ const AdminDashboard: React.FC = () => {
 
     try {
       if (editingItem) {
-        console.log('[DEBUG] Calling updateMenuItem with id:', editingItem.id);
         await updateMenuItem(editingItem.id, payload);
       } else {
         await addMenuItem(payload as Omit<MenuItem, 'id'>);
@@ -150,7 +146,7 @@ const AdminDashboard: React.FC = () => {
         setSelectedItems([]);
         setShowBulkActions(false);
         alert(`Successfully deleted ${selectedItems.length} item(s).`);
-      } catch (error) {
+      } catch {
         alert('Failed to delete some items. Please try again.');
       } finally {
         setIsProcessing(false);
@@ -177,7 +173,7 @@ const AdminDashboard: React.FC = () => {
         setSelectedItems([]);
         setShowBulkActions(false);
         alert(`Successfully updated category for ${selectedItems.length} item(s)`);
-      } catch (error) {
+      } catch {
         alert('Failed to update some items');
       } finally {
         setIsProcessing(false);
@@ -207,29 +203,6 @@ const AdminDashboard: React.FC = () => {
   React.useEffect(() => {
     setShowBulkActions(selectedItems.length > 0);
   }, [selectedItems]);
-
-  const addVariation = () => {
-    const newVariation: Variation = {
-      id: `var-${Date.now()}`,
-      name: '',
-      price: 0
-    };
-    setFormData({
-      ...formData,
-      variations: [...(formData.variations || []), newVariation]
-    });
-  };
-
-  const updateVariation = (index: number, field: keyof Variation, value: string | number) => {
-    const updatedVariations = [...(formData.variations || [])];
-    updatedVariations[index] = { ...updatedVariations[index], [field]: value };
-    setFormData({ ...formData, variations: updatedVariations });
-  };
-
-  const removeVariation = (index: number) => {
-    const updatedVariations = formData.variations?.filter((_, i) => i !== index) || [];
-    setFormData({ ...formData, variations: updatedVariations });
-  };
 
   const addAddOn = () => {
     const newAddOn: AddOn = {

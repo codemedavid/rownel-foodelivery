@@ -60,7 +60,7 @@ export const useCategories = (merchantId?: string, menuItems?: any[]) => {
         }
       } else {
         // For admin views, fetch all categories
-        let query = supabase
+        const query = supabase
           .from('categories')
           .select('*')
           .eq('active', true);

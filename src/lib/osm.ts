@@ -9,14 +9,6 @@ export interface OSMAddressSuggestion {
 export const isWithinPhilippines = (lat: number, lng: number): boolean =>
   lat >= 4.5 && lat <= 21.5 && lng >= 116.9 && lng <= 126.7;
 
-interface NominatimResult {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-  address?: { country_code?: string };
-}
-
 interface NominatimReverseResult {
   place_id: number;
   display_name: string;

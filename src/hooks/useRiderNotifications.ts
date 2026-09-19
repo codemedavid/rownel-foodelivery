@@ -14,7 +14,7 @@ export function useRiderNotifications(offers: unknown[], totalUnread: number) {
       showNotification('New Delivery Order!', 'A new order is waiting for you — tap to view.');
     }
     prevOffersRef.current = offers.length;
-  }, [offers.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [offers.length]);
 
   useEffect(() => {
     if (prevUnreadRef.current === null) {
