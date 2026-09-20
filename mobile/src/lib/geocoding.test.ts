@@ -29,6 +29,15 @@ const placeProperties = {
   context: { country: { name: 'Philippines', country_code: 'PH' } },
 };
 
+const foreignProperties = {
+  mapbox_id: 'place-py',
+  feature_type: 'locality',
+  full_address: 'San Roque, Asuncion, Paraguay',
+  name: 'San Roque',
+  coordinates: { longitude: -57.5759, latitude: -25.2637 },
+  context: { country: { name: 'Paraguay', country_code: 'PY' } },
+};
+
 const collectionOf = (...properties: unknown[]) => ({
   type: 'FeatureCollection',
   features: properties.map((p) => ({ type: 'Feature', properties: p })),
@@ -182,7 +191,7 @@ describe('searchAddresses', () => {
     mockFetchOnce(collectionOf(addressProperties));
 
     // Act
-    await searchAddresses('Rizal', 4);
+    await searchAddresses('Rizal', { limit: 4 });
 
     // Assert
     const url = lastUrl();
@@ -207,6 +216,43 @@ describe('searchAddresses', () => {
     // Assert
     expect(results).toHaveLength(1);
     expect(results[0].placeId).toBe('addr-1');
+  });
+
+  it('biases results toward the supplied proximity point in lng,lat order', async () => {
+    // Arrange
+    mockFetchOnce(collectionOf(placeProperties));
+
+    // Act
+    await searchAddresses('Rizal Street', {
+      proximity: { latitude: 9.6496, longitude: 123.8854 },
+    });
+
+    // Assert
+    expect(lastUrl().searchParams.get('proximity')).toBe('123.8854,9.6496');
+  });
+
+  it('falls back to IP-based proximity when no reference point is known', async () => {
+    // Arrange
+    mockFetchOnce(collectionOf(placeProperties));
+
+    // Act
+    await searchAddresses('Rizal Street');
+
+    // Assert
+    expect(lastUrl().searchParams.get('proximity')).toBe('ip');
+  });
+
+  it('drops suggestions that fall outside the Philippines', async () => {
+    // Arrange
+    mockFetchOnce(collectionOf(foreignProperties, placeProperties));
+
+    // Act
+    const results = await searchAddresses('San Roque');
+
+    // Assert
+    expect(results.map((result) => result.displayName)).toEqual([
+      'Island Mall, Panglao, Bohol, Philippines',
+    ]);
   });
 
   it('throws when the access token is missing', async () => {

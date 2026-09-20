@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { searchAddresses, type AddressSuggestion } from '../lib/geocoding';
+import { searchAddresses, type AddressSuggestion, type ProximityPoint } from '../lib/geocoding';
+
+const SEARCH_DEBOUNCE_MS = 350;
+const MIN_QUERY_LENGTH = 3;
+const SUGGESTION_LIMIT = 10;
 
 interface AddressAutocompleteInputProps {
   label: string;
@@ -8,7 +12,8 @@ interface AddressAutocompleteInputProps {
   placeholder?: string;
   rows?: number;
   className?: string;
-  countryCodes?: string[];
+  /** Ranks nearby matches first — pass the pin or the customer's GPS fix. */
+  proximity?: ProximityPoint | null;
   onChange: (value: string) => void;
   onSelect: (suggestion: AddressSuggestion) => void;
   onClearSelection?: () => void;
@@ -21,7 +26,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   placeholder,
   rows = 3,
   className = 'w-full px-4 py-3 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200',
-  countryCodes,
+  proximity,
   onChange,
   onSelect,
   onClearSelection,
@@ -33,6 +38,11 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedFromSuggestionRef = useRef(false);
 
+  // Depend on the primitives, not the object: callers pass an inline literal,
+  // which would otherwise restart the debounce timer on every parent render.
+  const proximityLat = proximity?.latitude ?? null;
+  const proximityLng = proximity?.longitude ?? null;
+
   useEffect(() => {
     if (selectedFromSuggestionRef.current) {
       selectedFromSuggestionRef.current = false;
@@ -40,7 +50,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     }
 
     const query = value.trim();
-    if (query.length < 3) {
+    if (query.length < MIN_QUERY_LENGTH) {
       setSuggestions([]);
       setShowSuggestions(false);
       setSearchError(null);
@@ -52,7 +62,13 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
       try {
         setIsLoading(true);
         setSearchError(null);
-        const results = await searchAddresses(query, { countryCodes, limit: 5 });
+        const results = await searchAddresses(query, {
+          limit: SUGGESTION_LIMIT,
+          proximity:
+            proximityLat === null || proximityLng === null
+              ? null
+              : { latitude: proximityLat, longitude: proximityLng },
+        });
         if (!isCancelled) {
           setSuggestions(results);
           setShowSuggestions(results.length > 0);
@@ -68,13 +84,13 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
           setIsLoading(false);
         }
       }
-    }, 350);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       isCancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [countryCodes, value]);
+  }, [proximityLat, proximityLng, value]);
 
   useEffect(() => {
     const onClickOutside = (event: MouseEvent) => {

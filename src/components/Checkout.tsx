@@ -500,7 +500,11 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
                     onSelect={handleAddressSelected}
                     onClearSelection={clearAddressSelection}
                     placeholder="Enter your complete delivery address"
-                    countryCodes={['ph']}
+                    proximity={
+                      deliveryLatitude !== null && deliveryLongitude !== null
+                        ? { latitude: deliveryLatitude, longitude: deliveryLongitude }
+                        : null
+                    }
                   />
                   {addressOutsidePH && (
                     <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1.5">

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  PHILIPPINES_BOUNDS,
   isWithinPhilippines,
   reverseGeocode,
   searchAddresses,
@@ -38,6 +39,19 @@ const placeFeature = {
       region: { name: 'La Union' },
       country: { name: 'Philippines', country_code: 'PH' },
     },
+  },
+};
+
+const foreignFeature = {
+  type: 'Feature',
+  geometry: { type: 'Point', coordinates: [-57.5759, -25.2637] },
+  properties: {
+    mapbox_id: 'dXJuOm1ieHBsYzpQWQ',
+    feature_type: 'locality',
+    full_address: 'San Roque, Asuncion, Paraguay',
+    name: 'San Roque',
+    coordinates: { longitude: -57.5759, latitude: -25.2637 },
+    context: { country: { name: 'Paraguay', country_code: 'PY' } },
   },
 };
 
@@ -117,12 +131,12 @@ describe('searchAddresses', () => {
     expect(url.searchParams.get('access_token')).toBeTruthy();
   });
 
-  it('constrains results to the Philippines when country code ph is requested', async () => {
+  it('constrains every search to the Philippines without being asked', async () => {
     // Arrange
     fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
 
-    // Act
-    await searchAddresses('Balaoan', { countryCodes: ['ph'] });
+    // Act — no options at all, the way MerchantsList calls it
+    await searchAddresses('Balaoan');
 
     // Assert
     const url = lastRequestUrl();
@@ -130,17 +144,54 @@ describe('searchAddresses', () => {
     expect(url.searchParams.get('bbox')).toBe('116.9283,4.5873,126.6042,21.3218');
   });
 
-  it('omits the Philippine bounding box for other countries', async () => {
+  it('requests ten suggestions by default', async () => {
     // Arrange
     fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
 
     // Act
-    await searchAddresses('Manhattan', { countryCodes: ['us'] });
+    await searchAddresses('Balaoan');
 
     // Assert
-    const url = lastRequestUrl();
-    expect(url.searchParams.get('country')).toBe('us');
-    expect(url.searchParams.get('bbox')).toBeNull();
+    expect(lastRequestUrl().searchParams.get('limit')).toBe('10');
+  });
+
+  it('biases results toward the supplied proximity point in lng,lat order', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
+
+    // Act
+    await searchAddresses('Rizal Street', {
+      proximity: { latitude: 17.5965, longitude: 120.618 },
+    });
+
+    // Assert — Mapbox wants longitude first
+    expect(lastRequestUrl().searchParams.get('proximity')).toBe('120.618,17.5965');
+  });
+
+  it('falls back to IP-based proximity when no reference point is known', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
+
+    // Act
+    await searchAddresses('Rizal Street');
+
+    // Assert
+    expect(lastRequestUrl().searchParams.get('proximity')).toBe('ip');
+  });
+
+  it('drops suggestions that fall outside the Philippines', async () => {
+    // Arrange — a same-named barangay in Paraguay, as Mapbox returns unfiltered
+    fetchMock.mockResolvedValue(
+      okResponse(collectionOf(foreignFeature, placeFeature))
+    );
+
+    // Act
+    const results = await searchAddresses('San Roque');
+
+    // Assert
+    expect(results.map((result) => result.displayName)).toEqual([
+      'Balaoan, La Union, Philippines',
+    ]);
   });
 
   it('drops features that carry no usable coordinates', async () => {
@@ -241,5 +292,31 @@ describe('reverseGeocode', () => {
     await expect(reverseGeocode(17.5, 120.6)).rejects.toThrow(
       'Failed to reverse geocode location'
     );
+  });
+});
+
+describe('PHILIPPINES_BOUNDS', () => {
+  it('is a [southwest, northeast] pair in Mapbox [lng, lat] order', () => {
+    // Arrange
+    const [[west, south], [east, north]] = PHILIPPINES_BOUNDS;
+
+    // Assert — longitudes near 120, latitudes near 5..21
+    expect(west).toBeLessThan(east);
+    expect(south).toBeLessThan(north);
+    expect(west).toBeCloseTo(116.9283, 4);
+    expect(south).toBeCloseTo(4.5873, 4);
+    expect(east).toBeCloseTo(126.6042, 4);
+    expect(north).toBeCloseTo(21.3218, 4);
+  });
+
+  it('contains Manila and excludes Hong Kong', () => {
+    // Arrange
+    const [[west, south], [east, north]] = PHILIPPINES_BOUNDS;
+    const contains = (lng: number, lat: number) =>
+      lng >= west && lng <= east && lat >= south && lat <= north;
+
+    // Assert
+    expect(contains(120.9842, 14.5995)).toBe(true);
+    expect(contains(114.1694, 22.3193)).toBe(false);
   });
 });

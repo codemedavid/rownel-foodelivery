@@ -1302,7 +1302,14 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 ${
                       merchantFormErrors.address ? 'border-red-300 bg-red-50' : 'border-gray-300'
                     }`}
-                    countryCodes={['ph']}
+                    proximity={
+                      merchantFormData.latitude != null && merchantFormData.longitude != null
+                        ? {
+                            latitude: merchantFormData.latitude,
+                            longitude: merchantFormData.longitude,
+                          }
+                        : null
+                    }
                   />
                   <p className="mt-2 text-xs text-gray-500">
                     Start typing, then choose a suggested address to pin the merchant location.

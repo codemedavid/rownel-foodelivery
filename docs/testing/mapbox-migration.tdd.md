@@ -207,3 +207,72 @@ preserved proof; copy this section into the PR body if these changes are squashe
 | GREEN (web) | `Test Files 23 passed · Tests 268 passed` |
 | GREEN (mobile) | `Test Suites 36 passed · Tests 325 passed` |
 | Build | `npm run build` succeeds |
+
+---
+
+# Follow-up: Philippines-only search scope and result relevance
+
+**Reported:** autocomplete returned mostly international places, too few options, and matches "too far" away.
+
+## Root Causes (reproduced against the live Mapbox API)
+
+| # | Cause | Evidence |
+|---|---|---|
+| 1 | `MerchantsList.tsx` (customer "My location" picker) never passed `countryCodes`, so the request carried no `country` filter | `q=San Roque` with no `country` returned Paraguay, Spain, Colombia before any PH result |
+| 2 | No `proximity` bias — Mapbox ranked same-named streets nationwide equally | `q=Rizal Street` (country=ph, no proximity) returned Bislig, Mati, Tandag — all Mindanao, ~1,000 km from the service area |
+| 3 | `AddressAutocompleteInput` hard-coded `limit: 5`; Mapbox allows 10 | only 5 rows ever rendered |
+| 4 | `countryCodes={['ph']}` was passed as an inline array literal into a `useEffect` dependency, restarting the 350 ms debounce on every parent render | `useEffect(..., [countryCodes, value])` with a new array identity each render |
+
+## Changes
+
+- **`searchAddresses` now enforces the Philippines itself** — `country=ph` + `bbox` are always sent; the
+  `countryCodes` option is gone. A call site can no longer forget the filter, which is what caused cause 1.
+- **Proximity bias added** — callers pass the pin / GPS fix; absent that, `proximity=ip` lets Mapbox infer the
+  searcher's region. Converted to `lng,lat` at the Mapbox boundary only.
+- **Default limit raised 5 → 10** (the Mapbox forward-geocoding maximum).
+- **Defensive post-filter** — any suggestion outside the PH box is dropped even if the API returns one.
+- **`PHILIPPINES_BOUNDS` exported and applied as `maxBounds`** on the map, so panning stops at the coastline and
+  a pin cannot be dropped abroad.
+- Debounce dependency now uses lat/lng primitives instead of the object identity.
+
+## RED → GREEN
+
+| Stage | Command | Result |
+|---|---|---|
+| RED (web) | `npx vitest run src/lib/geocoding.test.ts` | `Tests 7 failed | 12 passed (19)` |
+| RED (mobile) | `npx jest src/lib/geocoding.test.ts` | `Tests: 3 failed, 17 passed, 20 total` |
+| GREEN (web) | `npx vitest run src/lib/geocoding.test.ts` | `Tests 19 passed (19)` |
+| GREEN (mobile) | `npx jest src/lib/geocoding.test.ts` | `Tests: 20 passed, 20 total` |
+| Full web suite | `npx vitest run` | `Test Files 35 passed · Tests 603 passed` |
+| Full mobile suite | `cd mobile && npx jest` | `Test Suites 36 passed · Tests 328 passed` |
+| Typecheck | `npx tsc --noEmit` | 0 errors |
+| Build | `npm run build` | `✓ built in 4.63s` |
+
+## Test Specification (added)
+
+| # | What is guaranteed | Test | Type |
+|---|---|---|---|
+| 1 | Every search is clamped to `country=ph` + PH bbox even when called with no options | `src/lib/geocoding.test.ts:constrains every search to the Philippines without being asked` | unit |
+| 2 | Ten suggestions are requested by default | `src/lib/geocoding.test.ts:requests ten suggestions by default` | unit |
+| 3 | A supplied proximity point is sent as `lng,lat`, not `lat,lng` | `src/lib/geocoding.test.ts:biases results toward the supplied proximity point in lng,lat order` | unit |
+| 4 | Proximity falls back to `ip` when no reference point is known | `src/lib/geocoding.test.ts:falls back to IP-based proximity when no reference point is known` | unit |
+| 5 | A foreign suggestion is dropped even if the API returns one | `src/lib/geocoding.test.ts:drops suggestions that fall outside the Philippines` | unit |
+| 6 | `PHILIPPINES_BOUNDS` is `[southwest, northeast]` in Mapbox `[lng, lat]` order | `src/lib/geocoding.test.ts:is a [southwest, northeast] pair in Mapbox [lng, lat] order` | unit |
+| 7 | The bounds contain Manila and exclude Hong Kong | `src/lib/geocoding.test.ts:contains Manila and excludes Hong Kong` | unit |
+| 8–10 | Same proximity / PH-filter guarantees on mobile | `mobile/src/lib/geocoding.test.ts` | unit |
+
+`src/lib/geocoding.ts` coverage: **96.38% stmts, 79.31% branch, 100% funcs, 97.46% lines**.
+
+## Live Verification
+
+`q=San Roque`, `q=Rizal Street`, `q=Poblacion` with the exact parameter set the app now sends
+(`country=ph`, `bbox`, `proximity=ip`, `limit=10`) returned 100% Philippine results, all within the
+searcher's own region (La Union / Pangasinan / Ilocos / Benguet). No foreign results in any query.
+
+## Known Gaps
+
+- `maxBounds` on `<Map>` is a declarative prop and is not unit-tested — the test setup mocks
+  `react-map-gl/mapbox` as a passthrough, so props are not observable. The coordinate-order risk it carries is
+  covered instead by the two `PHILIPPINES_BOUNDS` tests above. Still worth a manual smoke test.
+- `proximity=ip` depends on Mapbox's IP geolocation. On a VPN or a mis-located IP the bias will be wrong, but
+  `country=ph` still bounds the result set, so the failure mode is "less relevant", never "foreign".

@@ -6,10 +6,17 @@ const FORWARD_URL = 'https://api.mapbox.com/search/geocode/v6/forward';
 const REVERSE_URL = 'https://api.mapbox.com/search/geocode/v6/reverse';
 
 const REQUEST_TIMEOUT_MS = 8000;
-const DEFAULT_SUGGESTION_LIMIT = 6;
+// 10 is the Mapbox forward-geocoding maximum.
+const MAX_SUGGESTION_LIMIT = 10;
+const DEFAULT_SUGGESTION_LIMIT = MAX_SUGGESTION_LIMIT;
+
+// Lets Mapbox rank nearby streets above same-named ones across the country
+// when the caller has no coordinates of its own to offer.
+const IP_PROXIMITY = 'ip';
 
 // minLon,minLat,maxLon,maxLat — bounds autocomplete to the archipelago.
 const PHILIPPINES_BBOX = '116.9283,4.5873,126.6042,21.3218';
+const PHILIPPINES_COUNTRY_CODE = 'ph';
 const PH_LAT_MIN = 4.5;
 const PH_LAT_MAX = 21.5;
 const PH_LNG_MIN = 116.9;
@@ -70,6 +77,20 @@ export const formatStreetLine = (properties: MapboxFeatureProperties): string =>
   const composed = [houseNumber, streetName].filter(Boolean).join(' ').trim();
 
   return composed || properties.name?.trim() || 'Current location';
+};
+
+/** A point to rank results around — usually the phone's last GPS fix. */
+export interface ProximityPoint {
+  latitude: number;
+  longitude: number;
+}
+
+const toProximityParam = (proximity?: ProximityPoint | null): string => {
+  if (!proximity) return IP_PROXIMITY;
+  const { latitude, longitude } = proximity;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return IP_PROXIMITY;
+  // Mapbox takes [lng, lat] — the opposite order to the rest of this app.
+  return `${longitude},${latitude}`;
 };
 
 const requireAccessToken = (): string => {
@@ -155,17 +176,19 @@ export const reverseGeocode = async (
 /** Address autocomplete, bounded to the Philippines like the web checkout. */
 export const searchAddresses = async (
   query: string,
-  limit = DEFAULT_SUGGESTION_LIMIT
+  options?: { limit?: number; proximity?: ProximityPoint | null }
 ): Promise<AddressSuggestion[]> => {
   const trimmed = query.trim();
   if (!trimmed) return [];
 
+  const limit = Math.min(options?.limit ?? DEFAULT_SUGGESTION_LIMIT, MAX_SUGGESTION_LIMIT);
   const features = await fetchFeatures(
     buildUrl(FORWARD_URL, {
       q: trimmed,
       limit: String(limit),
-      country: 'ph',
+      country: PHILIPPINES_COUNTRY_CODE,
       bbox: PHILIPPINES_BBOX,
+      proximity: toProximityParam(options?.proximity),
     })
   );
 
@@ -183,5 +206,8 @@ export const searchAddresses = async (
         countryCode: readCountryCode(properties),
       };
     })
-    .filter((suggestion): suggestion is AddressSuggestion => suggestion !== null);
+    .filter((suggestion): suggestion is AddressSuggestion => suggestion !== null)
+    // Belt and braces: the country filter should already have done this, but a
+    // foreign suggestion is worse than no suggestion for a PH-only app.
+    .filter((suggestion) => isWithinPhilippines(suggestion.latitude, suggestion.longitude));
 };

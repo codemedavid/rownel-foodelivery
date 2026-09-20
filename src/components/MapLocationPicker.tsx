@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Layer, Marker, Source, type MapRef, type MapMouseEvent } from 'react-map-gl/mapbox';
 import { MapPin, Navigation, Loader2 } from 'lucide-react';
-import { reverseGeocode } from '../lib/geocoding';
+import { reverseGeocode, PHILIPPINES_BOUNDS } from '../lib/geocoding';
 import type { AddressSuggestion } from '../lib/geocoding';
 import { createCirclePolygon } from '../lib/geoCircle';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
@@ -24,7 +24,6 @@ interface MapLocationPickerProps {
   showSearch?: boolean;
   showGpsButton?: boolean;
   searchPlaceholder?: string;
-  countryCodes?: string[];
 }
 
 const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
@@ -37,7 +36,6 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   showSearch = true,
   showGpsButton = false,
   searchPlaceholder = 'Search for a location...',
-  countryCodes = ['ph'],
 }) => {
   const mapRef = useRef<MapRef>(null);
 
@@ -160,7 +158,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
               onSelect={handleSearchSelect}
               placeholder={searchPlaceholder}
               rows={1}
-              countryCodes={countryCodes}
+              proximity={markerPos}
               className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
             />
           </div>
@@ -194,6 +192,9 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
           }}
           style={{ height: '100%', width: '100%' }}
           onClick={handleMapClick}
+          // The app delivers only inside the Philippines, so panning stops at
+          // the coastline rather than letting a pin be dropped abroad.
+          maxBounds={PHILIPPINES_BOUNDS}
           scrollZoom
         >
           {radiusPolygon && (

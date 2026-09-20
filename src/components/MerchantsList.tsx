@@ -852,6 +852,7 @@ const MerchantsList: React.FC = () => {
               value={manualLocationInput}
               rows={1}
               placeholder="Search street, building, or area"
+              proximity={userLocation ?? null}
               className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 focus:border-green-800 focus:ring-2 focus:ring-green-800/30"
               onChange={(value) => {
                 setManualLocationInput(value);

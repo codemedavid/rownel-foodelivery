@@ -8,10 +8,36 @@
 const FORWARD_URL = 'https://api.mapbox.com/search/geocode/v6/forward';
 const REVERSE_URL = 'https://api.mapbox.com/search/geocode/v6/reverse';
 
-const DEFAULT_SUGGESTION_LIMIT = 8;
+// 10 is the Mapbox forward-geocoding maximum; fewer than that and the one
+// street the customer actually lives on often falls off the end of the list.
+const MAX_SUGGESTION_LIMIT = 10;
+const DEFAULT_SUGGESTION_LIMIT = MAX_SUGGESTION_LIMIT;
 
-// minLon,minLat,maxLon,maxLat — biases search to the Philippine archipelago.
-const PHILIPPINES_BBOX = '116.9283,4.5873,126.6042,21.3218';
+// Without a reference point Mapbox ranks a "Rizal Street" in Davao level with
+// one two blocks away. 'ip' lets Mapbox infer the searcher's region when the
+// caller has no coordinates of its own to offer.
+const IP_PROXIMITY = 'ip';
+
+// The app delivers only inside the Philippines, so every search is clamped to
+// the archipelago rather than leaving it to each call site to remember.
+const PH_WEST = 116.9283;
+const PH_SOUTH = 4.5873;
+const PH_EAST = 126.6042;
+const PH_NORTH = 21.3218;
+
+// minLon,minLat,maxLon,maxLat — the Mapbox `bbox` query parameter.
+const PHILIPPINES_BBOX = `${PH_WEST},${PH_SOUTH},${PH_EAST},${PH_NORTH}`;
+const PHILIPPINES_COUNTRY_CODE = 'ph';
+
+/**
+ * [southwest, northeast] in Mapbox [lng, lat] order, for `maxBounds` on a map.
+ * Panning is confined to this box so a pin can never be dropped abroad.
+ */
+export const PHILIPPINES_BOUNDS: [[number, number], [number, number]] = [
+  [PH_WEST, PH_SOUTH],
+  [PH_EAST, PH_NORTH],
+];
+
 const PH_LAT_MIN = 4.5;
 const PH_LAT_MAX = 21.5;
 const PH_LNG_MIN = 116.9;
@@ -127,24 +153,36 @@ const toSuggestion = (feature: MapboxFeature): AddressSuggestion | null => {
   };
 };
 
-const isPhilippines = (countryCodes: string[]): boolean =>
-  countryCodes.some((code) => code.toLowerCase() === 'ph');
+/** A point to rank results around — usually the pin or the customer's GPS fix. */
+export interface ProximityPoint {
+  latitude: number;
+  longitude: number;
+}
+
+const toProximityParam = (proximity?: ProximityPoint | null): string => {
+  if (!proximity) return IP_PROXIMITY;
+  const { latitude, longitude } = proximity;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return IP_PROXIMITY;
+  // Mapbox takes [lng, lat] — the opposite order to the rest of this app.
+  return `${longitude},${latitude}`;
+};
 
 export const searchAddresses = async (
   query: string,
-  options?: { limit?: number; countryCodes?: string[] }
+  options?: { limit?: number; proximity?: ProximityPoint | null }
 ): Promise<AddressSuggestion[]> => {
   const trimmed = query.trim();
   if (!trimmed) {
     return [];
   }
 
-  const countryCodes = options?.countryCodes ?? [];
+  const limit = Math.min(options?.limit ?? DEFAULT_SUGGESTION_LIMIT, MAX_SUGGESTION_LIMIT);
   const url = buildUrl(FORWARD_URL, {
     q: trimmed,
-    limit: String(options?.limit ?? DEFAULT_SUGGESTION_LIMIT),
-    ...(countryCodes.length > 0 ? { country: countryCodes.join(',') } : {}),
-    ...(isPhilippines(countryCodes) ? { bbox: PHILIPPINES_BBOX } : {}),
+    limit: String(limit),
+    country: PHILIPPINES_COUNTRY_CODE,
+    bbox: PHILIPPINES_BBOX,
+    proximity: toProximityParam(options?.proximity),
   });
 
   const response = await fetch(url, { headers: { Accept: 'application/json' } });
@@ -155,7 +193,10 @@ export const searchAddresses = async (
   const data = (await response.json()) as MapboxFeatureCollection;
   return (data.features ?? [])
     .map(toSuggestion)
-    .filter((suggestion): suggestion is AddressSuggestion => suggestion !== null);
+    .filter((suggestion): suggestion is AddressSuggestion => suggestion !== null)
+    // Belt and braces: the country filter above should already have done this,
+    // but a foreign suggestion is worse than no suggestion for a PH-only app.
+    .filter((suggestion) => isWithinPhilippines(suggestion.latitude, suggestion.longitude));
 };
 
 export const reverseGeocode = async (
