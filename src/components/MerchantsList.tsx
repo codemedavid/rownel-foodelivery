@@ -7,7 +7,7 @@ import { decorateAndFilterMerchantsByDistance, type MerchantWithDistance } from 
 import { MenuItem } from '../types';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
 import MapLocationPicker from './MapLocationPicker';
-import { type OSMAddressSuggestion } from '../lib/osm';
+import { type AddressSuggestion } from '../lib/geocoding';
 import { useMenu } from '../hooks/useMenu';
 import { usePromotions } from '../hooks/usePromotions';
 import { isMerchantOpen } from '../lib/timeUtils';
@@ -47,7 +47,7 @@ const MerchantsList: React.FC = () => {
 
   const [isLocationEditorOpen, setIsLocationEditorOpen] = useState(false);
   const [manualLocationInput, setManualLocationInput] = useState('');
-  const [selectedManualLocation, setSelectedManualLocation] = useState<OSMAddressSuggestion | null>(null);
+  const [selectedManualLocation, setSelectedManualLocation] = useState<AddressSuggestion | null>(null);
   const [manualLocationError, setManualLocationError] = useState<string | null>(null);
 
   const handleSelectMerchant = (merchantId: string) => {

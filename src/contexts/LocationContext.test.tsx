@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
 import { LocationProvider, useUserLocation, USER_LOCATION_STORAGE_KEY } from './LocationContext';
 
-vi.mock('../lib/osm', () => ({
+vi.mock('../lib/geocoding', () => ({
   reverseGeocode: vi.fn(),
 }));
 
-import { reverseGeocode } from '../lib/osm';
+import { reverseGeocode } from '../lib/geocoding';
 
 const mockedReverseGeocode = vi.mocked(reverseGeocode);
 const mockedGetCurrentPosition = vi.mocked(navigator.geolocation.getCurrentPosition);
@@ -101,7 +101,7 @@ describe('LocationProvider', () => {
     });
 
     it('falls back to raw coordinates when reverse geocoding fails', async () => {
-      mockedReverseGeocode.mockRejectedValue(new Error('nominatim down'));
+      mockedReverseGeocode.mockRejectedValue(new Error('geocoder down'));
       stubGeolocationSuccess(FAR_COORDS);
 
       renderProvider();

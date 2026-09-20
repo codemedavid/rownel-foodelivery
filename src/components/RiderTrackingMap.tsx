@@ -1,66 +1,62 @@
 import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import Map, { Marker, type MapRef } from 'react-map-gl/mapbox';
 
-delete (L.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+const MAP_STYLE = 'mapbox://styles/mapbox/streets-v12';
 
-const trackedRiderIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:40px;height:40px;border-radius:50%;background:#dc2626;border:3px solid #fff;
-    box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-      fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/>
-      <path d="M15 6a1 1 0 0 0 0-2h-1l-5 8H4"/><path d="m6 17 3.5-7h8l1.5 7"/>
+const DEFAULT_LAT = 14.5995;
+const DEFAULT_LNG = 120.9842;
+const TRACKING_ZOOM = 16;
+const AMBIENT_CENTERED_ZOOM = 14;
+const AMBIENT_WIDE_ZOOM = 11;
+const PAN_DURATION_MS = 1000;
+
+const BikeGlyph: React.FC<{ size: number; strokeWidth: number }> = ({ size, strokeWidth }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#fff"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="5.5" cy="17.5" r="3.5" />
+    <circle cx="18.5" cy="17.5" r="3.5" />
+    <path d="M15 6a1 1 0 0 0 0-2h-1l-5 8H4" />
+    <path d="m6 17 3.5-7h8l1.5 7" />
+  </svg>
+);
+
+const TrackedRiderPin: React.FC = () => (
+  <div className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-red-600 shadow-lg">
+    <BikeGlyph size={20} strokeWidth={2} />
+  </div>
+);
+
+const AmbientRiderPin: React.FC = () => (
+  <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-orange-500 opacity-85 shadow-md">
+    <BikeGlyph size={14} strokeWidth={2.5} />
+  </div>
+);
+
+const DeliveryPin: React.FC = () => (
+  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-green-600 shadow-md">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="#fff"
+      stroke="#fff"
+      strokeWidth="1"
+    >
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
     </svg>
-  </div>`,
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
-});
-
-const ambientRiderIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:28px;height:28px;border-radius:50%;background:#f97316;border:2px solid #fff;
-    box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;opacity:0.85;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-      fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/>
-      <path d="M15 6a1 1 0 0 0 0-2h-1l-5 8H4"/><path d="m6 17 3.5-7h8l1.5 7"/>
-    </svg>
-  </div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
-
-const deliveryPinIcon = L.divIcon({
-  className: '',
-  html: `<div style="width:32px;height:32px;border-radius:50%;background:#16a34a;border:2px solid #fff;
-    box-shadow:0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-      fill="#fff" stroke="#fff" stroke-width="1">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-    </svg>
-  </div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
-
-const LivePan: React.FC<{ lat: number; lng: number }> = ({ lat, lng }) => {
-  const map = useMap();
-  const prevRef = useRef<{ lat: number; lng: number } | null>(null);
-  useEffect(() => {
-    if (prevRef.current && (prevRef.current.lat !== lat || prevRef.current.lng !== lng)) {
-      map.panTo([lat, lng], { animate: true, duration: 1 });
-    }
-    prevRef.current = { lat, lng };
-  }, [lat, lng, map]);
-  return null;
-};
+  </div>
+);
 
 export interface AmbientRider {
   id: string;
@@ -89,8 +85,76 @@ interface AmbientProps {
 
 type Props = TrackingProps | AmbientProps;
 
-const DEFAULT_LAT = 14.5995;
-const DEFAULT_LNG = 120.9842;
+interface BaseMapProps {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+  height: string;
+  children: React.ReactNode;
+}
+
+const StaticMap: React.FC<BaseMapProps> = ({ latitude, longitude, zoom, height, children }) => (
+  <div className="rounded-xl overflow-hidden border border-gray-200 relative z-0" style={{ height }}>
+    <Map
+      mapboxAccessToken={MAPBOX_TOKEN}
+      mapStyle={MAP_STYLE}
+      initialViewState={{ latitude, longitude, zoom }}
+      style={{ height: '100%', width: '100%' }}
+      scrollZoom={false}
+      attributionControl={false}
+      dragRotate={false}
+    >
+      {children}
+    </Map>
+  </div>
+);
+
+const TrackingMap: React.FC<Omit<TrackingProps, 'mode'> & { height: string }> = ({
+  latitude,
+  longitude,
+  deliveryLatitude,
+  deliveryLongitude,
+  height,
+}) => {
+  const mapRef = useRef<MapRef>(null);
+  const previousRef = useRef<{ latitude: number; longitude: number } | null>(null);
+
+  // Follow the rider, but only once they have actually moved.
+  useEffect(() => {
+    const previous = previousRef.current;
+    const hasMoved =
+      previous !== null && (previous.latitude !== latitude || previous.longitude !== longitude);
+
+    if (hasMoved) {
+      mapRef.current?.panTo([longitude, latitude], { duration: PAN_DURATION_MS });
+    }
+    previousRef.current = { latitude, longitude };
+  }, [latitude, longitude]);
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-200 relative z-0" style={{ height }}>
+      <Map
+        ref={mapRef}
+        mapboxAccessToken={MAPBOX_TOKEN}
+        mapStyle={MAP_STYLE}
+        initialViewState={{ latitude, longitude, zoom: TRACKING_ZOOM }}
+        style={{ height: '100%', width: '100%' }}
+        scrollZoom={false}
+        attributionControl={false}
+        dragRotate={false}
+      >
+        <Marker latitude={latitude} longitude={longitude} anchor="center">
+          <TrackedRiderPin />
+        </Marker>
+        {deliveryLatitude != null && deliveryLongitude != null && (
+          <Marker latitude={deliveryLatitude} longitude={deliveryLongitude} anchor="bottom">
+            <DeliveryPin />
+          </Marker>
+        )}
+      </Map>
+    </div>
+  );
+};
 
 const RiderTrackingMap: React.FC<Props> = (props) => {
   const { height = '220px' } = props;
@@ -98,51 +162,35 @@ const RiderTrackingMap: React.FC<Props> = (props) => {
   if (props.mode === 'tracking') {
     const { latitude, longitude, deliveryLatitude, deliveryLongitude } = props;
     return (
-      <div className="rounded-xl overflow-hidden border border-gray-200 relative z-0" style={{ height }}>
-        <MapContainer
-          center={[latitude, longitude]}
-          zoom={16}
-          style={{ height: '100%', width: '100%' }}
-          scrollWheelZoom={false}
-          zoomControl={false}
-          attributionControl={false}
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <LivePan lat={latitude} lng={longitude} />
-          <Marker position={[latitude, longitude]} icon={trackedRiderIcon} />
-          {deliveryLatitude != null && deliveryLongitude != null && (
-            <Marker position={[deliveryLatitude, deliveryLongitude]} icon={deliveryPinIcon} />
-          )}
-        </MapContainer>
-      </div>
+      <TrackingMap
+        latitude={latitude}
+        longitude={longitude}
+        deliveryLatitude={deliveryLatitude}
+        deliveryLongitude={deliveryLongitude}
+        height={height}
+      />
     );
   }
 
-  // ambient mode
   const { riders, centerLatitude, centerLongitude, deliveryLatitude, deliveryLongitude } = props;
   const centerLat = centerLatitude ?? deliveryLatitude ?? DEFAULT_LAT;
   const centerLng = centerLongitude ?? deliveryLongitude ?? DEFAULT_LNG;
-  const zoom = (centerLatitude ?? deliveryLatitude) ? 14 : 11;
+  const zoom =
+    (centerLatitude ?? deliveryLatitude) !== undefined ? AMBIENT_CENTERED_ZOOM : AMBIENT_WIDE_ZOOM;
 
   return (
-    <div className="rounded-xl overflow-hidden border border-gray-200 relative z-0" style={{ height }}>
-      <MapContainer
-        center={[centerLat, centerLng]}
-        zoom={zoom}
-        style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom={false}
-        zoomControl={false}
-        attributionControl={false}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        {riders.map((r) => (
-          <Marker key={r.id} position={[r.latitude, r.longitude]} icon={ambientRiderIcon} />
-        ))}
-        {deliveryLatitude != null && deliveryLongitude != null && (
-          <Marker position={[deliveryLatitude, deliveryLongitude]} icon={deliveryPinIcon} />
-        )}
-      </MapContainer>
-    </div>
+    <StaticMap latitude={centerLat} longitude={centerLng} zoom={zoom} height={height}>
+      {riders.map((rider) => (
+        <Marker key={rider.id} latitude={rider.latitude} longitude={rider.longitude} anchor="center">
+          <AmbientRiderPin />
+        </Marker>
+      ))}
+      {deliveryLatitude != null && deliveryLongitude != null && (
+        <Marker latitude={deliveryLatitude} longitude={deliveryLongitude} anchor="bottom">
+          <DeliveryPin />
+        </Marker>
+      )}
+    </StaticMap>
   );
 };
 

@@ -10,7 +10,7 @@ import { calculateDeliveryFee } from '../lib/deliveryPricing';
 import ImageUpload from './ImageUpload';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
 import MapLocationPicker from './MapLocationPicker';
-import type { OSMAddressSuggestion } from '../lib/osm';
+import type { AddressSuggestion } from '../lib/geocoding';
 
 interface MerchantManagerProps {
   onBack: () => void;
@@ -507,7 +507,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
     setShowAddItemForm(true);
   };
 
-  const handleMerchantAddressSelect = (suggestion: OSMAddressSuggestion) => {
+  const handleMerchantAddressSelect = (suggestion: AddressSuggestion) => {
     setMerchantFormErrors((prev) => ({ ...prev, address: undefined }));
     setMerchantFormData((prev) => ({
       ...prev,

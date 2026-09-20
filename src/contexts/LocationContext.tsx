@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { reverseGeocode } from '../lib/osm';
+import { reverseGeocode } from '../lib/geocoding';
 import { Coordinates } from '../utils/geolocation';
 import { hasMovedBeyondThreshold } from '../utils/merchantDistance';
 

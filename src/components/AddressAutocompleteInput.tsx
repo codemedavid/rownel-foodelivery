@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { searchAddresses, type OSMAddressSuggestion } from '../lib/osm';
+import { searchAddresses, type AddressSuggestion } from '../lib/geocoding';
 
 interface AddressAutocompleteInputProps {
   label: string;
@@ -10,7 +10,7 @@ interface AddressAutocompleteInputProps {
   className?: string;
   countryCodes?: string[];
   onChange: (value: string) => void;
-  onSelect: (suggestion: OSMAddressSuggestion) => void;
+  onSelect: (suggestion: AddressSuggestion) => void;
   onClearSelection?: () => void;
 }
 
@@ -26,7 +26,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   onSelect,
   onClearSelection,
 }) => {
-  const [suggestions, setSuggestions] = useState<OSMAddressSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -90,7 +90,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     };
   }, []);
 
-  const handleSelectSuggestion = (suggestion: OSMAddressSuggestion) => {
+  const handleSelectSuggestion = (suggestion: AddressSuggestion) => {
     selectedFromSuggestionRef.current = true;
     onChange(suggestion.displayName);
     onSelect(suggestion);
@@ -125,7 +125,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
       />
 
       {isLoading && (
-        <p className="mt-2 text-xs text-gray-500">Searching OpenStreetMap addresses...</p>
+        <p className="mt-2 text-xs text-gray-500">Searching addresses...</p>
       )}
       {searchError && <p className="mt-2 text-xs text-amber-700">{searchError}</p>}
 

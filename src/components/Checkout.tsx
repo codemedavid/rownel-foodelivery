@@ -8,8 +8,8 @@ import { useMerchants } from '../hooks/useMerchants';
 import { createOrder } from '../hooks/useOrdersData';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
 import MapLocationPicker from './MapLocationPicker';
-import type { OSMAddressSuggestion } from '../lib/osm';
-import { reverseGeocode, isWithinPhilippines } from '../lib/osm';
+import type { AddressSuggestion } from '../lib/geocoding';
+import { reverseGeocode, isWithinPhilippines } from '../lib/geocoding';
 import { calculateDeliveryFee, haversineKm } from '../lib/deliveryPricing';
 import { resolveDeliveryMode } from '../lib/deliveryMode';
 import { getMinOrderStatus, isMerchantOpen } from '../lib/timeUtils';
@@ -273,7 +273,7 @@ const Checkout: React.FC<CheckoutProps> = ({ onBack }) => {
 
   const selectedPaymentMethod = paymentMethods.find(method => method.id === paymentMethod);
 
-  const handleAddressSelected = (suggestion: OSMAddressSuggestion) => {
+  const handleAddressSelected = (suggestion: AddressSuggestion) => {
     const isPhilippines =
       suggestion.countryCode === 'ph' ||
       isWithinPhilippines(suggestion.latitude, suggestion.longitude);

@@ -13,6 +13,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
+        'src/lib/geocoding.ts',
+        'src/lib/geoCircle.ts',
         'src/lib/imagekit.ts',
         'src/lib/imageCatalog.ts',
         'src/hooks/useImageUpload.ts',

@@ -1,18 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Map, { Layer, Marker, Source, type MapRef, type MapMouseEvent } from 'react-map-gl/mapbox';
 import { MapPin, Navigation, Loader2 } from 'lucide-react';
-import { reverseGeocode } from '../lib/osm';
-import type { OSMAddressSuggestion } from '../lib/osm';
+import { reverseGeocode } from '../lib/geocoding';
+import type { AddressSuggestion } from '../lib/geocoding';
+import { createCirclePolygon } from '../lib/geoCircle';
 import AddressAutocompleteInput from './AddressAutocompleteInput';
 
-// Fix Leaflet default marker icon issue with bundlers
-delete (L.Icon.Default.prototype as Record<string, unknown>)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+const MAP_STYLE = 'mapbox://styles/mapbox/streets-v12';
+
+const DEFAULT_LAT = 14.5995;
+const DEFAULT_LNG = 120.9842;
+const DEFAULT_ZOOM = 6;
+const FLY_TO_DURATION_MS = 800;
 
 interface MapLocationPickerProps {
   latitude: number | null;
@@ -27,48 +27,6 @@ interface MapLocationPickerProps {
   countryCodes?: string[];
 }
 
-// Always-mounted click handler so map clicks work even when no marker exists yet
-const MapClickHandler: React.FC<{ onClick: (lat: number, lng: number) => void }> = ({ onClick }) => {
-  useMapEvents({
-    click(e) {
-      onClick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-};
-
-const DraggableMarker: React.FC<{
-  position: [number, number];
-  onDragEnd: (lat: number, lng: number) => void;
-}> = ({ position, onDragEnd }) => {
-  const markerRef = useRef<L.Marker>(null);
-
-  const handleDragEnd = useCallback(() => {
-    const marker = markerRef.current;
-    if (marker) {
-      const latlng = marker.getLatLng();
-      onDragEnd(latlng.lat, latlng.lng);
-    }
-  }, [onDragEnd]);
-
-  return (
-    <Marker
-      draggable
-      position={position}
-      ref={markerRef}
-      eventHandlers={{ dragend: handleDragEnd }}
-    />
-  );
-};
-
-const MapUpdater: React.FC<{ lat: number; lng: number; zoom: number }> = ({ lat, lng, zoom }) => {
-  const map = useMap();
-  useEffect(() => {
-    map.flyTo([lat, lng], zoom, { duration: 0.8 });
-  }, [lat, lng, zoom, map]);
-  return null;
-};
-
 const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   latitude,
   longitude,
@@ -81,63 +39,75 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
   searchPlaceholder = 'Search for a location...',
   countryCodes = ['ph'],
 }) => {
-  const defaultLat = 14.5995;
-  const defaultLng = 120.9842;
-  const defaultZoom = 6;
+  const mapRef = useRef<MapRef>(null);
 
   const hasCoordinates = latitude !== null && longitude !== null;
-  const currentLat = hasCoordinates ? latitude : defaultLat;
-  const currentLng = hasCoordinates ? longitude : defaultLng;
-  const currentZoom = hasCoordinates ? zoom : defaultZoom;
+  const initialLat = hasCoordinates ? latitude : DEFAULT_LAT;
+  const initialLng = hasCoordinates ? longitude : DEFAULT_LNG;
+  const initialZoom = hasCoordinates ? zoom : DEFAULT_ZOOM;
 
   const [searchValue, setSearchValue] = useState('');
   const [isLocating, setIsLocating] = useState(false);
-  const [mapCenterLat, setMapCenterLat] = useState(currentLat);
-  const [mapCenterLng, setMapCenterLng] = useState(currentLng);
-  const [mapZoom, setMapZoom] = useState(currentZoom);
 
-  // Local marker position for immediate visual feedback (no snap-back during async reverse geocode)
-  const [markerPos, setMarkerPos] = useState<[number, number] | null>(
-    hasCoordinates ? [latitude, longitude] : null
+  // Local marker position gives immediate visual feedback, so the pin never
+  // snaps back while the reverse geocode is still in flight.
+  const [markerPos, setMarkerPos] = useState<{ latitude: number; longitude: number } | null>(
+    hasCoordinates ? { latitude, longitude } : null
   );
 
-  // Sync from parent when they push new coords (e.g., from search in parent component)
+  const flyTo = useCallback((lat: number, lng: number, nextZoom?: number) => {
+    // Mapbox takes [lng, lat] — the opposite order to the rest of this app.
+    mapRef.current?.flyTo({
+      center: [lng, lat],
+      ...(nextZoom === undefined ? {} : { zoom: nextZoom }),
+      duration: FLY_TO_DURATION_MS,
+    });
+  }, []);
+
+  // Sync when the parent pushes new coordinates (e.g. its own search field).
   useEffect(() => {
-    if (hasCoordinates) {
-      setMarkerPos([latitude, longitude]);
-      setMapCenterLat(latitude);
-      setMapCenterLng(longitude);
-      setMapZoom(zoom);
-    }
-  }, [latitude, longitude, hasCoordinates, zoom]);
+    if (!hasCoordinates) return;
+    setMarkerPos({ latitude, longitude });
+    flyTo(latitude, longitude, zoom);
+  }, [latitude, longitude, hasCoordinates, zoom, flyTo]);
 
   const handlePinMove = useCallback(
     async (lat: number, lng: number) => {
-      // Immediately update marker and map center for instant visual feedback
-      setMarkerPos([lat, lng]);
-      setMapCenterLat(lat);
-      setMapCenterLng(lng);
+      setMarkerPos({ latitude: lat, longitude: lng });
+      flyTo(lat, lng);
+
+      const fallbackLabel = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       try {
         const result = await reverseGeocode(lat, lng);
         onLocationSelect(lat, lng, result.displayName, result.placeId);
         if (showSearch) setSearchValue(result.displayName);
       } catch {
-        onLocationSelect(lat, lng, `${lat.toFixed(6)}, ${lng.toFixed(6)}`, '');
-        if (showSearch) setSearchValue(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+        onLocationSelect(lat, lng, fallbackLabel, '');
+        if (showSearch) setSearchValue(fallbackLabel);
       }
     },
-    [onLocationSelect, showSearch]
+    [onLocationSelect, showSearch, flyTo]
+  );
+
+  const handleMapClick = useCallback(
+    (event: MapMouseEvent) => {
+      handlePinMove(event.lngLat.lat, event.lngLat.lng);
+    },
+    [handlePinMove]
   );
 
   const handleSearchSelect = useCallback(
-    (suggestion: OSMAddressSuggestion) => {
-      setMarkerPos([suggestion.latitude, suggestion.longitude]);
-      setMapCenterLat(suggestion.latitude);
-      setMapCenterLng(suggestion.longitude);
-      setMapZoom(zoom);
-      onLocationSelect(suggestion.latitude, suggestion.longitude, suggestion.displayName, suggestion.placeId);
+    (suggestion: AddressSuggestion) => {
+      setMarkerPos({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+      flyTo(suggestion.latitude, suggestion.longitude, zoom);
+      onLocationSelect(
+        suggestion.latitude,
+        suggestion.longitude,
+        suggestion.displayName,
+        suggestion.placeId
+      );
     },
-    [onLocationSelect, zoom]
+    [onLocationSelect, zoom, flyTo]
   );
 
   const handleUseGps = useCallback(() => {
@@ -154,6 +124,11 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       { enableHighAccuracy: true, timeout: 10000 }
     );
   }, [handlePinMove]);
+
+  const radiusPolygon = useMemo(() => {
+    if (!markerPos || !showRadius || showRadius <= 0) return null;
+    return createCirclePolygon(markerPos.latitude, markerPos.longitude, showRadius);
+  }, [markerPos, showRadius]);
 
   return (
     <div className="space-y-3">
@@ -208,39 +183,46 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       )}
 
       <div className="rounded-lg overflow-hidden border border-gray-200 relative z-0" style={{ height }}>
-        <MapContainer
-          center={[currentLat, currentLng]}
-          zoom={currentZoom}
+        <Map
+          ref={mapRef}
+          mapboxAccessToken={MAPBOX_TOKEN}
+          mapStyle={MAP_STYLE}
+          initialViewState={{
+            latitude: initialLat,
+            longitude: initialLng,
+            zoom: initialZoom,
+          }}
           style={{ height: '100%', width: '100%' }}
-          scrollWheelZoom
+          onClick={handleMapClick}
+          scrollZoom
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <MapUpdater lat={mapCenterLat} lng={mapCenterLng} zoom={mapZoom} />
-          <MapClickHandler onClick={handlePinMove} />
-          {markerPos && (
-            <>
-              <DraggableMarker
-                position={markerPos}
-                onDragEnd={handlePinMove}
+          {radiusPolygon && (
+            <Source id="delivery-radius" type="geojson" data={radiusPolygon}>
+              <Layer
+                id="delivery-radius-fill"
+                type="fill"
+                paint={{ 'fill-color': '#22c55e', 'fill-opacity': 0.1 }}
               />
-              {showRadius && showRadius > 0 && (
-                <Circle
-                  center={markerPos}
-                  radius={showRadius * 1000}
-                  pathOptions={{
-                    color: '#16a34a',
-                    fillColor: '#22c55e',
-                    fillOpacity: 0.1,
-                    weight: 2,
-                  }}
-                />
-              )}
-            </>
+              <Layer
+                id="delivery-radius-outline"
+                type="line"
+                paint={{ 'line-color': '#16a34a', 'line-width': 2 }}
+              />
+            </Source>
           )}
-        </MapContainer>
+
+          {markerPos && (
+            <Marker
+              latitude={markerPos.latitude}
+              longitude={markerPos.longitude}
+              anchor="bottom"
+              draggable
+              onDragEnd={(event) => handlePinMove(event.lngLat.lat, event.lngLat.lng)}
+            >
+              <MapPin className="h-8 w-8 text-red-600 drop-shadow-md" fill="#dc2626" strokeWidth={1.5} />
+            </Marker>
+          )}
+        </Map>
       </div>
 
       {!markerPos && (
