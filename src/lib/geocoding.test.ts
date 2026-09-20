@@ -1,117 +1,67 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  PHILIPPINES_BOUNDS,
-  createSearchSessionToken,
+  PHILIPPINES_REGION,
   isWithinPhilippines,
-  retrieveAddress,
   reverseGeocode,
   suggestAddresses,
 } from './geocoding';
+import { GeocodingError } from './geocodingError';
 
-const addressFeature = {
-  type: 'Feature',
-  geometry: { type: 'Point', coordinates: [120.617805, 17.595814] },
-  properties: {
-    mapbox_id: 'dXJuOm1ieGFkcjo3Zjcz',
-    feature_type: 'address',
-    full_address: '10 Rizal Street, Bangued, Abra, Philippines',
-    name: '10 Rizal Street',
-    coordinates: { longitude: 120.617805, latitude: 17.595814 },
-    context: {
-      address: { address_number: '10', street_name: 'Rizal Street' },
-      street: { name: 'Rizal Street' },
-      place: { name: 'Bangued' },
-      region: { name: 'Abra' },
-      country: { name: 'Philippines', country_code: 'PH' },
-    },
+const autocomplete = vi.fn();
+const reverseLookup = vi.fn();
+const loadMapkit = vi.fn();
+
+vi.mock('./mapkit/loadMapkit', () => ({
+  loadMapkit: () => loadMapkit(),
+}));
+
+/** The slice of the `mapkit` namespace this module touches. */
+const mapkitStub = {
+  Coordinate: class {
+    constructor(
+      public latitude: number,
+      public longitude: number
+    ) {}
+  },
+  Search: class {
+    constructor(public options: unknown) {}
+    autocomplete = (...args: unknown[]) => autocomplete(...args);
+  },
+  Geocoder: class {
+    constructor(public options: unknown) {}
+    reverseLookup = (...args: unknown[]) => reverseLookup(...args);
   },
 };
 
-const placeFeature = {
-  type: 'Feature',
-  geometry: { type: 'Point', coordinates: [120.401718, 16.82072] },
-  properties: {
-    mapbox_id: 'dXJuOm1ieHBsYzpFMGl6',
-    feature_type: 'place',
-    full_address: 'Balaoan, La Union, Philippines',
-    name: 'Balaoan',
-    coordinates: { longitude: 120.401718, latitude: 16.82072 },
-    context: {
-      place: { name: 'Balaoan' },
-      region: { name: 'La Union' },
-      country: { name: 'Philippines', country_code: 'PH' },
-    },
-  },
-};
-
-const foreignFeature = {
-  type: 'Feature',
-  geometry: { type: 'Point', coordinates: [-57.5759, -25.2637] },
-  properties: {
-    mapbox_id: 'dXJuOm1ieHBsYzpQWQ',
-    feature_type: 'locality',
-    full_address: 'San Roque, Asuncion, Paraguay',
-    name: 'San Roque',
-    coordinates: { longitude: -57.5759, latitude: -25.2637 },
-    context: { country: { name: 'Paraguay', country_code: 'PY' } },
-  },
-};
-
-const poiSuggestion = {
+const autocompleteResult = (overrides: Record<string, unknown> = {}) => ({
+  id: 'poi-buko-spot',
   name: 'Buko Spot',
-  mapbox_id: 'poi-buko-spot',
-  feature_type: 'poi',
-  full_address: 'Phase 4, Lucena, 4301, Philippines',
-  place_formatted: 'Lucena, 4301, Philippines',
-  context: { country: { name: 'Philippines', country_code: 'PH' } },
-};
+  displayLines: ['Buko Spot', 'Lucena, Quezon'],
+  coordinate: { latitude: 13.95260879, longitude: 121.62571486 },
+  locality: 'Lucena',
+  administrativeArea: 'Quezon',
+  countryCode: 'PH',
+  ...overrides,
+});
 
-const streetSuggestion = {
+const place = (overrides: Record<string, unknown> = {}) => ({
+  id: 'place-rizal',
   name: '10 Rizal Street',
-  mapbox_id: 'addr-rizal',
-  feature_type: 'address',
-  full_address: '10 Rizal Street, Bangued, Abra, Philippines',
-  place_formatted: 'Bangued, Abra, Philippines',
-  context: { country: { name: 'Philippines', country_code: 'PH' } },
-};
-
-const retrievedPoiFeature = {
-  type: 'Feature',
-  geometry: { type: 'Point', coordinates: [121.62571486, 13.95260879] },
-  properties: {
-    mapbox_id: 'poi-buko-spot',
-    feature_type: 'poi',
-    name: 'Buko Spot',
-    full_address: 'Phase 4, Lucena, 4301, Philippines',
-    place_formatted: 'Lucena, 4301, Philippines',
-    coordinates: { latitude: 13.95260879, longitude: 121.62571486 },
-    context: { country: { name: 'Philippines', country_code: 'PH' } },
-  },
-};
-
-const collectionOf = (...features: unknown[]) => ({
-  type: 'FeatureCollection',
-  features,
+  formattedAddress: '10 Rizal Street, Bangued, Abra, Philippines',
+  coordinate: { latitude: 17.595814, longitude: 120.617805 },
+  fullThoroughfare: '10 Rizal Street',
+  thoroughfare: 'Rizal Street',
+  subThoroughfare: '10',
+  locality: 'Bangued',
+  countryCode: 'PH',
+  ...overrides,
 });
 
-const okResponse = (body: unknown) =>
-  ({ ok: true, json: async () => body }) as Response;
-
-const fetchMock = vi.fn();
-
-const lastRequestUrl = (): URL => {
-  const calls = fetchMock.mock.calls;
-  return new URL(String(calls[calls.length - 1][0]));
+/** Options handed to the most recent autocomplete call. */
+const lastAutocompleteOptions = (): Record<string, unknown> => {
+  const calls = autocomplete.mock.calls;
+  return calls[calls.length - 1][1] as Record<string, unknown>;
 };
-
-beforeEach(() => {
-  fetchMock.mockReset();
-  vi.stubGlobal('fetch', fetchMock);
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe('isWithinPhilippines', () => {
   it('accepts coordinates inside the Philippine bounding box', () => {
@@ -123,275 +73,281 @@ describe('isWithinPhilippines', () => {
   });
 });
 
-describe('createSearchSessionToken', () => {
-  it('issues a distinct token per search session', () => {
-    // Arrange / Act
-    const first = createSearchSessionToken();
-    const second = createSearchSessionToken();
+describe('PHILIPPINES_REGION', () => {
+  it('is a centre and span MapKit can use directly', () => {
+    expect(PHILIPPINES_REGION.center.latitude).toBeGreaterThan(4.5);
+    expect(PHILIPPINES_REGION.center.latitude).toBeLessThan(21.5);
+    expect(PHILIPPINES_REGION.span.latitudeDelta).toBeGreaterThan(0);
+    expect(PHILIPPINES_REGION.span.longitudeDelta).toBeGreaterThan(0);
+  });
 
-    // Assert — Mapbox bills one Search Box session per token
-    expect(first).toBeTruthy();
-    expect(second).toBeTruthy();
-    expect(first).not.toBe(second);
+  it('covers Manila and excludes Hong Kong', () => {
+    const { center, span } = PHILIPPINES_REGION;
+    const northEdge = center.latitude + span.latitudeDelta / 2;
+    const southEdge = center.latitude - span.latitudeDelta / 2;
+
+    expect(southEdge).toBeLessThan(14.5995);
+    expect(northEdge).toBeGreaterThan(14.5995);
+    expect(northEdge).toBeLessThan(22.3193);
   });
 });
 
 describe('suggestAddresses', () => {
-  const session = 'session-abc';
+  beforeEach(() => {
+    autocomplete.mockReset();
+    loadMapkit.mockReset();
+    loadMapkit.mockResolvedValue(mapkitStub);
+  });
 
-  it('returns an empty list for a blank query without calling the network', async () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns an empty list for a blank query without starting MapKit', async () => {
     // Arrange / Act
-    const results = await suggestAddresses('   ', { sessionToken: session });
+    const results = await suggestAddresses('   ');
 
     // Assert
     expect(results).toEqual([]);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(loadMapkit).not.toHaveBeenCalled();
   });
 
-  it('asks the Search Box suggest endpoint, bounded to the Philippines', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse({ suggestions: [poiSuggestion] }));
+  it('carries the coordinates through, so no second lookup is needed', async () => {
+    // Arrange — unlike Mapbox Search Box, MapKit resolves the pin up front
+    autocomplete.mockResolvedValue({ results: [autocompleteResult()] });
 
     // Act
-    await suggestAddresses('Buko Spot', { sessionToken: session });
+    const [candidate] = await suggestAddresses('Buko');
 
     // Assert
-    const url = lastRequestUrl();
-    expect(url.pathname).toBe('/search/searchbox/v1/suggest');
-    expect(url.searchParams.get('q')).toBe('Buko Spot');
-    expect(url.searchParams.get('country')).toBe('ph');
-    expect(url.searchParams.get('bbox')).toBe('116.9283,4.5873,126.6042,21.3218');
-    expect(url.searchParams.get('session_token')).toBe(session);
-    expect(url.searchParams.get('limit')).toBe('10');
-  });
-
-  it('biases suggestions toward the supplied proximity point in lng,lat order', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse({ suggestions: [poiSuggestion] }));
-
-    // Act
-    await suggestAddresses('Buko Spot', {
-      sessionToken: session,
-      proximity: { latitude: 16.8207, longitude: 120.4017 },
-    });
-
-    // Assert
-    expect(lastRequestUrl().searchParams.get('proximity')).toBe('120.4017,16.8207');
-  });
-
-  it('falls back to IP-based proximity when no reference point is known', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse({ suggestions: [poiSuggestion] }));
-
-    // Act
-    await suggestAddresses('Buko Spot', { sessionToken: session });
-
-    // Assert
-    expect(lastRequestUrl().searchParams.get('proximity')).toBe('ip');
-  });
-
-  it('leads a business result with its own name, not its street address', async () => {
-    // Arrange — Mapbox omits the business name from full_address for a POI
-    fetchMock.mockResolvedValue(okResponse({ suggestions: [poiSuggestion] }));
-
-    // Act
-    const [candidate] = await suggestAddresses('Buko Spot', { sessionToken: session });
-
-    // Assert
-    expect(candidate).toEqual({
+    expect(candidate).toMatchObject({
       placeId: 'poi-buko-spot',
       name: 'Buko Spot',
-      displayName: 'Buko Spot, Lucena, 4301, Philippines',
-      context: 'Lucena, 4301, Philippines',
-      featureType: 'poi',
+      latitude: 13.95260879,
+      longitude: 121.62571486,
     });
   });
 
-  it('keeps the full address when it already begins with the feature name', async () => {
+  it('builds the label from the display lines MapKit formats for the locale', async () => {
     // Arrange
-    fetchMock.mockResolvedValue(okResponse({ suggestions: [streetSuggestion] }));
+    autocomplete.mockResolvedValue({ results: [autocompleteResult()] });
 
     // Act
-    const [candidate] = await suggestAddresses('Rizal Street', { sessionToken: session });
+    const [candidate] = await suggestAddresses('Buko');
 
     // Assert
-    expect(candidate.displayName).toBe('10 Rizal Street, Bangued, Abra, Philippines');
+    expect(candidate.displayName).toBe('Buko Spot, Lucena, Quezon');
+    expect(candidate.context).toBe('Lucena, Quezon');
   });
 
-  it('drops suggestions that carry no id, since they cannot be retrieved', async () => {
+  it('confines results to the Philippines, where the app delivers', async () => {
     // Arrange
-    fetchMock.mockResolvedValue(
-      okResponse({ suggestions: [{ ...poiSuggestion, mapbox_id: '' }, streetSuggestion] })
-    );
+    autocomplete.mockResolvedValue({ results: [autocompleteResult()] });
 
     // Act
-    const results = await suggestAddresses('Rizal', { sessionToken: session });
+    await suggestAddresses('Buko');
+
+    // Assert
+    expect(lastAutocompleteOptions()).toMatchObject({
+      limitToCountries: 'PH',
+      region: PHILIPPINES_REGION,
+    });
+  });
+
+  it('biases results toward the supplied proximity point', async () => {
+    // Arrange
+    autocomplete.mockResolvedValue({ results: [autocompleteResult()] });
+
+    // Act
+    await suggestAddresses('Rizal', { proximity: { latitude: 13.9, longitude: 121.6 } });
+
+    // Assert
+    expect(lastAutocompleteOptions().coordinate).toEqual({ latitude: 13.9, longitude: 121.6 });
+  });
+
+  it('omits the proximity hint when no reference point is known', async () => {
+    // Arrange
+    autocomplete.mockResolvedValue({ results: [autocompleteResult()] });
+
+    // Act
+    await suggestAddresses('Rizal');
+
+    // Assert
+    expect(lastAutocompleteOptions()).not.toHaveProperty('coordinate');
+  });
+
+  it('drops suggestions with no coordinate, which could never place a pin', async () => {
+    // Arrange — MapKit returns bare query completions alongside real places
+    autocomplete.mockResolvedValue({
+      results: [autocompleteResult(), autocompleteResult({ id: 'q', coordinate: null })],
+    });
+
+    // Act
+    const results = await suggestAddresses('Buko');
 
     // Assert
     expect(results).toHaveLength(1);
-    expect(results[0].placeId).toBe('addr-rizal');
   });
 
-  it('throws when Mapbox rejects the request', async () => {
+  it('drops suggestions that land outside the Philippines', async () => {
     // Arrange
-    fetchMock.mockResolvedValue({ ok: false, status: 429 } as Response);
-
-    // Act / Assert
-    await expect(
-      suggestAddresses('Buko Spot', { sessionToken: session })
-    ).rejects.toThrow(/suggestion/i);
-  });
-});
-
-describe('retrieveAddress', () => {
-  const session = 'session-abc';
-
-  it('retrieves the chosen suggestion by id within the same session', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(retrievedPoiFeature)));
-
-    // Act
-    await retrieveAddress('poi-buko-spot', { sessionToken: session });
-
-    // Assert
-    const url = lastRequestUrl();
-    expect(url.pathname).toBe('/search/searchbox/v1/retrieve/poi-buko-spot');
-    expect(url.searchParams.get('session_token')).toBe(session);
-  });
-
-  it('resolves the coordinates the suggest step did not carry', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(retrievedPoiFeature)));
-
-    // Act
-    const result = await retrieveAddress('poi-buko-spot', { sessionToken: session });
-
-    // Assert
-    expect(result).toEqual({
-      placeId: 'poi-buko-spot',
-      displayName: 'Buko Spot, Lucena, 4301, Philippines',
-      latitude: 13.95260879,
-      longitude: 121.62571486,
-      countryCode: 'ph',
+    autocomplete.mockResolvedValue({
+      results: [
+        autocompleteResult(),
+        autocompleteResult({
+          id: 'abroad',
+          coordinate: { latitude: -25.2637, longitude: -57.5759 },
+        }),
+      ],
     });
+
+    // Act
+    const results = await suggestAddresses('Buko');
+
+    // Assert
+    expect(results.map((result) => result.placeId)).toEqual(['poi-buko-spot']);
   });
 
-  it('returns null when the retrieved place sits outside the Philippines', async () => {
+  it('caps the list so the dropdown stays usable on a phone', async () => {
     // Arrange
-    const abroad = {
-      ...retrievedPoiFeature,
-      properties: {
-        ...retrievedPoiFeature.properties,
-        coordinates: { latitude: -25.2637, longitude: -57.5759 },
-      },
-    };
-    fetchMock.mockResolvedValue(okResponse(collectionOf(abroad)));
+    autocomplete.mockResolvedValue({
+      results: Array.from({ length: 25 }, (_, index) =>
+        autocompleteResult({ id: `poi-${index}` })
+      ),
+    });
 
-    // Act / Assert
-    expect(await retrieveAddress('poi-abroad', { sessionToken: session })).toBeNull();
+    // Act
+    const results = await suggestAddresses('Buko', { limit: 8 });
+
+    // Assert
+    expect(results).toHaveLength(8);
   });
 
-  it('returns null when Mapbox knows nothing about the id', async () => {
+  it('passes the abort signal so a stale keystroke cancels its request', async () => {
     // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf()));
+    autocomplete.mockResolvedValue({ results: [] });
+    const controller = new AbortController();
 
-    // Act / Assert
-    expect(await retrieveAddress('poi-missing', { sessionToken: session })).toBeNull();
+    // Act
+    await suggestAddresses('Buko', { signal: controller.signal });
+
+    // Assert
+    expect(lastAutocompleteOptions().signal).toBe(controller.signal);
+  });
+
+  it('reports a cancelled request as an abort, not a failure to show the customer', async () => {
+    // Arrange
+    const abortError = new DOMException('The operation was aborted.', 'AbortError');
+    autocomplete.mockRejectedValue(abortError);
+
+    // Act
+    const failure = await suggestAddresses('Buko').catch((error: unknown) => error);
+
+    // Assert
+    expect((failure as GeocodingError).kind).toBe('aborted');
+  });
+
+  it('reports a MapKit failure as a classified geocoding error', async () => {
+    // Arrange
+    autocomplete.mockRejectedValue(new Error('network down'));
+
+    // Act
+    const failure = await suggestAddresses('Buko').catch((error: unknown) => error);
+
+    // Assert
+    expect(failure).toBeInstanceOf(GeocodingError);
+  });
+
+  it('passes through the authorisation failure when MapKit never starts', async () => {
+    // Arrange — a missing .p8 on the server surfaces here
+    loadMapkit.mockRejectedValue(new GeocodingError('auth', 'Apple Maps could not start'));
+
+    // Act
+    const failure = await suggestAddresses('Buko').catch((error: unknown) => error);
+
+    // Assert
+    expect((failure as GeocodingError).kind).toBe('auth');
   });
 });
 
 describe('reverseGeocode', () => {
+  beforeEach(() => {
+    reverseLookup.mockReset();
+    loadMapkit.mockReset();
+    loadMapkit.mockResolvedValue(mapkitStub);
+  });
+
   it('builds the street from the house number and street name', async () => {
     // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(addressFeature)));
+    reverseLookup.mockResolvedValue({ results: [place()] });
+
+    // Act
+    const result = await reverseGeocode(17.595814, 120.617805);
+
+    // Assert — the rider needs the house number
+    expect(result.street).toBe('10 Rizal Street');
+    expect(result.displayName).toBe('10 Rizal Street, Bangued, Abra, Philippines');
+  });
+
+  it('falls back to the place name when no street detail is available', async () => {
+    // Arrange
+    reverseLookup.mockResolvedValue({
+      results: [place({ fullThoroughfare: null, thoroughfare: null, subThoroughfare: null })],
+    });
 
     // Act
     const result = await reverseGeocode(17.595814, 120.617805);
 
     // Assert
-    expect(result).toEqual({
-      placeId: 'dXJuOm1ieGFkcjo3Zjcz',
-      displayName: '10 Rizal Street, Bangued, Abra, Philippines',
-      street: '10 Rizal Street',
-      latitude: 17.595814,
-      longitude: 120.617805,
-      countryCode: 'ph',
-    });
+    expect(result.street).toBe('10 Rizal Street');
   });
 
-  it('falls back to the feature name when no street detail is available', async () => {
+  it('labels a pin dropped off-grid with its coordinates rather than failing', async () => {
     // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
-
-    // Act
-    const result = await reverseGeocode(16.82072, 120.401718);
-
-    // Assert
-    expect(result.street).toBe('Balaoan');
-  });
-
-  it('sends longitude and latitude as separate query parameters', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(addressFeature)));
-
-    // Act
-    await reverseGeocode(17.595814, 120.617805);
-
-    // Assert
-    const url = lastRequestUrl();
-    expect(url.pathname).toBe('/search/geocode/v6/reverse');
-    expect(url.searchParams.get('latitude')).toBe('17.595814');
-    expect(url.searchParams.get('longitude')).toBe('120.617805');
-  });
-
-  it('falls back to the requested coordinates when Mapbox returns no features', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf()));
+    reverseLookup.mockResolvedValue({ results: [] });
 
     // Act
     const result = await reverseGeocode(17.5, 120.6);
 
     // Assert
-    expect(result.latitude).toBe(17.5);
-    expect(result.longitude).toBe(120.6);
-    expect(result.displayName).toBe('17.50000, 120.60000');
-    expect(result.street).toBe('Current location');
-    expect(result.placeId).toBe('');
+    expect(result).toMatchObject({
+      displayName: '17.50000, 120.60000',
+      street: 'Current location',
+      latitude: 17.5,
+      longitude: 120.6,
+    });
   });
 
-  it('throws when Mapbox rejects the request', async () => {
+  it('asks MapKit about the exact coordinate it was given', async () => {
     // Arrange
-    fetchMock.mockResolvedValue({ ok: false, status: 429 } as Response);
+    reverseLookup.mockResolvedValue({ results: [place()] });
 
-    // Act / Assert
-    await expect(reverseGeocode(17.5, 120.6)).rejects.toThrow(
-      'Failed to reverse geocode location'
-    );
-  });
-});
-
-describe('PHILIPPINES_BOUNDS', () => {
-  it('is a [southwest, northeast] pair in Mapbox [lng, lat] order', () => {
-    // Arrange
-    const [[west, south], [east, north]] = PHILIPPINES_BOUNDS;
-
-    // Assert — longitudes near 120, latitudes near 5..21
-    expect(west).toBeLessThan(east);
-    expect(south).toBeLessThan(north);
-    expect(west).toBeCloseTo(116.9283, 4);
-    expect(south).toBeCloseTo(4.5873, 4);
-    expect(east).toBeCloseTo(126.6042, 4);
-    expect(north).toBeCloseTo(21.3218, 4);
-  });
-
-  it('contains Manila and excludes Hong Kong', () => {
-    // Arrange
-    const [[west, south], [east, north]] = PHILIPPINES_BOUNDS;
-    const contains = (lng: number, lat: number) =>
-      lng >= west && lng <= east && lat >= south && lat <= north;
+    // Act
+    await reverseGeocode(17.5, 120.6);
 
     // Assert
-    expect(contains(120.9842, 14.5995)).toBe(true);
-    expect(contains(114.1694, 22.3193)).toBe(false);
+    expect(reverseLookup).toHaveBeenCalledWith(
+      expect.objectContaining({ latitude: 17.5, longitude: 120.6 }),
+      expect.anything()
+    );
+  });
+
+  it('keeps the requested coordinates when MapKit answers without one', async () => {
+    // Arrange
+    reverseLookup.mockResolvedValue({ results: [place({ coordinate: null })] });
+
+    // Act
+    const result = await reverseGeocode(17.5, 120.6);
+
+    // Assert
+    expect(result).toMatchObject({ latitude: 17.5, longitude: 120.6 });
+  });
+
+  it('reports a MapKit failure as a classified geocoding error', async () => {
+    // Arrange
+    reverseLookup.mockRejectedValue(new Error('service down'));
+
+    // Act / Assert
+    await expect(reverseGeocode(17.5, 120.6)).rejects.toBeInstanceOf(GeocodingError);
   });
 });

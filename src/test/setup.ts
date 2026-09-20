@@ -24,22 +24,9 @@ if (!('VITE_SUPABASE_URL' in import.meta.env)) {
   (import.meta.env as any).VITE_SUPABASE_ANON_KEY = 'test-anon-key';
 }
 
-if (!('VITE_MAPBOX_TOKEN' in import.meta.env)) {
-  (import.meta.env as any).VITE_MAPBOX_TOKEN = 'pk.test-mapbox-token';
-}
-
-// mapbox-gl renders through WebGL, which jsdom does not implement. Components
-// that embed a map are stubbed here so their surrounding UI stays testable.
-vi.mock('react-map-gl/mapbox', () => {
-  const Passthrough = ({ children }: { children?: React.ReactNode }) => children ?? null;
-  return {
-    __esModule: true,
-    default: Passthrough,
-    Map: Passthrough,
-    Marker: Passthrough,
-    Source: Passthrough,
-    Layer: () => null,
-    NavigationControl: () => null,
-    Popup: Passthrough,
-  };
-});
+// MapKit JS renders through WebGL and loads from Apple's CDN, neither of which
+// jsdom provides. Components that embed a map mock `loadMapkit` themselves; this
+// keeps any that do not from reaching the network.
+vi.mock('@apple/mapkit-loader', () => ({
+  load: () => Promise.reject(new Error('MapKit JS is not available under test')),
+}));

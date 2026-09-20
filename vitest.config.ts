@@ -9,12 +9,14 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
-    include: ['src/**/*.test.{ts,tsx}', 'convex/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'convex/**/*.test.ts', 'api/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       include: [
         'src/lib/geocoding.ts',
-        'src/lib/geoCircle.ts',
+        'src/lib/geocodingError.ts',
+        'src/lib/mapkit/*.ts',
+        'api/_lib/*.ts',
         'src/lib/storage.ts',
         'src/lib/storageTypes.ts',
         'src/lib/imagekit.ts',

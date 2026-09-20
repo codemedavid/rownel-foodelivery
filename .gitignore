@@ -44,3 +44,8 @@ supabase/.temp/
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Apple MapKit signing keys. Apple issues a .p8 once and never shows it again,
+# so these are deleted from the repo rather than committed — keep the original
+# in a password manager and the value in MAPKIT_PRIVATE_KEY.
+*.p8

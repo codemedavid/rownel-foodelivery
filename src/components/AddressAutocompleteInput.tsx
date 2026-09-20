@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  createSearchSessionToken,
-  retrieveAddress,
   suggestAddresses,
   type AddressCandidate,
   type AddressSuggestion,
   type ProximityPoint,
 } from '../lib/geocoding';
+import {
+  describeGeocodingError,
+  isAbortError,
+  isGeocodingConfigError,
+  logGeocodingError,
+} from '../lib/geocodingError';
 
 const SEARCH_DEBOUNCE_MS = 350;
 const MIN_QUERY_LENGTH = 3;
@@ -45,15 +49,10 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedFromSuggestionRef = useRef(false);
 
-  // One Mapbox billing session spans every keystroke plus the retrieve that
-  // ends it, so the token is minted once here and rotated after a selection.
-  const sessionTokenRef = useRef<string>('');
-  const sessionToken = () => {
-    if (!sessionTokenRef.current) {
-      sessionTokenRef.current = createSearchSessionToken();
-    }
-    return sessionTokenRef.current;
-  };
+  // Refused authorisation fails identically for every query, so once it happens
+  // the search stops rather than firing a doomed request per keystroke. Typing
+  // stays enabled throughout — a manually typed address still gets delivered.
+  const isSearchUnavailableRef = useRef(false);
 
   // Depend on the primitives, not the object: callers pass an inline literal,
   // which would otherwise restart the debounce timer on every parent render.
@@ -74,28 +73,40 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
       return;
     }
 
+    if (isSearchUnavailableRef.current) return;
+
+    const controller = new AbortController();
     let isCancelled = false;
+
     const timeout = window.setTimeout(async () => {
       try {
         setIsLoading(true);
         setSearchError(null);
         const results = await suggestAddresses(query, {
-          sessionToken: sessionToken(),
           limit: SUGGESTION_LIMIT,
           proximity:
             proximityLat === null || proximityLng === null
               ? null
               : { latitude: proximityLat, longitude: proximityLng },
+          signal: controller.signal,
         });
         if (!isCancelled) {
           setSuggestions(results);
           setShowSuggestions(results.length > 0);
         }
-      } catch {
+      } catch (error: unknown) {
+        // An abort means a newer keystroke replaced this request; the customer
+        // has nothing to act on, and its result is already obsolete.
+        if (isAbortError(error)) return;
+
+        logGeocodingError('address suggestions', error);
+        if (isGeocodingConfigError(error)) {
+          isSearchUnavailableRef.current = true;
+        }
         if (!isCancelled) {
           setSuggestions([]);
           setShowSuggestions(false);
-          setSearchError('Could not load suggestions. You can still enter your address manually.');
+          setSearchError(describeGeocodingError(error));
         }
       } finally {
         if (!isCancelled) {
@@ -107,6 +118,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     return () => {
       isCancelled = true;
       window.clearTimeout(timeout);
+      controller.abort();
     };
   }, [proximityLat, proximityLng, value]);
 
@@ -124,35 +136,15 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     };
   }, []);
 
-  // Search Box withholds coordinates until a suggestion is picked, so the pin
-  // is resolved here rather than in the list.
-  const handleSelectSuggestion = async (candidate: AddressCandidate) => {
+  // MapKit returns the coordinate with the suggestion, so a pick resolves the
+  // pin immediately — there is no second lookup to wait on.
+  const handleSelectSuggestion = (candidate: AddressCandidate) => {
     selectedFromSuggestionRef.current = true;
-    onChange(candidate.displayName);
     setSuggestions([]);
     setShowSuggestions(false);
     setSearchError(null);
-    setIsLoading(true);
-
-    try {
-      const resolved = await retrieveAddress(candidate.placeId, {
-        sessionToken: sessionToken(),
-      });
-
-      if (!resolved) {
-        setSearchError('We could not pin that place. Try a nearby street or landmark.');
-        return;
-      }
-
-      onChange(resolved.displayName);
-      onSelect(resolved);
-    } catch {
-      setSearchError('Could not load that address. You can still enter it manually.');
-    } finally {
-      setIsLoading(false);
-      // The session ends with its retrieve; the next search starts a new one.
-      sessionTokenRef.current = '';
-    }
+    onChange(candidate.displayName);
+    onSelect(candidate);
   };
 
   const handleInputChange = (nextValue: string) => {
@@ -180,18 +172,16 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
         }}
       />
 
-      {isLoading && (
-        <p className="mt-2 text-xs text-gray-500">Searching places...</p>
-      )}
+      {isLoading && <p className="mt-2 text-xs text-gray-500">Searching places...</p>}
       {searchError && <p className="mt-2 text-xs text-amber-700">{searchError}</p>}
 
       {showSuggestions && suggestions.length > 0 && (
         <div className="absolute z-[1000] mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
           {suggestions.map((suggestion) => (
             <button
-              key={suggestion.placeId}
+              key={suggestion.placeId || suggestion.displayName}
               type="button"
-              onClick={() => void handleSelectSuggestion(suggestion)}
+              onClick={() => handleSelectSuggestion(suggestion)}
               className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 text-sm text-gray-800"
             >
               <span className="block font-medium text-gray-900">{suggestion.name}</span>
