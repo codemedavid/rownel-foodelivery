@@ -5,11 +5,17 @@
 // of this app works in (lat, lng), and named fields make that flip impossible
 // to get wrong at a call site.
 
-const FORWARD_URL = 'https://api.mapbox.com/search/geocode/v6/forward';
+// Address autocomplete uses the Search Box API rather than the Geocoding API:
+// only Search Box indexes businesses and landmarks, and Philippine customers
+// locate themselves by store name far more often than by house number.
+// Reverse geocoding (dropped pins, GPS) stays on Geocoding v6, which is
+// purpose-built for coordinate -> address and needs no session.
+const SUGGEST_URL = 'https://api.mapbox.com/search/searchbox/v1/suggest';
+const RETRIEVE_URL = 'https://api.mapbox.com/search/searchbox/v1/retrieve';
 const REVERSE_URL = 'https://api.mapbox.com/search/geocode/v6/reverse';
 
-// 10 is the Mapbox forward-geocoding maximum; fewer than that and the one
-// street the customer actually lives on often falls off the end of the list.
+// 10 is the Mapbox maximum; fewer than that and the one place the customer
+// actually means often falls off the end of the list.
 const MAX_SUGGESTION_LIMIT = 10;
 const DEFAULT_SUGGESTION_LIMIT = MAX_SUGGESTION_LIMIT;
 
@@ -159,6 +165,29 @@ export interface ProximityPoint {
   longitude: number;
 }
 
+/**
+ * One row in the autocomplete dropdown. Search Box `suggest` deliberately
+ * withholds coordinates; call {@link retrieveAddress} once the customer picks.
+ */
+export interface AddressCandidate {
+  placeId: string;
+  /** Headline for the row: the business or street name on its own. */
+  name: string;
+  /** Full label written into the input once picked. */
+  displayName: string;
+  /** Town / province line, for a secondary row in the UI. */
+  context: string;
+  featureType?: string;
+}
+
+interface SuggestItem {
+  name?: string;
+  mapbox_id?: string;
+  feature_type?: string;
+  full_address?: string;
+  place_formatted?: string;
+}
+
 const toProximityParam = (proximity?: ProximityPoint | null): string => {
   if (!proximity) return IP_PROXIMITY;
   const { latitude, longitude } = proximity;
@@ -167,22 +196,79 @@ const toProximityParam = (proximity?: ProximityPoint | null): string => {
   return `${longitude},${latitude}`;
 };
 
-export const searchAddresses = async (
+/**
+ * Mapbox bills one Search Box session per token, covering every keystroke plus
+ * the single retrieve that ends it — so reuse a token across a search and mint
+ * a fresh one afterwards.
+ */
+export const createSearchSessionToken = (): string => {
+  const globalCrypto = globalThis.crypto;
+  if (globalCrypto?.randomUUID) {
+    return globalCrypto.randomUUID();
+  }
+  // Safari < 15.4 has no randomUUID; the token only has to be unique per
+  // session, not cryptographically strong.
+  return `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+};
+
+/**
+ * A POI's `full_address` is its street address and omits the business name, so
+ * "Buko Spot" would otherwise display as "Phase 4, Lucena". Lead with the name
+ * unless the full address already does.
+ */
+const composeLabel = (
+  name: string | undefined,
+  placeFormatted: string | undefined,
+  fullAddress: string | undefined
+): string => {
+  const trimmedName = name?.trim() ?? '';
+  const trimmedPlace = placeFormatted?.trim() ?? '';
+  const trimmedFull = fullAddress?.trim() ?? '';
+
+  if (trimmedFull && trimmedName && trimmedFull.startsWith(trimmedName)) {
+    return trimmedFull;
+  }
+  if (trimmedName && trimmedPlace) {
+    return `${trimmedName}, ${trimmedPlace}`;
+  }
+  return trimmedFull || trimmedName || trimmedPlace;
+};
+
+const toCandidate = (item: SuggestItem): AddressCandidate | null => {
+  const placeId = item.mapbox_id?.trim();
+  const displayName = composeLabel(item.name, item.place_formatted, item.full_address);
+
+  // Without an id the row cannot be retrieved, so it could never yield a pin.
+  if (!placeId || !displayName) return null;
+
+  return {
+    placeId,
+    name: item.name?.trim() || displayName,
+    displayName,
+    context: item.place_formatted?.trim() ?? '',
+    featureType: item.feature_type,
+  };
+};
+
+/** Autocomplete rows for a partial query. Bounded to the Philippines. */
+export const suggestAddresses = async (
   query: string,
-  options?: { limit?: number; proximity?: ProximityPoint | null }
-): Promise<AddressSuggestion[]> => {
+  options: { sessionToken: string; limit?: number; proximity?: ProximityPoint | null }
+): Promise<AddressCandidate[]> => {
   const trimmed = query.trim();
   if (!trimmed) {
     return [];
   }
 
-  const limit = Math.min(options?.limit ?? DEFAULT_SUGGESTION_LIMIT, MAX_SUGGESTION_LIMIT);
-  const url = buildUrl(FORWARD_URL, {
+  const limit = Math.min(options.limit ?? DEFAULT_SUGGESTION_LIMIT, MAX_SUGGESTION_LIMIT);
+  const url = buildUrl(SUGGEST_URL, {
     q: trimmed,
     limit: String(limit),
     country: PHILIPPINES_COUNTRY_CODE,
     bbox: PHILIPPINES_BBOX,
-    proximity: toProximityParam(options?.proximity),
+    proximity: toProximityParam(options.proximity),
+    language: 'en',
+    session_token: options.sessionToken,
   });
 
   const response = await fetch(url, { headers: { Accept: 'application/json' } });
@@ -190,13 +276,49 @@ export const searchAddresses = async (
     throw new Error('Failed to fetch address suggestions');
   }
 
+  const data = (await response.json()) as { suggestions?: SuggestItem[] };
+  return (data.suggestions ?? [])
+    .map(toCandidate)
+    .filter((candidate): candidate is AddressCandidate => candidate !== null);
+};
+
+/**
+ * Resolves a chosen suggestion to coordinates. Returns null when the place
+ * cannot be pinned or sits outside the Philippines, which the caller should
+ * surface rather than treat as a successful selection.
+ */
+export const retrieveAddress = async (
+  placeId: string,
+  options: { sessionToken: string }
+): Promise<AddressSuggestion | null> => {
+  const url = buildUrl(`${RETRIEVE_URL}/${encodeURIComponent(placeId)}`, {
+    session_token: options.sessionToken,
+  });
+
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!response.ok) {
+    throw new Error('Failed to resolve the selected address');
+  }
+
   const data = (await response.json()) as MapboxFeatureCollection;
-  return (data.features ?? [])
-    .map(toSuggestion)
-    .filter((suggestion): suggestion is AddressSuggestion => suggestion !== null)
-    // Belt and braces: the country filter above should already have done this,
-    // but a foreign suggestion is worse than no suggestion for a PH-only app.
-    .filter((suggestion) => isWithinPhilippines(suggestion.latitude, suggestion.longitude));
+  const feature = data.features?.[0];
+  if (!feature) return null;
+
+  const coordinates = readCoordinates(feature);
+  if (!coordinates) return null;
+  if (!isWithinPhilippines(coordinates.latitude, coordinates.longitude)) return null;
+
+  return {
+    placeId: feature.properties?.mapbox_id || placeId,
+    displayName: composeLabel(
+      feature.properties?.name,
+      feature.properties?.place_formatted,
+      feature.properties?.full_address
+    ),
+    latitude: coordinates.latitude,
+    longitude: coordinates.longitude,
+    countryCode: readCountryCode(feature),
+  };
 };
 
 export const reverseGeocode = async (

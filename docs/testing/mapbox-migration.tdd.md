@@ -276,3 +276,86 @@ searcher's own region (La Union / Pangasinan / Ilocos / Benguet). No foreign res
   covered instead by the two `PHILIPPINES_BOUNDS` tests above. Still worth a manual smoke test.
 - `proximity=ip` depends on Mapbox's IP geolocation. On a VPN or a mis-located IP the bias will be wrong, but
   `country=ph` still bounds the result set, so the failure mode is "less relevant", never "foreign".
+
+---
+
+# Follow-up 2: Search Box API for business and landmark names
+
+**Reported:** production still showed Germany / Virginia / Italy for the query "Buko Spot".
+
+## Two distinct findings
+
+**1. The screenshot predated the deploy.** The fix from Follow-up 1 shipped at `2026-09-20 03:40:54 UTC`
+(`last-modified` on `https://www.row-nel.com/assets/index-BKtDuWzr.js`, hash identical to the local build).
+The deployed bundle contains `country:"ph"`, `bbox`, `proximity`, `limit 10`, the PH post-filter and
+`maxBounds`. The reported result set was reproduced exactly — same five rows, same order — by calling Mapbox
+with the *old* parameters, confirming a stale client bundle rather than a code defect.
+
+**2. A real, separate defect.** The Geocoding API indexes addresses, streets and places only — **never
+businesses**. "Buko Spot" is a store, so it could not match at any country or proximity setting. With the
+Follow-up 1 parameters it returned `Spotfish Street Mactan`, `Bauko`, `Buko Road` — Philippine but wrong.
+
+## Change
+
+Address autocomplete moved from Geocoding `forward` to the **Search Box API**, which indexes POIs:
+
+- `suggestAddresses(query, { sessionToken, proximity, limit })` → `/search/searchbox/v1/suggest`
+- `retrieveAddress(placeId, { sessionToken })` → `/search/searchbox/v1/retrieve/{id}`
+
+Search Box withholds coordinates from `suggest` by design, so selection is now two-step: the dropdown renders
+candidates, and the pin is resolved on click. `onSelect` still hands consumers a fully-populated
+`AddressSuggestion`, so `Checkout`, `MerchantManager`, `MerchantsList` and `MapLocationPicker` were untouched.
+
+Session tokens: Mapbox bills one Search Box session per token covering every keystroke plus the single
+retrieve that closes it. `createSearchSessionToken()` mints one per search and it is rotated after each
+retrieve. `crypto.randomUUID` with a fallback for Safari < 15.4.
+
+`reverseGeocode` (dropped pins, GPS) stays on Geocoding v6 — it needs no session and is purpose-built for
+coordinate → address.
+
+A POI's `full_address` omits the business name (`Buko Spot` → `"Phase 4, Lucena, 4301"`), so `composeLabel`
+leads with the name unless the full address already does. Dropdown rows now show the name above the
+town/province line.
+
+## RED → GREEN
+
+| Stage | Command | Result |
+|---|---|---|
+| RED | `npx vitest run src/lib/geocoding.test.ts` | `Tests 13 failed | 9 passed (22)` |
+| GREEN | `npx vitest run src/lib/geocoding.test.ts` | `Tests 22 passed (22)` |
+| Full web suite | `npx vitest run` | `Test Files 35 passed · Tests 606 passed` |
+| Typecheck | `npx tsc --noEmit` | 0 errors |
+| Build | `npm run build` | `✓ built in 4.54s` |
+
+`src/lib/geocoding.ts` coverage: 88.98% stmts, 67.7% branch, 94.11% funcs, 90.9% lines.
+
+## Test Specification (added)
+
+| # | What is guaranteed | Test | Type |
+|---|---|---|---|
+| 1 | A session token is distinct per search session | `createSearchSessionToken:issues a distinct token per search session` | unit |
+| 2 | Suggest hits the Search Box endpoint bounded to PH, with the session token | `suggestAddresses:asks the Search Box suggest endpoint, bounded to the Philippines` | unit |
+| 3 | Proximity is sent as `lng,lat`, falling back to `ip` | `suggestAddresses:biases…` / `…falls back to IP-based proximity` | unit |
+| 4 | A business result leads with its own name, not its street address | `suggestAddresses:leads a business result with its own name, not its street address` | unit |
+| 5 | A street result keeps its full address when it already begins with the name | `suggestAddresses:keeps the full address when it already begins with the feature name` | unit |
+| 6 | Suggestions with no id are dropped (they cannot be retrieved) | `suggestAddresses:drops suggestions that carry no id, since they cannot be retrieved` | unit |
+| 7 | Retrieve resolves the coordinates suggest withheld, in the same session | `retrieveAddress:retrieves…` / `…resolves the coordinates the suggest step did not carry` | unit |
+| 8 | Retrieve returns null for a place outside the Philippines | `retrieveAddress:returns null when the retrieved place sits outside the Philippines` | unit |
+| 9 | Retrieve returns null for an unknown id | `retrieveAddress:returns null when Mapbox knows nothing about the id` | unit |
+| 10 | Blank queries and API rejections behave | `suggestAddresses:returns an empty list…` / `…throws when Mapbox rejects the request` | unit |
+
+## Live Verification
+
+`q=Buko Spot` with the exact deployed parameter set returned the business as the top result
+(`Buko Spot, Lucena, 4301, Philippines`), followed by `Buko Spot, Liloan`, `Buko Juice Spot, Davao City`.
+Retrieve on the first row resolved to `13.95260879, 121.62571486`, inside the PH box.
+
+## Known Gaps
+
+- **Mobile is unchanged.** `mobile/src/lib/geocoding.ts:searchAddresses` still uses Geocoding `forward`, but it
+  has no callers — the Expo app only reverse-geocodes. Migrating it now would be speculative; it must be
+  migrated if a mobile address autocomplete is ever added, or the two clients will behave differently.
+- **Billing model changed.** Search Box is billed per session, Geocoding per request. Expected to be cheaper
+  for typeahead, but worth watching on the Mapbox usage dashboard after this ships.
+- The two-step selection is not covered by a component-level test; `AddressAutocompleteInput` has no test file.
+  The suggest/retrieve contract it depends on is fully unit-tested at the library level.

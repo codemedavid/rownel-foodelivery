@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { searchAddresses, type AddressSuggestion, type ProximityPoint } from '../lib/geocoding';
+import {
+  createSearchSessionToken,
+  retrieveAddress,
+  suggestAddresses,
+  type AddressCandidate,
+  type AddressSuggestion,
+  type ProximityPoint,
+} from '../lib/geocoding';
 
 const SEARCH_DEBOUNCE_MS = 350;
 const MIN_QUERY_LENGTH = 3;
@@ -31,12 +38,22 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   onSelect,
   onClearSelection,
 }) => {
-  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<AddressCandidate[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedFromSuggestionRef = useRef(false);
+
+  // One Mapbox billing session spans every keystroke plus the retrieve that
+  // ends it, so the token is minted once here and rotated after a selection.
+  const sessionTokenRef = useRef<string>('');
+  const sessionToken = () => {
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = createSearchSessionToken();
+    }
+    return sessionTokenRef.current;
+  };
 
   // Depend on the primitives, not the object: callers pass an inline literal,
   // which would otherwise restart the debounce timer on every parent render.
@@ -62,7 +79,8 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
       try {
         setIsLoading(true);
         setSearchError(null);
-        const results = await searchAddresses(query, {
+        const results = await suggestAddresses(query, {
+          sessionToken: sessionToken(),
           limit: SUGGESTION_LIMIT,
           proximity:
             proximityLat === null || proximityLng === null
@@ -106,13 +124,35 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
     };
   }, []);
 
-  const handleSelectSuggestion = (suggestion: AddressSuggestion) => {
+  // Search Box withholds coordinates until a suggestion is picked, so the pin
+  // is resolved here rather than in the list.
+  const handleSelectSuggestion = async (candidate: AddressCandidate) => {
     selectedFromSuggestionRef.current = true;
-    onChange(suggestion.displayName);
-    onSelect(suggestion);
+    onChange(candidate.displayName);
     setSuggestions([]);
     setShowSuggestions(false);
     setSearchError(null);
+    setIsLoading(true);
+
+    try {
+      const resolved = await retrieveAddress(candidate.placeId, {
+        sessionToken: sessionToken(),
+      });
+
+      if (!resolved) {
+        setSearchError('We could not pin that place. Try a nearby street or landmark.');
+        return;
+      }
+
+      onChange(resolved.displayName);
+      onSelect(resolved);
+    } catch {
+      setSearchError('Could not load that address. You can still enter it manually.');
+    } finally {
+      setIsLoading(false);
+      // The session ends with its retrieve; the next search starts a new one.
+      sessionTokenRef.current = '';
+    }
   };
 
   const handleInputChange = (nextValue: string) => {
@@ -141,7 +181,7 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
       />
 
       {isLoading && (
-        <p className="mt-2 text-xs text-gray-500">Searching addresses...</p>
+        <p className="mt-2 text-xs text-gray-500">Searching places...</p>
       )}
       {searchError && <p className="mt-2 text-xs text-amber-700">{searchError}</p>}
 
@@ -151,10 +191,13 @@ const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
             <button
               key={suggestion.placeId}
               type="button"
-              onClick={() => handleSelectSuggestion(suggestion)}
+              onClick={() => void handleSelectSuggestion(suggestion)}
               className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 text-sm text-gray-800"
             >
-              {suggestion.displayName}
+              <span className="block font-medium text-gray-900">{suggestion.name}</span>
+              {suggestion.context && (
+                <span className="block text-xs text-gray-500">{suggestion.context}</span>
+              )}
             </button>
           ))}
         </div>

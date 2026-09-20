@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   PHILIPPINES_BOUNDS,
+  createSearchSessionToken,
   isWithinPhilippines,
+  retrieveAddress,
   reverseGeocode,
-  searchAddresses,
+  suggestAddresses,
 } from './geocoding';
 
 const addressFeature = {
@@ -55,6 +57,38 @@ const foreignFeature = {
   },
 };
 
+const poiSuggestion = {
+  name: 'Buko Spot',
+  mapbox_id: 'poi-buko-spot',
+  feature_type: 'poi',
+  full_address: 'Phase 4, Lucena, 4301, Philippines',
+  place_formatted: 'Lucena, 4301, Philippines',
+  context: { country: { name: 'Philippines', country_code: 'PH' } },
+};
+
+const streetSuggestion = {
+  name: '10 Rizal Street',
+  mapbox_id: 'addr-rizal',
+  feature_type: 'address',
+  full_address: '10 Rizal Street, Bangued, Abra, Philippines',
+  place_formatted: 'Bangued, Abra, Philippines',
+  context: { country: { name: 'Philippines', country_code: 'PH' } },
+};
+
+const retrievedPoiFeature = {
+  type: 'Feature',
+  geometry: { type: 'Point', coordinates: [121.62571486, 13.95260879] },
+  properties: {
+    mapbox_id: 'poi-buko-spot',
+    feature_type: 'poi',
+    name: 'Buko Spot',
+    full_address: 'Phase 4, Lucena, 4301, Philippines',
+    place_formatted: 'Lucena, 4301, Philippines',
+    coordinates: { latitude: 13.95260879, longitude: 121.62571486 },
+    context: { country: { name: 'Philippines', country_code: 'PH' } },
+  },
+};
+
 const collectionOf = (...features: unknown[]) => ({
   type: 'FeatureCollection',
   features,
@@ -89,139 +123,180 @@ describe('isWithinPhilippines', () => {
   });
 });
 
-describe('searchAddresses', () => {
+describe('createSearchSessionToken', () => {
+  it('issues a distinct token per search session', () => {
+    // Arrange / Act
+    const first = createSearchSessionToken();
+    const second = createSearchSessionToken();
+
+    // Assert — Mapbox bills one Search Box session per token
+    expect(first).toBeTruthy();
+    expect(second).toBeTruthy();
+    expect(first).not.toBe(second);
+  });
+});
+
+describe('suggestAddresses', () => {
+  const session = 'session-abc';
+
   it('returns an empty list for a blank query without calling the network', async () => {
     // Arrange / Act
-    const results = await searchAddresses('   ');
+    const results = await suggestAddresses('   ', { sessionToken: session });
 
     // Assert
     expect(results).toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('maps a Mapbox address feature to an AddressSuggestion', async () => {
+  it('asks the Search Box suggest endpoint, bounded to the Philippines', async () => {
     // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(addressFeature)));
+    fetchMock.mockResolvedValue(okResponse({ suggestions: [poiSuggestion] }));
 
     // Act
-    const [suggestion] = await searchAddresses('Rizal Street Bangued');
-
-    // Assert
-    expect(suggestion).toEqual({
-      placeId: 'dXJuOm1ieGFkcjo3Zjcz',
-      displayName: '10 Rizal Street, Bangued, Abra, Philippines',
-      latitude: 17.595814,
-      longitude: 120.617805,
-      countryCode: 'ph',
-    });
-  });
-
-  it('requests the forward geocoding endpoint with the query and limit', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
-
-    // Act
-    await searchAddresses('Balaoan', { limit: 5 });
+    await suggestAddresses('Buko Spot', { sessionToken: session });
 
     // Assert
     const url = lastRequestUrl();
-    expect(url.pathname).toBe('/search/geocode/v6/forward');
-    expect(url.searchParams.get('q')).toBe('Balaoan');
-    expect(url.searchParams.get('limit')).toBe('5');
-    expect(url.searchParams.get('access_token')).toBeTruthy();
-  });
-
-  it('constrains every search to the Philippines without being asked', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
-
-    // Act — no options at all, the way MerchantsList calls it
-    await searchAddresses('Balaoan');
-
-    // Assert
-    const url = lastRequestUrl();
+    expect(url.pathname).toBe('/search/searchbox/v1/suggest');
+    expect(url.searchParams.get('q')).toBe('Buko Spot');
     expect(url.searchParams.get('country')).toBe('ph');
     expect(url.searchParams.get('bbox')).toBe('116.9283,4.5873,126.6042,21.3218');
+    expect(url.searchParams.get('session_token')).toBe(session);
+    expect(url.searchParams.get('limit')).toBe('10');
   });
 
-  it('requests ten suggestions by default', async () => {
+  it('biases suggestions toward the supplied proximity point in lng,lat order', async () => {
     // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
+    fetchMock.mockResolvedValue(okResponse({ suggestions: [poiSuggestion] }));
 
     // Act
-    await searchAddresses('Balaoan');
-
-    // Assert
-    expect(lastRequestUrl().searchParams.get('limit')).toBe('10');
-  });
-
-  it('biases results toward the supplied proximity point in lng,lat order', async () => {
-    // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
-
-    // Act
-    await searchAddresses('Rizal Street', {
-      proximity: { latitude: 17.5965, longitude: 120.618 },
+    await suggestAddresses('Buko Spot', {
+      sessionToken: session,
+      proximity: { latitude: 16.8207, longitude: 120.4017 },
     });
 
-    // Assert — Mapbox wants longitude first
-    expect(lastRequestUrl().searchParams.get('proximity')).toBe('120.618,17.5965');
+    // Assert
+    expect(lastRequestUrl().searchParams.get('proximity')).toBe('120.4017,16.8207');
   });
 
   it('falls back to IP-based proximity when no reference point is known', async () => {
     // Arrange
-    fetchMock.mockResolvedValue(okResponse(collectionOf(placeFeature)));
+    fetchMock.mockResolvedValue(okResponse({ suggestions: [poiSuggestion] }));
 
     // Act
-    await searchAddresses('Rizal Street');
+    await suggestAddresses('Buko Spot', { sessionToken: session });
 
     // Assert
     expect(lastRequestUrl().searchParams.get('proximity')).toBe('ip');
   });
 
-  it('drops suggestions that fall outside the Philippines', async () => {
-    // Arrange — a same-named barangay in Paraguay, as Mapbox returns unfiltered
+  it('leads a business result with its own name, not its street address', async () => {
+    // Arrange — Mapbox omits the business name from full_address for a POI
+    fetchMock.mockResolvedValue(okResponse({ suggestions: [poiSuggestion] }));
+
+    // Act
+    const [candidate] = await suggestAddresses('Buko Spot', { sessionToken: session });
+
+    // Assert
+    expect(candidate).toEqual({
+      placeId: 'poi-buko-spot',
+      name: 'Buko Spot',
+      displayName: 'Buko Spot, Lucena, 4301, Philippines',
+      context: 'Lucena, 4301, Philippines',
+      featureType: 'poi',
+    });
+  });
+
+  it('keeps the full address when it already begins with the feature name', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(okResponse({ suggestions: [streetSuggestion] }));
+
+    // Act
+    const [candidate] = await suggestAddresses('Rizal Street', { sessionToken: session });
+
+    // Assert
+    expect(candidate.displayName).toBe('10 Rizal Street, Bangued, Abra, Philippines');
+  });
+
+  it('drops suggestions that carry no id, since they cannot be retrieved', async () => {
+    // Arrange
     fetchMock.mockResolvedValue(
-      okResponse(collectionOf(foreignFeature, placeFeature))
+      okResponse({ suggestions: [{ ...poiSuggestion, mapbox_id: '' }, streetSuggestion] })
     );
 
     // Act
-    const results = await searchAddresses('San Roque');
-
-    // Assert
-    expect(results.map((result) => result.displayName)).toEqual([
-      'Balaoan, La Union, Philippines',
-    ]);
-  });
-
-  it('drops features that carry no usable coordinates', async () => {
-    // Arrange
-    const brokenFeature = {
-      type: 'Feature',
-      properties: {
-        mapbox_id: 'broken',
-        full_address: 'Nowhere',
-        coordinates: { longitude: null, latitude: null },
-      },
-    };
-    fetchMock.mockResolvedValue(okResponse(collectionOf(brokenFeature, addressFeature)));
-
-    // Act
-    const results = await searchAddresses('anything');
+    const results = await suggestAddresses('Rizal', { sessionToken: session });
 
     // Assert
     expect(results).toHaveLength(1);
-    expect(results[0].placeId).toBe('dXJuOm1ieGFkcjo3Zjcz');
+    expect(results[0].placeId).toBe('addr-rizal');
   });
 
   it('throws when Mapbox rejects the request', async () => {
     // Arrange
-    fetchMock.mockResolvedValue({ ok: false, status: 401 } as Response);
+    fetchMock.mockResolvedValue({ ok: false, status: 429 } as Response);
 
     // Act / Assert
-    await expect(searchAddresses('Bangued')).rejects.toThrow(
-      'Failed to fetch address suggestions'
-    );
+    await expect(
+      suggestAddresses('Buko Spot', { sessionToken: session })
+    ).rejects.toThrow(/suggestion/i);
+  });
+});
+
+describe('retrieveAddress', () => {
+  const session = 'session-abc';
+
+  it('retrieves the chosen suggestion by id within the same session', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(okResponse(collectionOf(retrievedPoiFeature)));
+
+    // Act
+    await retrieveAddress('poi-buko-spot', { sessionToken: session });
+
+    // Assert
+    const url = lastRequestUrl();
+    expect(url.pathname).toBe('/search/searchbox/v1/retrieve/poi-buko-spot');
+    expect(url.searchParams.get('session_token')).toBe(session);
+  });
+
+  it('resolves the coordinates the suggest step did not carry', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(okResponse(collectionOf(retrievedPoiFeature)));
+
+    // Act
+    const result = await retrieveAddress('poi-buko-spot', { sessionToken: session });
+
+    // Assert
+    expect(result).toEqual({
+      placeId: 'poi-buko-spot',
+      displayName: 'Buko Spot, Lucena, 4301, Philippines',
+      latitude: 13.95260879,
+      longitude: 121.62571486,
+      countryCode: 'ph',
+    });
+  });
+
+  it('returns null when the retrieved place sits outside the Philippines', async () => {
+    // Arrange
+    const abroad = {
+      ...retrievedPoiFeature,
+      properties: {
+        ...retrievedPoiFeature.properties,
+        coordinates: { latitude: -25.2637, longitude: -57.5759 },
+      },
+    };
+    fetchMock.mockResolvedValue(okResponse(collectionOf(abroad)));
+
+    // Act / Assert
+    expect(await retrieveAddress('poi-abroad', { sessionToken: session })).toBeNull();
+  });
+
+  it('returns null when Mapbox knows nothing about the id', async () => {
+    // Arrange
+    fetchMock.mockResolvedValue(okResponse(collectionOf()));
+
+    // Act / Assert
+    expect(await retrieveAddress('poi-missing', { sessionToken: session })).toBeNull();
   });
 });
 
