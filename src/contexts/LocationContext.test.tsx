@@ -1,4 +1,3 @@
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
 import { LocationProvider, useUserLocation, USER_LOCATION_STORAGE_KEY } from './LocationContext';
@@ -77,6 +76,7 @@ describe('LocationProvider', () => {
   beforeEach(() => {
     localStorage.clear();
     mockedReverseGeocode.mockResolvedValue({
+      placeId: 'place-far',
       latitude: FAR_COORDS.latitude,
       longitude: FAR_COORDS.longitude,
       displayName: 'Pili, Camarines Sur',
@@ -212,6 +212,7 @@ describe('LocationProvider', () => {
         pendingSuccessCallbacks.push(success);
       });
       mockedReverseGeocode.mockImplementation(async (latitude: number, longitude: number) => ({
+        placeId: latitude === FAR_COORDS.latitude ? 'place-far' : 'place-stale',
         latitude,
         longitude,
         displayName: latitude === FAR_COORDS.latitude ? 'Pili, Camarines Sur' : 'Stale Town',

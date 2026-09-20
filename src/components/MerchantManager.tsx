@@ -138,6 +138,10 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
     setEditingMerchant(null);
     setMerchantFormErrors({});
     setMerchantFormData({
+      // Logo and cover object keys are scoped by merchant id, so a merchant
+      // being created needs one before its images can be uploaded. Postgres
+      // accepts the same value on insert, so the key and the row agree.
+      id: crypto.randomUUID(),
       name: '',
       description: '',
       category: 'restaurant',
@@ -294,7 +298,9 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
 
         if (newItemError) throw newItemError;
 
-        const nestedInsertTasks: Promise<void>[] = [];
+        // Supabase query builders are thenables, not real Promises, so the results of
+        // `.then(...)` are PromiseLike. `Promise.all` accepts those unchanged.
+        const nestedInsertTasks: PromiseLike<void>[] = [];
 
         if (item.variation_groups?.length) {
           nestedInsertTasks.push(
@@ -472,7 +478,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
         // Create new merchant
         const { error } = await supabase
           .from('merchants')
-          .insert(merchantData);
+          .insert({ ...merchantData, ...(merchantFormData.id ? { id: merchantFormData.id } : {}) });
 
         if (error) throw error;
         alert('Merchant created successfully');
@@ -826,6 +832,9 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
 
               <div className="mb-6">
                 <ImageUpload
+                  category="menu-item"
+                  label="Menu Item Image"
+                  context={{ merchantId: selectedMerchant?.id }}
                   currentImage={itemFormData.image}
                   onImageChange={(imageUrl) => setItemFormData({ ...itemFormData, image: imageUrl })}
                 />
@@ -1301,7 +1310,7 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                   {merchantFormErrors.address && (
                     <p className="mt-2 text-xs text-red-600">{merchantFormErrors.address}</p>
                   )}
-                  {merchantFormData.latitude !== null && merchantFormData.longitude !== null ? (
+                  {merchantFormData.latitude != null && merchantFormData.longitude != null ? (
                     <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       Location pinned ({merchantFormData.latitude.toFixed(6)}, {merchantFormData.longitude.toFixed(6)})
@@ -1363,6 +1372,9 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">Logo</label>
                   <ImageUpload
+                    category="merchant-logo"
+                    label="Logo"
+                    context={{ merchantId: merchantFormData.id }}
                     currentImage={merchantFormData.logoUrl}
                     onImageChange={(imageUrl) => setMerchantFormData({ ...merchantFormData, logoUrl: imageUrl })}
                   />
@@ -1371,6 +1383,9 @@ const MerchantManager: React.FC<MerchantManagerProps> = ({ onBack }) => {
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">Cover Image</label>
                   <ImageUpload
+                    category="merchant-cover"
+                    label="Cover Image"
+                    context={{ merchantId: merchantFormData.id }}
                     currentImage={merchantFormData.coverImageUrl}
                     onImageChange={(imageUrl) => setMerchantFormData({ ...merchantFormData, coverImageUrl: imageUrl })}
                   />

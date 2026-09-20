@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, LogOut, Clock, CheckCircle, ChefHat, Package, Truck, XCircle, Eye, X, Filter, Store, MapPin, CreditCard, Hash, Ruler, Image as ImageIcon } from 'lucide-react';
+import { Search, LogOut, Clock, CheckCircle, ChefHat, Package, XCircle, Eye, X, Filter, Store, MapPin, CreditCard, Hash, Ruler, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrdersByMerchants } from '../hooks/useOrdersData';
 import { useNewOrderNotification } from '../hooks/useNewOrderNotification';
@@ -42,7 +42,6 @@ const StaffOrdersPanel: React.FC = () => {
   }, [merchants]);
 
   const isLoadingStaff = staffLoading;
-  const staffNotFound = !staffLoading && staffRecord === null;
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -126,7 +125,10 @@ const StaffOrdersPanel: React.FC = () => {
     );
   }
 
-  if (staffNotFound) {
+  // Narrow on the record itself rather than a derived flag: the loading state has
+  // already returned above, so an absent record here means "not linked to a
+  // merchant", and this form keeps `staffRecord` non-null for the rest of the tree.
+  if (!staffRecord) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md text-center">
@@ -148,7 +150,7 @@ const StaffOrdersPanel: React.FC = () => {
     );
   }
 
-  if (staffRecord && !staffRecord.isActive) {
+  if (!staffRecord.isActive) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -498,14 +500,14 @@ const StaffOrdersPanel: React.FC = () => {
                     <div key={item.id} className="p-3 bg-gray-50 rounded-lg flex justify-between">
                       <div>
                         <p className="font-medium text-gray-900">{item.name}</p>
-                        {item.variation && (
+                        {item.variation ? (
                           <p className="text-xs text-gray-600">
                             {typeof item.variation === 'object' && (item.variation as any).name
                               ? `Size: ${(item.variation as any).name}${(item.variation as any).price != null ? ` (+₱${Number((item.variation as any).price).toFixed(2)})` : ''}`
                               : `Variation: ${String(item.variation)}`
                             }
                           </p>
-                        )}
+                        ) : null}
                         {Array.isArray(item.addOns) && item.addOns.length > 0 && (
                           <p className="text-xs text-gray-600">
                             Add-ons: {item.addOns.map((a: any) =>

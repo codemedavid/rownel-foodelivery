@@ -174,10 +174,28 @@ describe('validateImageFile', () => {
   });
 });
 
+/**
+ * The slice of the request init these tests read back off the fetch stub.
+ * `body` stays `unknown` because the auth call sends JSON and the upload call
+ * sends FormData.
+ */
+type StubInit = {
+  method: string;
+  headers: Record<string, string>;
+  body: unknown;
+};
+
+/**
+ * Declaring the init on the stub's *type* rather than as a parameter keeps
+ * `mock.calls[n][1]` visible to the assertions without leaving an unused
+ * binding in the implementation.
+ */
+type StubFetch = (url: string, init: StubInit) => Promise<ReturnType<typeof jsonResponse>>;
+
 describe('uploadToImageKit', () => {
   it('uploads a signed request to ImageKit and returns the stored file', async () => {
     // Arrange
-    const fetchMock = vi.fn(async (url: string) =>
+    const fetchMock = vi.fn<StubFetch>(async (url) =>
       url === API_PATH ? jsonResponse(authApiResponse) : jsonResponse(uploadResponse)
     );
     vi.stubGlobal('fetch', fetchMock);
@@ -194,7 +212,7 @@ describe('uploadToImageKit', () => {
     expect(authUrl).toBe(API_PATH);
     expect(authInit.method).toBe('POST');
     expect(authInit.headers.Authorization).toBe('Bearer access-tok');
-    expect(JSON.parse(authInit.body)).toEqual({ action: 'auth' });
+    expect(JSON.parse(authInit.body as string)).toEqual({ action: 'auth' });
 
     const [uploadUrl, uploadInit] = fetchMock.mock.calls[1];
     expect(uploadUrl).toBe('https://upload.imagekit.io/api/v1/files/upload');
@@ -210,7 +228,7 @@ describe('uploadToImageKit', () => {
 
   it('never sends the private key from the browser', async () => {
     // Arrange
-    const fetchMock = vi.fn(async (url: string) =>
+    const fetchMock = vi.fn<StubFetch>(async (url) =>
       url === API_PATH ? jsonResponse(authApiResponse) : jsonResponse(uploadResponse)
     );
     vi.stubGlobal('fetch', fetchMock);

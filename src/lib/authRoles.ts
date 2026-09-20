@@ -1,9 +1,18 @@
 const LEGACY_ADMIN_EMAIL = "admin@clickeats.com";
 
+/**
+ * The metadata bags carry provider-specific keys beyond `role`. The index
+ * signature keeps Supabase's own `UserAppMetadata` assignable here: without it
+ * TypeScript treats `{ role?: unknown }` as a weak type and rejects a value
+ * whose declared properties do not overlap, even though `role` is read at
+ * runtime exactly the same way.
+ */
+type RoleMetadata = { role?: unknown; [key: string]: unknown };
+
 type UserLike = {
   email?: string | null;
-  app_metadata?: { role?: unknown } | null;
-  user_metadata?: { role?: unknown } | null;
+  app_metadata?: RoleMetadata | null;
+  user_metadata?: RoleMetadata | null;
 };
 
 function normalizeEmail(email?: string | null) {

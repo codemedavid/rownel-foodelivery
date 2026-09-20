@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -45,9 +44,6 @@ function renderLogin() {
 // The labels in RiderLogin have no htmlFor, so we query inputs by type/role.
 function getEmailInput() {
   return document.querySelector('input[type="email"]') as HTMLInputElement;
-}
-function getPasswordInput() {
-  return document.querySelector('input[type="password"], input[type="text"][value]') as HTMLInputElement;
 }
 function getPasswordField() {
   // The password input may flip to type=text; always get by placeholder sibling pattern

@@ -97,7 +97,7 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
         orderId,
         newStatus as "pending" | "confirmed" | "preparing" | "ready" | "completed" | "cancelled"
       );
-    } catch (err) {
+    } catch {
       alert('Failed to update order status');
     } finally {
       setUpdating(null);
@@ -858,14 +858,14 @@ const OrdersManager: React.FC<OrdersManagerProps> = ({ onBack }) => {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">{item.name}</div>
-                          {item.variation && (
+                          {item.variation ? (
                             <div className="text-sm text-gray-600 mt-1">
                               {typeof item.variation === 'object' && (item.variation as any).name
                                 ? `Size: ${(item.variation as any).name}${(item.variation as any).price != null ? ` (+₱${Number((item.variation as any).price).toFixed(2)})` : ''}`
                                 : `Variation: ${String(item.variation)}`
                               }
                             </div>
-                          )}
+                          ) : null}
                           {Array.isArray(item.addOns) && item.addOns.length > 0 && (
                             <div className="text-sm text-gray-600 mt-1">
                               Add-ons: {item.addOns.map((addon: any) =>

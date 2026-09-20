@@ -1,5 +1,6 @@
 import React, { useState, useEffect, type ImgHTMLAttributes, type ReactNode } from 'react';
-import { buildImageKitUrl, type ImageTransform } from '../lib/imagekit';
+import { buildRenderedImageUrl } from '../lib/imageRendering';
+import type { ImageTransform } from '../lib/imagekit';
 
 const DEFAULT_QUALITY = 80;
 
@@ -11,7 +12,7 @@ type PassThroughProps = Omit<
 interface OptimizedImageProps extends PassThroughProps {
   src?: string | null;
   alt: string;
-  /** Rendered width in CSS pixels — drives the ImageKit resize. */
+  /** Rendered width in CSS pixels — drives the CDN resize. */
   width: number;
   height?: number;
   crop?: ImageTransform['crop'];
@@ -24,9 +25,10 @@ interface OptimizedImageProps extends PassThroughProps {
 /**
  * Renders an image at the size it is actually displayed.
  *
- * ImageKit-hosted images are resized and format-negotiated at the CDN, with a
- * 2x source for high-density screens. Images stored elsewhere (legacy
- * Cloudinary uploads, pasted URLs) render as-is.
+ * Images on R2 resize through Cloudflare Image Transformations and images still
+ * on ImageKit resize through ImageKit, both format-negotiated at the CDN with a
+ * 2x source for high-density screens. Images stored elsewhere (legacy Cloudinary
+ * uploads, pasted URLs) render as-is.
  */
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
   src,
@@ -51,15 +53,15 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     return <>{fallback}</>;
   }
 
-  const transform: ImageTransform = { width, height, crop, quality, format: 'auto' };
-  const optimizedSrc = buildImageKitUrl(src, transform);
-  const retinaSrc = buildImageKitUrl(src, {
-    ...transform,
+  const optimizedSrc = buildRenderedImageUrl(src, { width, height, crop, quality });
+  const retinaSrc = buildRenderedImageUrl(src, {
     width: width * 2,
     height: height ? height * 2 : undefined,
+    crop,
+    quality,
   });
 
-  // Identical URLs mean the source is not on ImageKit — a srcSet would add
+  // Identical URLs mean the source is on neither CDN — a srcSet would add
   // nothing but a duplicate request hint.
   const srcSet = retinaSrc !== optimizedSrc ? `${optimizedSrc} 1x, ${retinaSrc} 2x` : undefined;
 

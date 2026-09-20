@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { uploadToImageKit, deleteFromImageKit } from '../lib/imagekit';
+import { deleteImageFromStorage, uploadImageToStorage } from '../lib/storageClient';
+import type { StorageScope } from '../lib/storageClient';
 import { compressImage } from '../lib/imageCompression';
 
-const MENU_IMAGE_FOLDER = 'menu-items';
 const COMPRESSION_MAX_WIDTH = 1200;
 const COMPRESSION_QUALITY = 0.8;
 
@@ -14,7 +14,15 @@ export const useImageUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const uploadImage = async (file: File): Promise<string> => {
+  /**
+   * Compress, then store through `/api/storage`.
+   *
+   * `scope` decides both the bucket and the object key, so it is required: the
+   * category fixes the prefix and visibility, and its context ids (merchantId,
+   * orderId, riderId) scope the object to the record it belongs to. Compression
+   * runs first so the size declared to the grant is the size actually uploaded.
+   */
+  const uploadImage = async (file: File, scope: StorageScope): Promise<string> => {
     setUploading(true);
     setUploadProgress(0);
 
@@ -26,10 +34,15 @@ export const useImageUpload = () => {
       );
       setUploadProgress(PROGRESS_AFTER_COMPRESSION);
 
-      const { url } = await uploadToImageKit(compressedFile, { folder: MENU_IMAGE_FOLDER });
+      const { publicUrl } = await uploadImageToStorage(compressedFile, scope);
+      if (!publicUrl) {
+        // Every caller of this hook renders the result straight into an <img>.
+        // A private category has no such URL and needs `requestDownloadUrl`.
+        throw new Error('This image category cannot be displayed by URL');
+      }
       setUploadProgress(PROGRESS_COMPLETE);
 
-      return url;
+      return publicUrl;
     } finally {
       setUploading(false);
       setTimeout(() => setUploadProgress(0), PROGRESS_RESET_DELAY_MS);
@@ -40,9 +53,9 @@ export const useImageUpload = () => {
    * Best-effort removal from storage. A failure here must not block the caller
    * from unlinking the image, otherwise the UI is stuck on a broken reference.
    */
-  const deleteImage = async (imageUrl: string): Promise<void> => {
+  const deleteImage = async (imageUrl: string, scope: StorageScope): Promise<void> => {
     try {
-      await deleteFromImageKit(imageUrl);
+      await deleteImageFromStorage(imageUrl, scope);
     } catch {
       // Intentionally swallowed: storage cleanup is not worth failing the edit.
     }

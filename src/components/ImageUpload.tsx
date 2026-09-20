@@ -1,27 +1,58 @@
 import React, { useRef } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useImageUpload } from '../hooks/useImageUpload';
+import {
+  hasRequiredContext,
+  REQUIRED_CONTEXT_KEY,
+  type AssetCategory,
+  type StorageContext,
+} from '../lib/storageTypes';
+
+/** What to tell an admin who has not yet chosen the record an image belongs to. */
+const MISSING_CONTEXT_MESSAGE: Record<string, string> = {
+  merchantId: 'Select a merchant before uploading an image.',
+  orderId: 'Open an order before uploading an image.',
+  riderId: 'Select a rider before uploading an image.',
+};
 
 interface ImageUploadProps {
   currentImage?: string;
   onImageChange: (imageUrl: string | undefined) => void;
+  /** Which bucket and key prefix the image belongs to. */
+  category: AssetCategory;
+  /** Scope ids the category requires; see REQUIRED_CONTEXT_KEY. */
+  context?: StorageContext;
+  label?: string;
   className?: string;
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ 
-  currentImage, 
-  onImageChange, 
-  className = '' 
+const ImageUpload: React.FC<ImageUploadProps> = ({
+  currentImage,
+  onImageChange,
+  category,
+  context,
+  label = 'Image',
+  className = ''
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadImage, deleteImage, uploading, uploadProgress } = useImageUpload();
+
+  const scope = { category, context };
+  // The object key is scoped by this id, so without it the server has nothing to
+  // store against. Blocking here explains why, instead of collecting a 400.
+  const requiredKey = REQUIRED_CONTEXT_KEY[category];
+  const isReady = hasRequiredContext(category, context ?? {});
+  const blockedReason =
+    isReady || !requiredKey
+      ? null
+      : MISSING_CONTEXT_MESSAGE[requiredKey] ?? 'This image needs a record to belong to.';
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
-      const imageUrl = await uploadImage(file);
+      const imageUrl = await uploadImage(file, scope);
       onImageChange(imageUrl);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to upload image');
@@ -36,7 +67,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const handleRemoveImage = async () => {
     if (currentImage) {
       try {
-        await deleteImage(currentImage);
+        await deleteImage(currentImage, scope);
         onImageChange(undefined);
       } catch (error) {
         console.error('Error removing image:', error);
@@ -47,12 +78,19 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   };
 
   const triggerFileSelect = () => {
+    if (!isReady) return;
     fileInputRef.current?.click();
   };
 
   return (
     <div className={`space-y-4 ${className}`}>
-      <label className="block text-sm font-medium text-black mb-2">Menu Item Image</label>
+      <label className="block text-sm font-medium text-black mb-2">{label}</label>
+
+      {blockedReason && (
+        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          {blockedReason}
+        </p>
+      )}
       
       {currentImage ? (
         <div className="relative">
@@ -111,7 +149,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         accept="image/jpeg,image/png,image/webp,image/gif"
         onChange={handleFileSelect}
         className="hidden"
-        disabled={uploading}
+        disabled={uploading || !isReady}
       />
 
       {!currentImage && (
@@ -119,7 +157,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           <button
             type="button"
             onClick={triggerFileSelect}
-            disabled={uploading}
+            disabled={uploading || !isReady}
             className="flex items-center space-x-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Upload className="h-4 w-4" />

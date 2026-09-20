@@ -6,7 +6,9 @@
 
 **Architecture:** A Vercel API route authenticates Supabase sessions and issues short-lived, operation-specific R2 URLs signed with `aws4fetch`; clients upload directly to R2. Public assets use `images.row-nel.com` and Cloudflare Image Transformations, while receipts and rider photos store private object keys and resolve temporary read URLs after record-level authorization.
 
-**Tech Stack:** React 18, TypeScript, Vite, Vitest, Vercel Edge Functions, Supabase Auth/Postgres, Cloudflare R2 S3 API, Cloudflare Images transformations, `aws4fetch`, Wrangler, Node migration scripts.
+**Tech Stack:** React 18, TypeScript, Vite, Vitest, Vercel Node.js Functions, Supabase Auth/Postgres, Cloudflare R2 S3 API, Cloudflare Images transformations, `aws4fetch`, `undici`, Wrangler, Node migration scripts.
+
+> **Revision 2026-09-19.** Tasks 1–4 are accepted (see `2026-09-19-cloudflare-r2-handoff.md` for commits). This revision corrects the plan where the accepted code or the Task 5 security review diverged from the original text: scoped object keys, the Node.js runtime for `api/storage.ts`, the Task 5 remediation steps, the Task 9 key-shape constraints, the migration key rules in Task 12, and the mobile scope. Where an earlier task's text is now stale, a **Revision note** says what the accepted code actually does; do not re-do accepted tasks to match old text.
 
 ---
 
@@ -18,9 +20,10 @@ New focused modules:
 - `src/lib/storage.ts` — browser-safe validation, API calls, direct PUT upload, delete request, private URL request, and R2 transformation URL construction.
 - `src/server/storage/r2.ts` — server-only R2 configuration, generated keys, S3 URLs, and signing.
 - `src/server/storage/authorization.ts` — pure role/resource authorization decisions over a small repository interface.
-- `src/server/storage/remoteImport.ts` — HTTPS redirect, address, MIME signature, byte-limit, and timeout enforcement.
+- `src/server/storage/remoteImport.ts` — HTTPS redirect, address, MIME signature, byte-limit, and timeout enforcement; hands validated addresses to the transport.
+- `src/server/storage/storageNetwork.ts` — Node-only Cloudflare DoH resolver and `undici`-based pinned fetch transport. Lives under `src/server/`, **not** `api/`: every file in `api/` is deployed as a Vercel route.
 - `src/server/storage/handler.ts` — testable request dispatcher for upload, download, delete, and URL import.
-- `api/storage.ts` — production dependency wiring for Supabase and environment variables.
+- `api/storage.ts` — production dependency wiring for Supabase and environment variables (Node.js runtime; see Task 5).
 - `src/hooks/usePrivateImageUrl.ts` — fetches and refreshes temporary private URLs without persisting them.
 - `src/lib/storageMigration.ts` — pure provider-neutral manifest transitions and database update generation.
 - `scripts/imageStorageAudit.mjs` — inventories all public/private image fields into a provider-neutral manifest.
@@ -425,7 +428,9 @@ Use a five-minute expiry. Return JSON with `Cache-Control: no-store`. Keep `crea
 
 - [ ] **Step 4: Wire production dependencies in `api/storage.ts`**
 
-Export `config = { runtime: 'edge' }`. Read these server variables and fail with a generic configuration error when any are missing:
+> **Revision note (2026-09-19):** the accepted commit exports `config = { runtime: 'edge' }`. Task 5 replaces that with the Node.js runtime because connection pinning is impossible on Edge. Do not add Edge-only assumptions elsewhere.
+
+Read these server variables and fail with a generic configuration error when any are missing:
 
 ```text
 R2_ACCOUNT_ID
@@ -439,6 +444,8 @@ SUPABASE_SERVICE_ROLE_KEY
 ```
 
 Use the Supabase service client only after validating the caller JWT with `auth.getUser(jwt)`. Map `app_metadata.role`, the legacy admin email, and active staff rows into `StorageActor`. Repository queries must select only the authorization columns needed by Task 3.
+
+> **Revision note (2026-09-19):** the accepted key layout is scoped, and the key is an authorization boundary: `menu-items/<merchantId>/<uuid>.<ext>`, `merchants/logos|covers/<merchantId>/…`, `payment-methods/<merchantId|global>/…`, `site/logo/<uuid>.<ext>`, `promotions/<uuid>.<ext>`, `receipts/<ownerUserId>/<orderId>/<uuid>.<ext>`, `rider-photos/<riderId>/<uuid>.<ext>`. Delete requests must match the exact shape for the category and the caller's scope; anything else is treated as foreign and left alone. Later tasks (9, 12) depend on this layout.
 
 - [ ] **Step 5: Replace ImageKit examples in `.env.example`**
 
@@ -504,7 +511,7 @@ Run: `npm test -- src/server/storage/remoteImport.test.ts`
 
 Expected: FAIL because `remoteImport.ts` does not exist.
 
-- [ ] **Step 3: Implement bounded, signature-checked HTTPS fetching**
+- [ ] **Step 3: Implement bounded, signature-checked HTTPS fetching** *(done in `30c612e`; superseded details below)*
 
 Export:
 
@@ -524,7 +531,37 @@ export async function fetchRemoteImage(
 
 Require HTTPS, reject credentialed URLs and non-default ports, classify every literal/resolved IPv4 and IPv6 address, use `redirect: 'manual'`, allow at most three redirects, and validate each target before its fetch. Read `ReadableStream` chunks with an early byte ceiling. Detect JPEG/PNG/WebP/GIF by magic bytes and ignore a misleading response header.
 
-For Edge production DNS resolution, query Cloudflare's DNS-over-HTTPS JSON endpoint for both A and AAAA records, fail closed on an empty/failed answer, and validate all returned addresses.
+Production DNS resolution queries Cloudflare's DNS-over-HTTPS JSON endpoint for both A and AAAA records, fails closed on an empty/failed answer, and validates all returned addresses.
+
+- [ ] **Step 3b: Remediate the four review findings on `30c612e` (separate commit, do not amend)**
+
+Uncommitted WIP already exists for this step (`package.json`/lockfile add `undici`, `remoteImport.ts` returns the validated addresses and attaches them to the request under the `PINNED_REMOTE_ADDRESSES` symbol, and a transport/resolver module with tests). Inspect it with `git diff` and `git status` first; finish it, do not restart it. Then:
+
+1. **Move the transport out of `api/`.** Relocate `api/storageNetwork.ts` to `src/server/storage/storageNetwork.ts` and fix the test import in `src/server/storage/storageNetwork.test.ts`. Vercel deploys every `api/*.ts` file as a route, and this module has no default handler.
+2. **Switch the route to the Node.js runtime.** Remove `export const config = { runtime: 'edge' }` from `api/storage.ts`. `undici`'s `Agent({ connect: { lookup } })` needs Node sockets; Edge `fetch` cannot pin an address without breaking SNI/certificate validation.
+
+   **The export shape must change with the runtime.** Vercel's Node.js runtime recognises a Web handler only from the `fetch` Web Standard export:
+
+   ```ts
+   async function handleStorageRequest(request: Request): Promise<Response> { /* ... */ }
+   export default { fetch: handleStorageRequest };
+   ```
+
+   A bare `export default async function handler(request: Request)` is the *Edge* convention. Left in place on the Node runtime it is read as the legacy `(req, res)` Node handler, so the route would receive an `IncomingMessage` whose `headers` is a plain object, and every request would fail on `request.headers.get(...)`. Cover the shape with a test that asserts `typeof route.default.fetch === 'function'` and that no `config.runtime === 'edge'` remains; a deploy-time 500 is an expensive way to learn this.
+3. **Use undici's own `fetch` with its `Agent`.** Mixing Node's bundled `fetch` with a dispatcher from the npm `undici` copy is unsupported and can fail at runtime. The WIP already does this; keep it.
+4. **Make the transport request-scoped and leak-free.** `api/storage.ts` creates one `createPinnedFetchTransport()` per `import-url` request and calls `transport.abort()` in a `finally` after `fetchRemoteImage` settles. Inside the transport, close a dispatcher once its response body is fully consumed or cancelled, not only on error; today successful requests leak dispatchers until `abort()`.
+5. **Replace the inline DoH resolver in `api/storage.ts`** with `createCloudflareDnsResolver()` so the `Status !== 0` fail-closed rule applies in production; the inline copy currently ignores `Status`.
+6. **Close the remaining address gaps in `remoteImport.ts`:** reject 6to4 `2002::/16` unless its embedded IPv4 is public, reject Teredo `2001::/32`, and keep the IPv4-mapped check.
+7. **Bound cleanup.** In `readBody`, race `reader.cancel()` against the abort signal instead of awaiting it; cancel redirect and rejected (`!ok`, oversized `Content-Length`) response bodies the same way; on timeout, destroy the transport instead of waiting for the reader.
+8. **Tests to add** (all in `remoteImport.test.ts` or `storageNetwork.test.ts`):
+   - the transport's `lookup` is called with the validated address and the original hostname, and a hostname mismatch is rejected;
+   - two concurrent imports to different hosts never see each other's addresses;
+   - DoH `Status: 2` on AAAA with a successful A fails the import; NODATA on one family with a public answer on the other succeeds; malformed JSON fails;
+   - `2002:7f00:0001::` (loopback embedded), `2002:a9fe:a9fe::` (metadata embedded), `2002:c0a8:0101::` (private embedded) are rejected; a 6to4 address with a public embedded IPv4 is accepted; `2001:0:…` (Teredo) is rejected;
+   - a reader whose `cancel()` never resolves does not hold the import past the timeout;
+   - a redirect response body is cancelled before the next hop is fetched;
+   - the dispatcher is closed after a successful import and after an abort.
+9. Commit as `fix: pin remote image imports to validated addresses` (plus `chore: add undici` if you prefer a separate dependency commit). Re-run the focused storage tests, `npm test`, targeted `tsc`, and `npm run build`, then request fresh specification and security reviews before Task 6.
 
 - [ ] **Step 4: Add the `import-url` API action test-first**
 
@@ -813,11 +850,26 @@ ALTER TABLE riders ADD CONSTRAINT riders_photo_object_key_shape
   CHECK (photo_object_key IS NULL OR photo_object_key ~ '^rider-photos/[0-9a-f-]+/[0-9a-f-]+\.(jpg|png|webp|gif)$');
 ```
 
-Recreate the latest `create_order(jsonb)` definition from `20260827000000_add_customer_accounts.sql` with `receipt_object_key` included and `receipt_url` retained for legacy callers. Include `receipt_object_key` in staff/customer order RPC return shapes where the API authorization repository requires it.
+> **Revision note (2026-09-19):** the constraints above were written for the flat key layout and would reject every key the accepted server generates. Use these instead. The owner segment allows the literal `guest` for migrated receipts on orders without an account (Task 12).
+
+```sql
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_receipt_object_key_shape;
+ALTER TABLE orders ADD CONSTRAINT orders_receipt_object_key_shape
+  CHECK (receipt_object_key IS NULL OR receipt_object_key ~ '^receipts/(guest|[0-9a-f-]{36})/[0-9a-f-]{36}/[0-9a-f-]{36}\.(jpg|png|webp|gif)$');
+ALTER TABLE riders DROP CONSTRAINT IF EXISTS riders_photo_object_key_shape;
+ALTER TABLE riders ADD CONSTRAINT riders_photo_object_key_shape
+  CHECK (photo_object_key IS NULL OR photo_object_key ~ '^rider-photos/[0-9a-f-]{36}/[0-9a-f-]{36}\.(jpg|png|webp|gif)$');
+```
+
+Before writing the migration, confirm `riders.id` and `orders.id` are UUIDs in the existing schema; if either is not, widen the segment pattern to match the real id format rather than the pattern above.
+
+Recreate the latest `create_order(jsonb)` definition from `20260827000000_add_customer_accounts.sql` with `receipt_object_key` included and `receipt_url` retained for legacy callers. Include `receipt_object_key` in staff/customer order RPC return shapes where the API authorization repository requires it. `api/storage.ts` already selects `receipt_object_key` and `photo_object_key`, so the storage API returns 500 on receipt/rider-photo actions until this migration is applied; apply it before the compatibility release (Task 15 step 3).
 
 - [ ] **Step 4: Update generated/manual types and mappers**
 
 Add `receipt_object_key` and `photo_object_key` to Row/Insert/Update definitions. Add `receiptObjectKey?: string` and `photoObjectKey?: string` domain fields without deleting legacy URL fields.
+
+Mobile has no storage client, so the mobile mappers only need to keep keys and URLs in separate fields. Mobile screens continue to render `photoUrl`/`receiptUrl` and must never put an object key into an `Image` source; a mobile private-URL client is explicitly out of scope for this plan (see the design's Mobile scope section).
 
 - [ ] **Step 5: Run tests and commit**
 
@@ -893,6 +945,8 @@ if (previousKey && previousKey !== objectKey) {
 ```
 
 Customer/staff rider-photo components resolve with `{ riderId }`. Receipt components resolve with `{ orderId }`. During compatibility, use `resolvedPrivateUrl ?? legacyUrl`, but never pass an object key directly to `<img>` or `<a>`.
+
+Receipts are **render-only** in this task. No web or mobile checkout flow uploads a receipt file today (`orders.receipt_url` is only set from the order payload in `useOrders`), and the API only accepts receipt uploads for an existing order owned by the caller. Do not add a checkout-time receipt uploader here; if one is wanted later it is a separate feature that runs after order creation.
 
 - [ ] **Step 5: Add component tests for no key leakage and access failure**
 
@@ -1023,6 +1077,19 @@ Default output: `docs/images/r2-migration-manifest.json`. Never overwrite an exi
 - [ ] **Step 4: Implement idempotent R2 upload and verification**
 
 `uploadImagesToR2.mjs` accepts `--manifest`, `--limit`, and `--retry-failed`. It requires all server R2 variables, downloads with the same bounded/signature validation as the API, computes SHA-256, writes to the correct bucket, performs `HEAD`, checkpoints the manifest after each entry, and exits nonzero after reporting all failures. It never prints secret or signed URLs.
+
+Key generation must reuse the server code, not reimplement it: import `createR2Store` from `../src/server/storage/r2.ts` (the scripts already run with `--experimental-strip-types`) and `fetchRemoteImage` from `../src/server/storage/remoteImport.ts` with the Node transport from `storageNetwork.ts`. The audit entry must therefore carry the scope the key needs:
+
+| Target | Context passed to `createObjectKey` |
+| --- | --- |
+| `menu_items.image_url` | `{ merchantId: menu_items.merchant_id }` |
+| `merchants.logo_url`, `merchants.cover_image_url` | `{ merchantId: merchants.id }` |
+| `payment_methods.qr_code_url` | `{ merchantId: payment_methods.merchant_id }` or omitted → `global` |
+| site logo, `promotions.banner_image_url` | `{}` |
+| `orders.receipt_url` | `{ ownerId: orders.customer_user_id ?? 'guest', orderId: orders.id }` |
+| `riders.photo_url` | `{ riderId: riders.id }` |
+
+Rows whose scope column is missing (for example a menu item with no merchant) are reported and skipped, never uploaded under a guessed scope. Confirm the actual table and row key that holds the site logo during the audit step rather than assuming `site_settings.value`.
 
 - [ ] **Step 5: Implement dry-run/commit/rollback database application**
 

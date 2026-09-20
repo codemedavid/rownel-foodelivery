@@ -1,0 +1,403 @@
+import { MAX_IMAGE_BYTES } from '../../lib/storageTypes.js';
+
+/**
+ * A remote import that failed because of the source, not because of us: a URL that is not
+ * HTTPS, a host that resolves somewhere private, an upstream error status, a body that is
+ * too large, or bytes that are not a supported image.
+ *
+ * The handler answers these with 400 and the message verbatim, so every message here must
+ * stay safe to show a caller: no URL, no resolved address, no internal detail. Faults on
+ * our own side keep throwing a plain Error and stay behind the opaque 500.
+ */
+export class RemoteImageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RemoteImageError';
+  }
+}
+
+export interface RemoteImage {
+  bytes: Uint8Array;
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif';
+  finalUrl: string;
+}
+
+export interface RemoteImportDependencies {
+  fetch: typeof fetch;
+  /**
+   * Resolve a hostname to its public addresses. The signal carries the whole
+   * operation's deadline, so a slow or hostile nameserver cannot hold a lookup open
+   * after the import has already given up on it.
+   */
+  resolvePublicAddresses(hostname: string, signal: AbortSignal): Promise<string[]>;
+}
+
+export interface RemoteImportOptions {
+  maxBytes?: number;
+  timeoutMs?: number;
+  maxRedirects?: number;
+}
+
+export interface PinnedRemoteAddresses {
+  hostname: string;
+  addresses: readonly string[];
+}
+
+export const PINNED_REMOTE_ADDRESSES: unique symbol = Symbol('pinnedRemoteAddresses');
+
+export type PinnedRequestInit = RequestInit & {
+  [PINNED_REMOTE_ADDRESSES]: PinnedRemoteAddresses;
+};
+
+/**
+ * Reduce a URL hostname to the form used for validation and pinning: IPv6 literals
+ * without their brackets, and no trailing DNS root dot. Validation and pinning must
+ * agree on what counts as the same host, so both sides use this one definition.
+ */
+export function normalizeHostname(hostname: string): string {
+  return hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '');
+}
+
+function parseIpv4(address: string): number[] | null {
+  const parts = address.split('.');
+  if (parts.length !== 4) return null;
+  const octets = parts.map((part) => (/^\d{1,3}$/.test(part) ? Number(part) : -1));
+  return octets.every((octet) => octet >= 0 && octet <= 255) ? octets : null;
+}
+
+function isPublicIpv4(address: string): boolean {
+  const octets = parseIpv4(address);
+  if (!octets) return false;
+  const [a, b, c] = octets;
+  return !(
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 0 && (c === 0 || c === 2)) ||
+    (a === 192 && b === 88 && c === 99) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && b === 51 && c === 100) ||
+    (a === 203 && b === 0 && c === 113) ||
+    a >= 224
+  );
+}
+
+function parseIpv6(address: string): number[] | null {
+  const normalized = address.replace(/^\[|\]$/g, '').toLowerCase();
+  if (!normalized.includes(':') || normalized.includes('%')) return null;
+  const halves = normalized.split('::');
+  if (halves.length > 2) return null;
+  const readHalf = (half: string): number[] | null => {
+    if (!half) return [];
+    const values: number[] = [];
+    for (const part of half.split(':')) {
+      if (!/^[0-9a-f]{1,4}$/.test(part)) return null;
+      values.push(Number.parseInt(part, 16));
+    }
+    return values;
+  };
+  const left = readHalf(halves[0] ?? '');
+  const right = readHalf(halves[1] ?? '');
+  if (!left || !right) return null;
+  if (halves.length === 1) return left.length === 8 ? left : null;
+  const omitted = 8 - left.length - right.length;
+  if (omitted < 1) return null;
+  return [...left, ...Array<number>(omitted).fill(0), ...right];
+}
+
+function isPublicIpv6(address: string): boolean {
+  const groups = parseIpv6(address);
+  if (!groups) return false;
+  if (
+    groups.slice(0, 5).every((group) => group === 0) &&
+    groups[5] === 0xffff
+  ) {
+    const mapped = `${groups[6] >> 8}.${groups[6] & 0xff}.${groups[7] >> 8}.${groups[7] & 0xff}`;
+    return isPublicIpv4(mapped);
+  }
+
+  // 6to4 (2002::/16) tunnels embed an IPv4 destination in groups 1 and 2, so a
+  // 6to4 address is only as safe as the IPv4 address it carries.
+  if (groups[0] === 0x2002) {
+    const embedded = [
+      groups[1] >> 8,
+      groups[1] & 0xff,
+      groups[2] >> 8,
+      groups[2] & 0xff,
+    ].join('.');
+    return isPublicIpv4(embedded);
+  }
+
+  const first = groups[0];
+  if (first < 0x2000 || first > 0x3fff) return false;
+  // IANA special-purpose and documentation ranges within 2000::/3. The 2001::/23
+  // protocol-assignment block covers Teredo (2001::/32) and the other transition
+  // mechanisms, none of which is a legitimate public image origin.
+  if (first === 0x2001 && groups[1] <= 0x01ff) return false;
+  if (first === 0x2001 && groups[1] === 0x0db8) return false;
+  if (first === 0x3fff && groups[1] <= 0x0fff) return false;
+  return true;
+}
+
+function addressKind(hostname: string): 'ipv4' | 'ipv6' | null {
+  const unbracketed = hostname.replace(/^\[|\]$/g, '');
+  if (parseIpv4(unbracketed)) return 'ipv4';
+  if (parseIpv6(unbracketed)) return 'ipv6';
+  return null;
+}
+
+function isPublicAddress(address: string): boolean {
+  const unbracketed = address.replace(/^\[|\]$/g, '');
+  const kind = addressKind(unbracketed);
+  if (kind === 'ipv4') return isPublicIpv4(unbracketed);
+  if (kind === 'ipv6') return isPublicIpv6(unbracketed);
+  return false;
+}
+
+function detectMimeType(
+  bytes: Uint8Array,
+): RemoteImage['mimeType'] | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  if (
+    bytes.length >= 8 &&
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every(
+      (value, index) => bytes[index] === value,
+    )
+  ) {
+    return 'image/png';
+  }
+  if (bytes.length >= 6) {
+    const signature = String.fromCharCode(...bytes.slice(0, 6));
+    if (signature === 'GIF87a' || signature === 'GIF89a') return 'image/gif';
+  }
+  if (
+    bytes.length >= 12 &&
+    String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF' &&
+    String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP'
+  ) {
+    return 'image/webp';
+  }
+  return null;
+}
+
+/**
+ * Release a response body we are not going to read.
+ *
+ * The result is deliberately never awaited: a hostile or stalled peer must not be
+ * able to hold the whole import open through its cancellation promise. Freeing the
+ * underlying socket is the transport's job, which destroys its dispatcher per
+ * request.
+ */
+function discardBody(body: ReadableStream<Uint8Array> | null): void {
+  if (!body) return;
+  try {
+    void body.cancel().catch(() => undefined);
+  } catch {
+    // An already-locked or already-errored body needs no further cleanup.
+  }
+}
+
+function discardReader(reader: ReadableStreamDefaultReader<Uint8Array>): void {
+  try {
+    void reader.cancel().catch(() => undefined);
+  } catch {
+    // Cancellation is best effort; the caller's original error is what matters.
+  }
+}
+
+function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(new RemoteImageError('Remote image import timed out'));
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(new RemoteImageError('Remote image import timed out'));
+    signal.addEventListener('abort', abort, { once: true });
+    void promise.then(
+      (value) => {
+        signal.removeEventListener('abort', abort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', abort);
+        reject(error);
+      },
+    );
+  });
+}
+
+async function readBody(
+  response: Response,
+  maxBytes: number,
+  signal: AbortSignal,
+): Promise<Uint8Array> {
+  if (!response.body) throw new RemoteImageError('Remote image response did not include a body');
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const result = await abortable(reader.read(), signal);
+      if (result.done) break;
+      total += result.value.byteLength;
+      if (total > maxBytes) {
+        discardReader(reader);
+        throw new RemoteImageError('Remote image exceeds the maximum allowed size');
+      }
+      chunks.push(result.value);
+    }
+  } catch (error) {
+    discardReader(reader);
+    throw error;
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+function assertSafeUrl(url: URL): void {
+  if (url.protocol !== 'https:') {
+    throw new RemoteImageError('Remote image URL must use HTTPS');
+  }
+  if (url.username || url.password) {
+    throw new RemoteImageError('Remote image URL must not include credentials');
+  }
+  if (url.port && url.port !== '443') {
+    throw new RemoteImageError('Remote image URL must use the default HTTPS port');
+  }
+  const hostname = url.hostname.replace(/\.$/, '').toLowerCase();
+  if (
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname === 'local' ||
+    hostname.endsWith('.local') ||
+    hostname === 'internal' ||
+    hostname.endsWith('.internal')
+  ) {
+    throw new RemoteImageError('Remote image host must resolve only to public addresses');
+  }
+  const kind = addressKind(hostname);
+  if (kind && !isPublicAddress(hostname)) {
+    throw new RemoteImageError('Remote image host must resolve only to public addresses');
+  }
+}
+
+async function assertPublicDestination(
+  url: URL,
+  resolvePublicAddresses: RemoteImportDependencies['resolvePublicAddresses'],
+  signal: AbortSignal,
+): Promise<string[]> {
+  const hostname = normalizeHostname(url.hostname);
+  if (addressKind(hostname)) return [hostname];
+
+  let addresses: string[];
+  try {
+    addresses = await abortable(resolvePublicAddresses(hostname, signal), signal);
+  } catch {
+    throw new RemoteImageError('Remote image host could not be safely resolved');
+  }
+  if (addresses.length === 0 || addresses.some((address) => !isPublicAddress(address))) {
+    throw new RemoteImageError('Remote image host must resolve only to public addresses');
+  }
+  return addresses;
+}
+
+export async function fetchRemoteImage(
+  sourceUrl: string,
+  deps: RemoteImportDependencies,
+  options: RemoteImportOptions = {},
+): Promise<RemoteImage> {
+  const maxBytes = options.maxBytes ?? MAX_IMAGE_BYTES;
+  const timeoutMs = options.timeoutMs ?? 20_000;
+  const maxRedirects = options.maxRedirects ?? 3;
+  let url: URL;
+  try {
+    url = new URL(sourceUrl);
+  } catch {
+    throw new RemoteImageError('Remote image URL is invalid');
+  }
+  assertSafeUrl(url);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    let redirectCount = 0;
+    while (true) {
+      assertSafeUrl(url);
+      const addresses = await assertPublicDestination(
+        url,
+        deps.resolvePublicAddresses,
+        controller.signal,
+      );
+      let response: Response;
+      try {
+        const requestInit: PinnedRequestInit = {
+          redirect: 'manual',
+          credentials: 'omit',
+          signal: controller.signal,
+          headers: {
+            accept: 'image/jpeg,image/png,image/webp,image/gif',
+            // Count wire bytes, not decompressed bytes: transparent decompression
+            // would let a small compressed body expand past the size ceiling before
+            // the ceiling can be applied.
+            'accept-encoding': 'identity',
+          },
+          [PINNED_REMOTE_ADDRESSES]: {
+            hostname: normalizeHostname(url.hostname),
+            addresses,
+          },
+        };
+        response = await abortable(
+          deps.fetch(url.toString(), requestInit),
+          controller.signal,
+        );
+      } catch {
+        if (controller.signal.aborted) throw new RemoteImageError('Remote image import timed out');
+        throw new RemoteImageError('Remote image could not be fetched');
+      }
+
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        discardBody(response.body);
+        const location = response.headers.get('location');
+        if (!location) throw new RemoteImageError('Remote image redirect is missing Location');
+        if (redirectCount >= maxRedirects) {
+          throw new RemoteImageError('Remote image import encountered too many redirects');
+        }
+        try {
+          url = new URL(location, url);
+        } catch {
+          throw new RemoteImageError('Remote image redirect URL is invalid');
+        }
+        redirectCount += 1;
+        continue;
+      }
+      if (!response.ok) {
+        discardBody(response.body);
+        throw new RemoteImageError(`Remote image fetch failed with status ${response.status}`);
+      }
+      const contentLengthValue = response.headers.get('content-length');
+      if (contentLengthValue && /^\d+$/.test(contentLengthValue)) {
+        const contentLength = Number(contentLengthValue);
+        if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+          discardBody(response.body);
+          throw new RemoteImageError('Remote image exceeds the maximum allowed size');
+        }
+      }
+      const bytes = await readBody(response, maxBytes, controller.signal);
+      const mimeType = detectMimeType(bytes);
+      if (!mimeType) throw new RemoteImageError('Remote response is not a supported image');
+      return { bytes, mimeType, finalUrl: url.toString() };
+    }
+  } catch (error) {
+    if (controller.signal.aborted) throw new RemoteImageError('Remote image import timed out');
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}

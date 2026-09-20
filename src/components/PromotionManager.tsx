@@ -201,6 +201,8 @@ const PromotionManager: React.FC<PromotionManagerProps> = ({ onBack }) => {
 
             <div>
               <ImageUpload
+                category="promotion"
+                label="Banner Image"
                 currentImage={formData.banner_image_url}
                 onImageChange={(imageUrl) => setFormData({ ...formData, banner_image_url: imageUrl || '' })}
               />

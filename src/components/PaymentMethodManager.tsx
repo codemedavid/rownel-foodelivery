@@ -239,6 +239,9 @@ const PaymentMethodManager: React.FC<PaymentMethodManagerProps> = ({ onBack }) =
 
               <div>
                 <ImageUpload
+                  category="payment-qr"
+                  label="QR Code"
+                  context={{ merchantId: formData.merchant_id ?? undefined }}
                   currentImage={formData.qr_code_url}
                   onImageChange={(imageUrl) => setFormData({ ...formData, qr_code_url: imageUrl || '' })}
                 />

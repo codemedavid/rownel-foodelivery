@@ -15,6 +15,8 @@ export default defineConfig({
       include: [
         'src/lib/geocoding.ts',
         'src/lib/geoCircle.ts',
+        'src/lib/storage.ts',
+        'src/lib/storageTypes.ts',
         'src/lib/imagekit.ts',
         'src/lib/imageCatalog.ts',
         'src/hooks/useImageUpload.ts',
