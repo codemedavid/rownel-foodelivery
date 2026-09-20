@@ -41,3 +41,6 @@ backups/
 
 # Supabase CLI scratch directory
 supabase/.temp/
+
+# TypeScript incremental build info
+*.tsbuildinfo
