@@ -34,3 +34,10 @@ coverage
 .vercel
 .env*
 !.env.example
+
+# Supabase backup bundles — contain full database dumps (incl. auth.users) and
+# are never safe to commit.
+backups/
+
+# Supabase CLI scratch directory
+supabase/.temp/
