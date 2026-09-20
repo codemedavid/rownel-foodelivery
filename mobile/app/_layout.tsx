@@ -2,11 +2,13 @@ import React, { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AuthProvider } from '../src/context/AuthContext';
+import { View } from 'react-native';
+import { SafeAreaInsetsContext, SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { CartProvider } from '../src/context/CartContext';
 import { LocationProvider } from '../src/context/LocationContext';
 import { RoleGate } from '../src/components/RoleGate';
+import { ViewAsBanner } from '../src/components/ViewAsBanner';
 import { parseNotificationRoute } from '../src/lib/pushRouting';
 import '../src/lib/notifications';
 import { colors } from '../src/theme';
@@ -26,13 +28,32 @@ const useNotificationTapRouting = () => {
   }, [router]);
 };
 
+/**
+ * The "view as" banner owns the status bar area while a preview is running, so
+ * the navigator below it must not claim the top inset a second time.
+ */
+function BannerHost({ children }: { children: React.ReactNode }) {
+  const { isViewingAs } = useAuth();
+  const insets = useSafeAreaInsets();
+  if (!isViewingAs) return <>{children}</>;
+  return (
+    <View style={{ flex: 1 }}>
+      <ViewAsBanner />
+      <SafeAreaInsetsContext.Provider value={{ ...insets, top: 0 }}>
+        <View style={{ flex: 1 }}>{children}</View>
+      </SafeAreaInsetsContext.Provider>
+    </View>
+  );
+}
+
 function RootNavigator() {
   useNotificationTapRouting();
   return (
     <Stack
       screenOptions={{
         headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: '700' },
+        headerStyle: { backgroundColor: colors.surface },
+        headerTitleStyle: { fontWeight: '800', fontSize: 18, color: colors.text },
         headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
       }}
@@ -43,7 +64,10 @@ function RootNavigator() {
       <Stack.Screen name="merchant/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="item/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
       <Stack.Screen name="checkout" options={{ title: 'Checkout' }} />
-      <Stack.Screen name="order/[id]" options={{ title: 'Order status', headerBackVisible: false }} />
+      <Stack.Screen
+        name="order/[id]"
+        options={{ title: 'Track your order', headerBackVisible: false }}
+      />
       <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
     </Stack>
   );
@@ -57,7 +81,9 @@ export default function RootLayout() {
           <CartProvider>
             <StatusBar style="dark" />
             <RoleGate>
-              <RootNavigator />
+              <BannerHost>
+                <RootNavigator />
+              </BannerHost>
             </RoleGate>
           </CartProvider>
         </LocationProvider>

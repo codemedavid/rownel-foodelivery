@@ -11,6 +11,8 @@ interface Props {
   lastFixAt: number | null;
   isLocationFresh: boolean;
   error?: string | null;
+  /** Admin preview: show the rider's state but never change it. */
+  isReadOnly?: boolean;
   onToggle: (next: boolean) => void;
 }
 
@@ -36,10 +38,11 @@ export const OnlineToggleCard = ({
   lastFixAt,
   isLocationFresh,
   error,
+  isReadOnly = false,
   onToggle,
 }: Props) => {
   const gps = gpsLabel(permission, lastFixAt, isLocationFresh);
-  const isDisabled = isBusy || (!isOnline && !canGoOnline);
+  const isDisabled = isReadOnly || isBusy || (!isOnline && !canGoOnline);
 
   return (
     <View style={styles.card}>
@@ -60,7 +63,8 @@ export const OnlineToggleCard = ({
           />
         )}
       </View>
-      {!isOnline && !canGoOnline && permission !== 'denied' && (
+      {isReadOnly && <Text style={styles.hint}>Read-only preview — presence cannot be changed.</Text>}
+      {!isReadOnly && !isOnline && !canGoOnline && permission !== 'denied' && (
         <Text style={styles.hint}>Waiting for a GPS fix before you can go online.</Text>
       )}
       {!!error && <Text style={styles.error}>{error}</Text>}

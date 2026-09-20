@@ -13,8 +13,8 @@ const PAYOUT_COLORS = {
 } as const;
 
 export default function RiderEarningsScreen() {
-  const { user } = useAuth();
-  const { summary, payouts, isLoading, error, refetch } = useRiderEarnings(user?.id);
+  const { effectiveUserId } = useAuth();
+  const { summary, payouts, isLoading, error, refetch } = useRiderEarnings(effectiveUserId);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {

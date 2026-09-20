@@ -59,7 +59,12 @@ export const quoteMerchantDelivery = (
     userLocation.longitude
   );
 
-  const maxDistanceKm = merchant.maxDeliveryDistanceKm ?? null;
+  // Pasabuy (economy) rides along an existing trip, so merchants may allow a
+  // wider radius for it than for a rush delivery (web parity).
+  const maxDistanceKm =
+    mode === 'economy'
+      ? merchant.pasabuyMaxDistanceKm ?? merchant.maxDeliveryDistanceKm ?? null
+      : merchant.maxDeliveryDistanceKm ?? null;
 
   if (maxDistanceKm !== null && distanceKm > maxDistanceKm) {
     return {
@@ -67,7 +72,10 @@ export const quoteMerchantDelivery = (
       distanceKm,
       deliveryFee: 0,
       isEstimate: false,
-      reason: `Outside delivery range (${maxDistanceKm} km max).`,
+      reason:
+        mode === 'economy'
+          ? `Outside Pasabuy radius (${maxDistanceKm} km max).`
+          : `Outside delivery range (${maxDistanceKm} km max).`,
     };
   }
 
@@ -132,3 +140,14 @@ export const getDeliveryFeeTotal = (quotes: Record<string, DeliveryQuote>): numb
   const primaryId = selectPrimaryMerchantId(quotes);
   return primaryId ? quotes[primaryId].deliveryFee : 0;
 };
+
+/**
+ * Pasabuy (economy) is only a real choice when at least one merchant in the
+ * basket has a flat pasabuy fee configured. Mirrors the web checkout's
+ * `hasEconomyOption`, which gates `resolveDeliveryMode`.
+ */
+export const hasEconomyOption = (
+  merchantIds: readonly string[],
+  merchantsById: Record<string, Merchant>
+): boolean =>
+  merchantIds.some((merchantId) => (merchantsById[merchantId]?.fixedDeliveryFee ?? 0) > 0);

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { useAuth } from '../../../src/context/AuthContext';
 import { useLiveQuery } from '../../../src/hooks/useLiveQuery';
 import { useMerchants } from '../../../src/hooks/useMerchants';
 import { adminOrdersApi } from '../../../src/lib/adminOrdersApi';
@@ -39,6 +40,7 @@ function Row({ label, value }: { label: string; value?: string | null }) {
 export default function StaffOrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { merchants } = useMerchants();
+  const { isViewingAs } = useAuth();
   const [pendingStatus, setPendingStatus] = useState<StaffOrderStatus | null>(null);
   const [isRiderBusy, setIsRiderBusy] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -82,7 +84,7 @@ export default function StaffOrderDetailScreen() {
 
   const changeStatus = useCallback(
     async (status: StaffOrderStatus) => {
-      if (!order) return;
+      if (!order || isViewingAs) return;
       const run = async () => {
         setPendingStatus(status);
         try {
@@ -103,20 +105,20 @@ export default function StaffOrderDetailScreen() {
       }
       await run();
     },
-    [order, refetch]
+    [order, isViewingAs, refetch]
   );
 
   const assignRider = useCallback(
     async (rider: RiderSummary) => {
-      if (!order) return;
+      if (!order || isViewingAs) return;
       await adminOrdersApi.assignRider(order.id, rider.id);
       await refetch();
     },
-    [order, refetch]
+    [order, isViewingAs, refetch]
   );
 
   const unassignRider = useCallback(() => {
-    if (!order) return;
+    if (!order || isViewingAs) return;
     Alert.alert('Remove rider?', 'Auto-dispatch will look for another rider if the order is ready.', [
       { text: 'Keep', style: 'cancel' },
       {
@@ -135,7 +137,7 @@ export default function StaffOrderDetailScreen() {
         },
       },
     ]);
-  }, [order, refetch]);
+  }, [order, isViewingAs, refetch]);
 
   if (!order) {
     return (
@@ -161,7 +163,11 @@ export default function StaffOrderDetailScreen() {
       {!!error && <Text style={styles.error}>{error.message}</Text>}
 
       <Section title="Next step">
-        <StatusActionBar order={order} pendingStatus={pendingStatus} onSelect={changeStatus} />
+        {isViewingAs ? (
+          <Text style={styles.hint}>Read-only preview — order actions are disabled.</Text>
+        ) : (
+          <StatusActionBar order={order} pendingStatus={pendingStatus} onSelect={changeStatus} />
+        )}
         {order.status === 'out_for_delivery' && (
           <Text style={styles.hint}>The rider marks this order delivered from their app.</Text>
         )}
@@ -182,7 +188,7 @@ export default function StaffOrderDetailScreen() {
             </Text>
           )}
           <View style={styles.actions}>
-            {canAssignRider(order) && (
+            {!isViewingAs && canAssignRider(order) && (
               <Button
                 label={order.assignedRiderId ? 'Reassign rider' : 'Assign rider'}
                 variant="secondary"
@@ -191,7 +197,7 @@ export default function StaffOrderDetailScreen() {
                 disabled={isRiderBusy}
               />
             )}
-            {canUnassignRider(order) && (
+            {!isViewingAs && canUnassignRider(order) && (
               <Button label="Remove rider" variant="danger" size="sm" onPress={unassignRider} isLoading={isRiderBusy} />
             )}
           </View>

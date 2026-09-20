@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../src/lib/supabase';
@@ -16,7 +17,7 @@ import { calculateItemPrice } from '../../src/lib/cart';
 import { useMerchant } from '../../src/hooks/useMerchants';
 import { useCart } from '../../src/context/CartContext';
 import { QuantityStepper } from '../../src/components/QuantityStepper';
-import { colors, formatPeso, radius, spacing } from '../../src/theme';
+import { colors, formatPeso, radius, shadows, spacing } from '../../src/theme';
 import { AddOn, MenuItem, Variation } from '../../src/types';
 
 export default function ItemScreen() {
@@ -125,9 +126,29 @@ export default function ItemScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
         {item.image ? (
           <Image source={{ uri: item.image }} style={styles.hero} contentFit="cover" />
-        ) : null}
+        ) : (
+          <View style={[styles.hero, styles.heroFallback]}>
+            <Ionicons name="restaurant-outline" size={48} color={colors.textMuted} />
+          </View>
+        )}
 
         <View style={styles.body}>
+          {(item.popular || item.isOnDiscount) && (
+            <View style={styles.badgeRow}>
+              {item.popular && (
+                <View style={styles.badge}>
+                  <Ionicons name="flame" size={11} color={colors.accentDark} />
+                  <Text style={styles.badgeText}>Popular</Text>
+                </View>
+              )}
+              {item.isOnDiscount && (
+                <View style={[styles.badge, styles.badgeSale]}>
+                  <Ionicons name="pricetag" size={11} color={colors.primaryDark} />
+                  <Text style={[styles.badgeText, styles.badgeTextSale]}>On sale</Text>
+                </View>
+              )}
+            </View>
+          )}
           <Text style={styles.name}>{item.name}</Text>
           {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
           <View style={styles.priceRow}>
@@ -165,9 +186,11 @@ export default function ItemScreen() {
                   accessibilityState={{ selected: isSelected }}
                 >
                   <View style={[styles.radio, isSelected && styles.radioSelected]}>
-                    {isSelected && <View style={styles.radioDot} />}
+                    {isSelected && <Ionicons name="checkmark" size={13} color={colors.onPrimary} />}
                   </View>
-                  <Text style={styles.optionName}>{variation.name}</Text>
+                  <Text style={[styles.optionName, isSelected && styles.optionNameSelected]}>
+                    {variation.name}
+                  </Text>
                   {variation.price > 0 && (
                     <Text style={styles.optionPrice}>+{formatPeso(variation.price)}</Text>
                   )}
@@ -226,11 +249,20 @@ export default function ItemScreen() {
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
         <Pressable
-          style={[styles.cta, (missingRequiredGroup || !merchant) && styles.ctaDisabled]}
+          style={({ pressed }) => [
+            styles.cta,
+            (missingRequiredGroup || !merchant) && styles.ctaDisabled,
+            pressed && styles.ctaPressed,
+          ]}
           onPress={handleAddToBasket}
           disabled={Boolean(missingRequiredGroup) || !merchant}
           accessibilityRole="button"
         >
+          <Ionicons
+            name={missingRequiredGroup ? 'alert-circle-outline' : 'basket-outline'}
+            size={18}
+            color={colors.onPrimary}
+          />
           <Text style={styles.ctaText}>
             {missingRequiredGroup
               ? `Choose ${missingRequiredGroup.name}`
@@ -246,12 +278,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   errorText: { color: colors.textSecondary, padding: spacing.xl, textAlign: 'center' },
-  hero: { width: '100%', height: 240 },
+  hero: { width: '100%', height: 260, backgroundColor: colors.surfaceSunken },
+  heroFallback: { alignItems: 'center', justifyContent: 'center' },
   body: { padding: spacing.lg },
-  name: { fontSize: 22, fontWeight: '800', color: colors.text },
+  badgeRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.accentLight,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 3,
+  },
+  badgeSale: { backgroundColor: colors.primaryLight },
+  badgeText: { fontSize: 11, fontWeight: '800', color: colors.accentDark },
+  badgeTextSale: { color: colors.primaryDark },
+  name: { fontSize: 24, fontWeight: '800', color: colors.text, letterSpacing: -0.5 },
   description: { fontSize: 14, color: colors.textSecondary, marginTop: spacing.xs, lineHeight: 20 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
-  price: { fontSize: 20, fontWeight: '800', color: colors.primary },
+  price: { fontSize: 20, fontWeight: '800', color: colors.text },
   strikePrice: { fontSize: 15, color: colors.textMuted, textDecorationLine: 'line-through' },
   section: {
     borderTopWidth: 8,
@@ -278,15 +324,15 @@ const styles = StyleSheet.create({
   radio: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: radius.full,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioSelected: { borderColor: colors.primary },
-  radioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.primary },
+  radioSelected: { borderColor: colors.primary, backgroundColor: colors.primary },
   optionName: { flex: 1, fontSize: 15, color: colors.text },
+  optionNameSelected: { fontWeight: '700' },
   optionPrice: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
   addOnInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   addOnAdd: {
@@ -311,15 +357,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
+    ...shadows.lg,
   },
   cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
     backgroundColor: colors.primary,
     borderRadius: radius.lg,
-    paddingVertical: 15,
-    alignItems: 'center',
+    paddingVertical: 16,
   },
+  ctaPressed: { opacity: 0.85 },
   ctaDisabled: { backgroundColor: colors.textMuted },
-  ctaText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  ctaText: { color: colors.onPrimary, fontWeight: '800', fontSize: 16 },
 });

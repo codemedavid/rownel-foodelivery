@@ -9,6 +9,12 @@ import React, {
 import type { AuthError, Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { deriveRoleContext, GUEST_ROLE_CONTEXT, type RoleContext } from '../lib/roles';
+import {
+  canViewAs,
+  effectiveRoleContext,
+  effectiveUserId as resolveEffectiveUserId,
+  type ViewAsTarget,
+} from '../lib/viewAs';
 import type { StaffRecord } from '../lib/adminTypes';
 import { notificationsApi } from '../lib/notificationsApi';
 import { useStaffRecord } from '../hooks/useStaffRecord';
@@ -22,7 +28,18 @@ interface AuthContextType {
   isLoading: boolean;
   /** True until the staff row has been checked for the signed-in user. */
   isRoleLoading: boolean;
+  /** Role the app behaves with — the previewed account's while viewing as. */
   roleContext: RoleContext;
+  /** Role of the actually signed-in account, ignoring any preview. */
+  realRoleContext: RoleContext;
+  /** Account currently being previewed by an admin, if any. */
+  viewAs: ViewAsTarget | null;
+  isViewingAs: boolean;
+  /** User id every per-user query should key off (the previewed one while viewing as). */
+  effectiveUserId: string | null;
+  /** Admin-only. Starts a read-only preview of another account. */
+  startViewAs: (target: ViewAsTarget) => void;
+  stopViewAs: () => void;
   staffRecord: StaffRecord | null;
   /** True when this device holds a registered Expo push token. */
   isPushAvailable: boolean;
@@ -46,6 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewAs, setViewAs] = useState<ViewAsTarget | null>(null);
 
   const userId = user?.id ?? null;
   const { staffRecord, isLoading: isRoleLoading, refetch: refreshRole } = useStaffRecord(userId);
@@ -91,6 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = useCallback(async () => {
+    setViewAs(null);
     const token = pushTokenRef.current;
     if (token) {
       try {
@@ -102,10 +121,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
   }, [pushTokenRef]);
 
-  const roleContext = useMemo(
+  const realRoleContext = useMemo(
     () => (user ? deriveRoleContext(user, staffRecord, ADMIN_EMAIL) : GUEST_ROLE_CONTEXT),
     [user, staffRecord]
   );
+
+  // A preview must never outlive the admin session that opened it.
+  useEffect(() => {
+    if (viewAs && !canViewAs(realRoleContext)) setViewAs(null);
+  }, [viewAs, realRoleContext]);
+
+  const startViewAs = useCallback(
+    (target: ViewAsTarget) => {
+      if (!canViewAs(realRoleContext)) return;
+      setViewAs(target);
+    },
+    [realRoleContext]
+  );
+
+  const stopViewAs = useCallback(() => setViewAs(null), []);
+
+  const roleContext = useMemo(
+    () => effectiveRoleContext(realRoleContext, viewAs),
+    [realRoleContext, viewAs]
+  );
+  const isViewingAs = roleContext !== realRoleContext;
+  const effectiveUserId = resolveEffectiveUserId(userId, isViewingAs ? viewAs : null);
 
   const value = useMemo(
     () => ({
@@ -114,6 +155,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isLoading,
       isRoleLoading,
       roleContext,
+      realRoleContext,
+      viewAs: isViewingAs ? viewAs : null,
+      isViewingAs,
+      effectiveUserId,
+      startViewAs,
+      stopViewAs,
       staffRecord,
       isPushAvailable,
       signIn,
@@ -127,6 +174,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isLoading,
       isRoleLoading,
       roleContext,
+      realRoleContext,
+      viewAs,
+      isViewingAs,
+      effectiveUserId,
+      startViewAs,
+      stopViewAs,
       staffRecord,
       isPushAvailable,
       signIn,

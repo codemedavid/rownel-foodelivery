@@ -6,8 +6,12 @@ const rows = (data: unknown): Record<string, unknown>[] =>
   Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
 
 export const riderEarningsApi = {
-  async summary(): Promise<EarningsSummary> {
-    const { data, error } = await supabase.rpc('my_earnings_summary');
+  /**
+   * Earnings for one rider. The RPC authorises the caller itself: riders may
+   * only read their own row, admins may read any (the "view as" preview).
+   */
+  async summary(riderId: string): Promise<EarningsSummary> {
+    const { data, error } = await supabase.rpc('rider_earnings_summary', { p_rider_id: riderId });
     if (error) throw new Error(error.message);
     return mapEarningsSummary(data);
   },

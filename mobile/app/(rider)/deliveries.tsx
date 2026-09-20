@@ -16,8 +16,8 @@ const LABELS: Record<Tab, string> = { active: 'Active', history: 'Completed' };
 
 export default function RiderDeliveriesScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const riderId = user?.id ?? null;
+  const { effectiveUserId } = useAuth();
+  const riderId = effectiveUserId;
   const [tab, setTab] = useState<Tab>('active');
   const [isRefreshing, setIsRefreshing] = useState(false);
 

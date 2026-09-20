@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { colors, formatPeso, radius, spacing } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, formatPeso, radius, shadows, spacing } from '../theme';
 import { MenuItem } from '../types';
 
 type Props = {
@@ -25,18 +26,23 @@ export function MenuItemRow({ item, onPress }: Props) {
       accessibilityLabel={`${item.name}, ${formatPeso(item.effectivePrice ?? item.basePrice)}`}
     >
       <View style={styles.info}>
-        <View style={styles.badgeRow}>
-          {item.popular && (
-            <View style={styles.popularBadge}>
-              <Text style={styles.popularText}>Popular</Text>
-            </View>
-          )}
-          {item.isOnDiscount && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>Sale</Text>
-            </View>
-          )}
-        </View>
+        {(item.popular || item.isOnDiscount) && (
+          <View style={styles.badgeRow}>
+            {item.popular && (
+              <View style={styles.popularBadge}>
+                <Ionicons name="flame" size={10} color={colors.accentDark} />
+                <Text style={styles.popularText}>Popular</Text>
+              </View>
+            )}
+            {item.isOnDiscount && (
+              <View style={styles.discountBadge}>
+                <Ionicons name="pricetag" size={10} color={colors.primaryDark} />
+                <Text style={styles.discountText}>Sale</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <Text style={styles.name} numberOfLines={1}>
           {item.name}
         </Text>
@@ -45,30 +51,39 @@ export function MenuItemRow({ item, onPress }: Props) {
             {item.description}
           </Text>
         ) : null}
+
         <View style={styles.priceRow}>
           <Text style={styles.price}>{formatPeso(item.effectivePrice ?? item.basePrice)}</Text>
           {item.isOnDiscount && (
             <Text style={styles.strikePrice}>{formatPeso(item.basePrice)}</Text>
           )}
-          {soldOut && <Text style={styles.soldOutText}>Sold out</Text>}
-        </View>
-      </View>
-      {item.image ? (
-        <View>
-          <Image source={{ uri: item.image }} style={styles.thumb} contentFit="cover" transition={150} />
-          {!soldOut && (
-            <View style={styles.addButton}>
-              <Text style={styles.addButtonText}>+</Text>
+          {soldOut && (
+            <View style={styles.soldOutPill}>
+              <Text style={styles.soldOutText}>Sold out</Text>
             </View>
           )}
         </View>
-      ) : (
-        !soldOut && (
-          <View style={[styles.addButton, styles.addButtonInline]}>
-            <Text style={styles.addButtonText}>+</Text>
+      </View>
+
+      <View>
+        {item.image ? (
+          <Image
+            source={{ uri: item.image }}
+            style={styles.thumb}
+            contentFit="cover"
+            transition={150}
+          />
+        ) : (
+          <View style={[styles.thumb, styles.thumbFallback]}>
+            <Ionicons name="restaurant-outline" size={24} color={colors.textMuted} />
           </View>
-        )
-      )}
+        )}
+        {!soldOut && (
+          <View style={styles.addButton}>
+            <Ionicons name="add" size={18} color={colors.onPrimary} />
+          </View>
+        )}
+      </View>
     </Pressable>
   );
 }
@@ -76,57 +91,74 @@ export function MenuItemRow({ item, onPress }: Props) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surface,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
-    gap: spacing.md,
+    gap: spacing.lg,
   },
-  pressed: { backgroundColor: '#fafafa' },
-  soldOut: { opacity: 0.5 },
+  pressed: { backgroundColor: colors.surfaceSunken },
+  soldOut: { opacity: 0.55 },
   info: { flex: 1 },
-  badgeRow: { flexDirection: 'row', gap: spacing.xs, marginBottom: 2 },
+  badgeRow: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.xs },
   popularBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: colors.accentLight,
-    borderRadius: radius.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
   },
-  popularText: { fontSize: 10, fontWeight: '700', color: '#92400e' },
+  popularText: { fontSize: 10, fontWeight: '800', color: colors.accentDark },
   discountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: colors.primaryLight,
-    borderRadius: radius.sm,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
   },
-  discountText: { fontSize: 10, fontWeight: '700', color: colors.primaryDark },
-  name: { fontSize: 15, fontWeight: '700', color: colors.text },
-  description: { fontSize: 13, color: colors.textSecondary, marginTop: 2, lineHeight: 18 },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
-  price: { fontSize: 15, fontWeight: '700', color: colors.primary },
-  strikePrice: {
-    fontSize: 13,
-    color: colors.textMuted,
-    textDecorationLine: 'line-through',
+  discountText: { fontSize: 10, fontWeight: '800', color: colors.primaryDark },
+  name: { fontSize: 15.5, fontWeight: '800', color: colors.text, letterSpacing: -0.2 },
+  description: { fontSize: 13, color: colors.textSecondary, marginTop: 3, lineHeight: 18 },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  soldOutText: { fontSize: 12, fontWeight: '700', color: colors.textMuted },
-  thumb: { width: 88, height: 88, borderRadius: radius.md },
+  price: { fontSize: 15, fontWeight: '800', color: colors.text },
+  strikePrice: { fontSize: 13, color: colors.textMuted, textDecorationLine: 'line-through' },
+  soldOutPill: {
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  soldOutText: { fontSize: 11, fontWeight: '800', color: colors.textSecondary },
+  thumb: {
+    width: 92,
+    height: 92,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceSunken,
+  },
+  thumbFallback: { alignItems: 'center', justifyContent: 'center' },
   addButton: {
     position: 'absolute',
-    bottom: -6,
-    right: -6,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.surface,
+    bottom: -8,
+    right: -8,
+    width: 32,
+    height: 32,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
+    borderWidth: 2,
+    borderColor: colors.surface,
+    ...shadows.sm,
   },
-  addButtonInline: { position: 'relative', bottom: 0, right: 0, alignSelf: 'center' },
-  addButtonText: { fontSize: 20, fontWeight: '700', color: colors.primary, lineHeight: 22 },
 });

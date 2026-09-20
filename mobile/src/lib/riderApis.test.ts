@@ -151,10 +151,13 @@ describe('riderPresenceApi', () => {
 });
 
 describe('riderEarningsApi', () => {
-  it('reads the summary RPC and zeroes a null payload', async () => {
+  it('reads the summary RPC for the given rider and zeroes a null payload', async () => {
     mockRpc.mockResolvedValue({ data: null, error: null });
-    await expect(riderEarningsApi.summary()).resolves.toMatchObject({ totalEarned: 0, todayCount: 0 });
-    expect(mockRpc).toHaveBeenCalledWith('my_earnings_summary');
+    await expect(riderEarningsApi.summary('r1')).resolves.toMatchObject({
+      totalEarned: 0,
+      todayCount: 0,
+    });
+    expect(mockRpc).toHaveBeenCalledWith('rider_earnings_summary', { p_rider_id: 'r1' });
   });
 
   it('lists the rider\'s own payouts newest first', async () => {

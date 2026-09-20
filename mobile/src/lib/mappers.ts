@@ -27,6 +27,7 @@ export const mapMerchantRow = (row: Row): Merchant => ({
   minDeliveryFee: row.min_delivery_fee ?? null,
   maxDeliveryFee: row.max_delivery_fee ?? null,
   maxDeliveryDistanceKm: row.max_delivery_distance_km ?? null,
+  pasabuyMaxDistanceKm: row.pasabuy_max_distance_km ?? null,
   fixedDeliveryFee: row.fixed_delivery_fee ?? undefined,
   latitude: row.latitude ?? null,
   longitude: row.longitude ?? null,

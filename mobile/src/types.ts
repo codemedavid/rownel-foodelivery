@@ -23,6 +23,8 @@ export interface Merchant {
   minDeliveryFee?: number | null;
   maxDeliveryFee?: number | null;
   maxDeliveryDistanceKm?: number | null;
+  /** Wider radius allowed for Pasabuy (economy) deliveries. */
+  pasabuyMaxDistanceKm?: number | null;
   fixedDeliveryFee?: number;
   latitude?: number | null;
   longitude?: number | null;

@@ -3,15 +3,18 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 import type { StaffRecord } from '../../lib/adminTypes';
 import { colors, radius, spacing } from '../../theme';
 import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
 
 interface Props {
   staff: StaffRecord;
   merchantNames: ReadonlyMap<string, string>;
   isBusy: boolean;
   onToggleActive: (staff: StaffRecord, isActive: boolean) => void;
+  /** Admins only: preview this account's dashboard read-only. */
+  onViewAs?: (staff: StaffRecord) => void;
 }
 
-export const StaffRow = ({ staff, merchantNames, isBusy, onToggleActive }: Props) => {
+export const StaffRow = ({ staff, merchantNames, isBusy, onToggleActive, onViewAs }: Props) => {
   const access = staff.allMerchants
     ? 'All merchants (admin)'
     : staff.merchantIds.map((id) => merchantNames.get(id) ?? 'Unknown').join(', ') || 'No merchants';
@@ -25,6 +28,15 @@ export const StaffRow = ({ staff, merchantNames, isBusy, onToggleActive }: Props
         </Text>
         {staff.allMerchants && (
           <Badge label="Admin" color={colors.primary} backgroundColor={colors.primaryLight} />
+        )}
+        {!!onViewAs && (
+          <Button
+            label="View as staff"
+            variant="secondary"
+            size="sm"
+            onPress={() => onViewAs(staff)}
+            style={styles.viewAs}
+          />
         )}
       </View>
       <Switch
@@ -50,4 +62,5 @@ const styles = StyleSheet.create({
   text: { flex: 1, gap: 2 },
   name: { fontSize: 15, fontWeight: '700', color: colors.text },
   meta: { fontSize: 12, color: colors.textSecondary },
+  viewAs: { alignSelf: 'flex-start', marginTop: spacing.xs },
 });

@@ -4,12 +4,12 @@ import { useLiveQuery } from './useLiveQuery';
 
 const EARNINGS_POLL_MS = 60_000;
 
-/** Earnings summary plus payout history for the signed-in rider. */
+/** Earnings summary plus payout history for a rider (own, or previewed by an admin). */
 export const useRiderEarnings = (riderId: string | null | undefined) => {
   const fetcher = useCallback(async () => {
     if (!riderId) return null;
     const [summary, payouts] = await Promise.all([
-      riderEarningsApi.summary(),
+      riderEarningsApi.summary(riderId),
       riderEarningsApi.listPayouts(riderId),
     ]);
     return { summary, payouts };

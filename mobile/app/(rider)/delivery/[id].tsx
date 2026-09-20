@@ -1,10 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAuth } from '../../../src/context/AuthContext';
 import { useLiveQuery } from '../../../src/hooks/useLiveQuery';
 import { riderOrdersApi } from '../../../src/lib/riderOrdersApi';
 import { nextRiderAction, type RiderAction } from '../../../src/lib/riderActions';
 import { openDirections } from '../../../src/lib/mapsLink';
+import { openDialer } from '../../../src/lib/phoneLink';
 import { statusStyle } from '../../../src/lib/statusColors';
 import { formatPeso, colors, radius, spacing } from '../../../src/theme';
 import { Badge, Button, EmptyState } from '../../../src/components/ui';
@@ -22,6 +24,7 @@ const ACTION_CONFIRM: Record<RiderAction, string> = {
 export default function RiderDeliveryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { isViewingAs } = useAuth();
   const [isBusy, setIsBusy] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -42,7 +45,7 @@ export default function RiderDeliveryScreen() {
 
   const runAction = useCallback(
     async (action: RiderAction) => {
-      if (!order) return;
+      if (!order || isViewingAs) return;
       setIsBusy(true);
       try {
         if (action === 'pickup') {
@@ -58,7 +61,7 @@ export default function RiderDeliveryScreen() {
         setIsBusy(false);
       }
     },
-    [order, refetch, router]
+    [order, isViewingAs, refetch, router]
   );
 
   const confirmAction = useCallback(
@@ -80,8 +83,16 @@ export default function RiderDeliveryScreen() {
     if (!opened) Alert.alert('No destination', 'This order has no delivery address or coordinates.');
   }, [order]);
 
-  const onCall = useCallback(() => {
-    if (order?.contactNumber) Linking.openURL(`tel:${order.contactNumber}`);
+  const onCall = useCallback(async () => {
+    const opened = await openDialer(order?.contactNumber);
+    if (!opened) {
+      Alert.alert(
+        'Cannot place call',
+        order?.contactNumber
+          ? `This device cannot dial ${order.contactNumber}.`
+          : 'This order has no contact number.'
+      );
+    }
   }, [order]);
 
   if (!order) {
@@ -139,8 +150,11 @@ export default function RiderDeliveryScreen() {
         {!!order.notes && <Text style={styles.notes}>“{order.notes}”</Text>}
       </View>
 
-      {action && (
+      {action && !isViewingAs && (
         <Button label={ACTION_LABEL[action]} isLoading={isBusy} onPress={() => confirmAction(action)} />
+      )}
+      {action && isViewingAs && (
+        <Text style={styles.meta}>Read-only preview — “{ACTION_LABEL[action]}” is disabled.</Text>
       )}
     </ScrollView>
   );

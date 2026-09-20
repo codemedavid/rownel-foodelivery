@@ -88,14 +88,19 @@ function DispatchSettingsForm() {
 
 export default function AdminSettingsScreen() {
   const router = useRouter();
-  const { user, roleContext, staffRecord, isPushAvailable, signOut } = useAuth();
-  const displayName = staffRecord?.name || (user?.user_metadata?.full_name as string | undefined) || user?.email;
+  const { user, roleContext, staffRecord, isPushAvailable, signOut, viewAs, isViewingAs, stopViewAs } =
+    useAuth();
+  const displayName =
+    viewAs?.name ||
+    staffRecord?.name ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.card}>
         <Text style={styles.name}>{displayName}</Text>
-        <Text style={styles.meta}>{user?.email}</Text>
+        <Text style={styles.meta}>{isViewingAs ? 'Admin preview · read-only' : user?.email}</Text>
         <Text style={styles.meta}>
           Role: {roleContext.role} · Push: {isPushAvailable ? 'on this device' : 'in-app only'}
         </Text>
@@ -104,19 +109,23 @@ export default function AdminSettingsScreen() {
       <ListRow icon="notifications-outline" title="Notifications" onPress={() => router.push('/notifications')} />
       <ListRow icon="storefront-outline" title="Browse as customer" onPress={() => router.push('/(tabs)')} />
 
-      {roleContext.isAdmin && <DispatchSettingsForm />}
+      {roleContext.isAdmin && !isViewingAs && <DispatchSettingsForm />}
 
-      <ListRow
-        icon="log-out-outline"
-        title="Sign out"
-        destructive
-        onPress={() =>
-          Alert.alert('Sign out?', undefined, [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign out', style: 'destructive', onPress: () => signOut() },
-          ])
-        }
-      />
+      {isViewingAs ? (
+        <ListRow icon="eye-off-outline" title="Exit view as" onPress={stopViewAs} />
+      ) : (
+        <ListRow
+          icon="log-out-outline"
+          title="Sign out"
+          destructive
+          onPress={() =>
+            Alert.alert('Sign out?', undefined, [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Sign out', style: 'destructive', onPress: () => signOut() },
+            ])
+          }
+        />
+      )}
     </ScrollView>
   );
 }

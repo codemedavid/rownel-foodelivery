@@ -29,3 +29,7 @@ coverage
 
 # Local isolated feature worktrees
 .worktrees/
+
+# Supabase backup bundles — contain full database dumps (incl. auth.users) and
+# are never safe to commit.
+backups/

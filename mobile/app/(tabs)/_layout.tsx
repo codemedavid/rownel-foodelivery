@@ -1,18 +1,48 @@
 import React from 'react';
-import { StyleSheet, Text, View, type ColorValue } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ColorValue } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../../src/context/CartContext';
 import { useOrderStatusNotifications } from '../../src/hooks/useOrderStatusNotifications';
-import { colors } from '../../src/theme';
+import { colors, radius, shadows, spacing } from '../../src/theme';
 
-function CartIcon({ color, size, count }: { color: ColorValue; size: number; count: number }) {
+const MAX_BADGE_COUNT = 99;
+
+function TabIcon({
+  name,
+  color,
+  size,
+  focused,
+}: {
+  name: keyof typeof Ionicons.glyphMap;
+  color: ColorValue;
+  size: number;
+  focused: boolean;
+}) {
+  return (
+    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+      <Ionicons name={name} size={size - 2} color={color} />
+    </View>
+  );
+}
+
+function CartIcon({
+  color,
+  size,
+  count,
+  focused,
+}: {
+  color: ColorValue;
+  size: number;
+  count: number;
+  focused: boolean;
+}) {
   return (
     <View>
-      <Ionicons name="cart-outline" size={size} color={color} />
+      <TabIcon name={focused ? 'basket' : 'basket-outline'} color={color} size={size} focused={focused} />
       {count > 0 && (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{count}</Text>
+          <Text style={styles.badgeText}>{count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : count}</Text>
         </View>
       )}
     </View>
@@ -31,8 +61,13 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarStyle: styles.tabBar,
+        tabBarItemStyle: styles.tabItem,
         headerShadowVisible: false,
+        headerStyle: styles.header,
+        headerTitleStyle: styles.headerTitle,
+        headerTitleAlign: 'left',
       }}
     >
       <Tabs.Screen
@@ -40,8 +75,8 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'home' : 'home-outline'} color={color} size={size} focused={focused} />
           ),
         }}
       />
@@ -49,17 +84,24 @@ export default function TabsLayout() {
         name="orders"
         options={{
           title: 'Orders',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt-outline" size={size} color={color} />
+          headerTitle: 'Your orders',
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon
+              name={focused ? 'receipt' : 'receipt-outline'}
+              color={color}
+              size={size}
+              focused={focused}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="cart"
         options={{
-          title: 'Cart',
-          tabBarIcon: ({ color, size }) => (
-            <CartIcon color={color} size={size} count={cartCount} />
+          title: 'Basket',
+          headerTitle: 'Your basket',
+          tabBarIcon: ({ color, size, focused }) => (
+            <CartIcon color={color} size={size} count={cartCount} focused={focused} />
           ),
         }}
       />
@@ -67,8 +109,14 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+          headerShown: false,
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon
+              name={focused ? 'person' : 'person-outline'}
+              color={color}
+              size={size}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -77,17 +125,39 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    height: Platform.OS === 'ios' ? 88 : 64,
+    paddingTop: spacing.sm,
+    ...shadows.sm,
+  },
+  tabItem: { paddingVertical: 2 },
+  tabLabel: { fontSize: 11, fontWeight: '700', marginTop: 2 },
+  iconWrap: {
+    width: 46,
+    height: 28,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapActive: { backgroundColor: colors.primaryLight },
+  header: { backgroundColor: colors.surface },
+  headerTitle: { fontWeight: '800', fontSize: 20, color: colors.text, letterSpacing: -0.4 },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -8,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
+    top: -2,
+    right: 2,
+    minWidth: 17,
+    height: 17,
+    borderRadius: radius.full,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: colors.surface,
   },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  badgeText: { color: colors.onPrimary, fontSize: 10, fontWeight: '800' },
 });

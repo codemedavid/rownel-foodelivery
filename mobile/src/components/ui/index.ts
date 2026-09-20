@@ -1,7 +1,13 @@
+export { Avatar, getInitials } from './Avatar';
 export { Badge } from './Badge';
 export { Button } from './Button';
+export { Card } from './Card';
+export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';
 export { FormField } from './FormField';
 export { ListRow } from './ListRow';
+export { SectionHeader } from './SectionHeader';
 export { SegmentedControl, type Segment } from './SegmentedControl';
+export { Skeleton, MerchantCardSkeleton } from './Skeleton';
 export { StatCard } from './StatCard';
+export { StatusPill } from './StatusPill';

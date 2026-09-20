@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,12 +11,18 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../src/lib/supabase';
-import { buildMerchantOrderInputs, validateCheckoutForm } from '../src/lib/checkout';
+import {
+  buildMerchantOrderInputs,
+  resolveDeliveryMode,
+  validateCheckoutForm,
+} from '../src/lib/checkout';
 import { getMerchantSubtotal } from '../src/lib/cart';
 import {
   getDeliveryFeeTotal,
+  hasEconomyOption,
   quoteMerchants,
   selectPrimaryMerchantId,
 } from '../src/lib/deliveryQuotes';
@@ -24,20 +30,61 @@ import { appendOrderRecord } from '../src/lib/orderHistory';
 import { requestOrderNotificationPermission } from '../src/hooks/useOrderStatusNotifications';
 import { useCart } from '../src/context/CartContext';
 import { useUserLocation } from '../src/context/LocationContext';
-import { colors, formatPeso, radius, spacing } from '../src/theme';
-import { PaymentMethod, ServiceType } from '../src/types';
+import { colors, formatPeso, radius, shadows, spacing } from '../src/theme';
+import { DeliveryMode, PaymentMethod } from '../src/types';
 
-const SERVICE_TYPES: Array<{ value: ServiceType; label: string; emoji: string }> = [
-  { value: 'delivery', label: 'Delivery', emoji: '🛵' },
-  { value: 'pickup', label: 'Pickup', emoji: '🛍️' },
-  { value: 'dine-in', label: 'Dine-in', emoji: '🍽️' },
+type IconName = keyof typeof Ionicons.glyphMap;
+
+// Delivery is the only service type — customers choose how fast it moves,
+// exactly like the web checkout's "Delivery Option" block.
+const DELIVERY_MODES: Array<{
+  value: DeliveryMode;
+  label: string;
+  eta: string;
+  icon: IconName;
+}> = [
+  { value: 'priority', label: 'RUSH ORDER', eta: '30 – 45 mins', icon: 'flash-outline' },
+  { value: 'economy', label: 'PASABUY', eta: '45 – 120 mins', icon: 'bicycle-outline' },
 ];
 
-const PAYMENT_METHODS: Array<{ value: PaymentMethod; label: string }> = [
-  { value: 'gcash', label: 'GCash' },
-  { value: 'maya', label: 'Maya' },
-  { value: 'bank-transfer', label: 'Bank transfer' },
+const PAYMENT_METHODS: Array<{ value: PaymentMethod; label: string; icon: IconName }> = [
+  { value: 'gcash', label: 'GCash', icon: 'phone-portrait-outline' },
+  { value: 'maya', label: 'Maya', icon: 'card-outline' },
+  { value: 'bank-transfer', label: 'Bank transfer', icon: 'business-outline' },
 ];
+
+/** Titled card that groups one step of the checkout form. */
+function Section({
+  icon,
+  title,
+  children,
+}: {
+  icon: IconName;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionIcon}>
+          <Ionicons name={icon} size={15} color={colors.primary} />
+        </View>
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <View style={styles.errorRow}>
+      <Ionicons name="alert-circle" size={14} color={colors.danger} />
+      <Text style={styles.errorText}>{message}</Text>
+    </View>
+  );
+}
 
 export default function CheckoutScreen() {
   const {
@@ -48,13 +95,19 @@ export default function CheckoutScreen() {
     clearCart,
     removeMerchant,
   } = useCart();
-  const { userLocation } = useUserLocation();
+  const {
+    userLocation,
+    locationStatus,
+    locationError,
+    locationDisplayName,
+    requestLocation,
+  } = useUserLocation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [customerName, setCustomerName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
-  const [serviceType, setServiceType] = useState<ServiceType>('delivery');
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('priority');
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -63,23 +116,62 @@ export default function CheckoutScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const quotes = useMemo(
-    () => quoteMerchants(merchantIds, merchantsById, userLocation),
+  // Both modes are quoted so each option can show its own price up front,
+  // mirroring the web checkout.
+  const priorityQuotes = useMemo(
+    () => quoteMerchants(merchantIds, merchantsById, userLocation, 'priority'),
     [merchantIds, merchantsById, userLocation]
   );
+  const economyQuotes = useMemo(
+    () => quoteMerchants(merchantIds, merchantsById, userLocation, 'economy'),
+    [merchantIds, merchantsById, userLocation]
+  );
+
+  const quotes = deliveryMode === 'economy' ? economyQuotes : priorityQuotes;
   const primaryMerchantId = useMemo(() => selectPrimaryMerchantId(quotes), [quotes]);
 
+  const modeFees: Record<DeliveryMode, number> = {
+    priority: getDeliveryFeeTotal(priorityQuotes),
+    economy: getDeliveryFeeTotal(economyQuotes),
+  };
+
+  const offersEconomy = useMemo(
+    () => hasEconomyOption(merchantIds, merchantsById),
+    [merchantIds, merchantsById]
+  );
+
   // One fee for the whole basket — the furthest restaurant's (web parity).
-  const deliveryFee = serviceType === 'delivery' ? getDeliveryFeeTotal(quotes) : 0;
+  const deliveryFee = getDeliveryFeeTotal(quotes);
   const total = subtotal + deliveryFee;
 
+  // Prefill the address with the GPS/Mapbox address, but never overwrite
+  // what the customer has typed themselves.
+  const isAddressEditedRef = useRef(false);
+  useEffect(() => {
+    if (isAddressEditedRef.current || !locationDisplayName) return;
+    setAddress(locationDisplayName);
+  }, [locationDisplayName]);
+
+  const handleAddressChange = (value: string) => {
+    isAddressEditedRef.current = true;
+    setAddress(value);
+  };
+
+  const undeliverableMerchantId = merchantIds.find((id) => quotes[id]?.deliverable === false);
+  const undeliverableReason = undeliverableMerchantId
+    ? quotes[undeliverableMerchantId]?.reason
+    : undefined;
+
+  // Web parity: an address outside a restaurant's radius blocks the order.
+  const canPlaceOrder = cartItems.length > 0 && !undeliverableMerchantId;
+
   const handlePlaceOrder = async () => {
-    if (cartItems.length === 0) return;
+    if (!canPlaceOrder) return;
 
     const validation = validateCheckoutForm({
       customerName,
       contactNumber,
-      serviceType,
+      serviceType: 'delivery',
       address,
     });
     setErrors(validation.errors);
@@ -92,12 +184,12 @@ export default function CheckoutScreen() {
       form: {
         customerName,
         contactNumber,
-        serviceType,
-        address: serviceType === 'delivery' ? address : undefined,
+        serviceType: 'delivery',
+        address,
         deliveryLatitude: userLocation?.latitude,
         deliveryLongitude: userLocation?.longitude,
         paymentMethod,
-        deliveryMode: 'priority',
+        deliveryMode: resolveDeliveryMode(offersEconomy, deliveryMode),
         referenceNumber: referenceNumber || undefined,
         notes: notes || undefined,
       },
@@ -156,99 +248,160 @@ export default function CheckoutScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 160 }}>
-        <Text style={styles.sectionTitle}>Your details</Text>
-        <TextInput
-          style={[styles.input, errors.customerName && styles.inputError]}
-          placeholder="Full name"
-          placeholderTextColor={colors.textMuted}
-          value={customerName}
-          onChangeText={setCustomerName}
-          autoComplete="name"
-        />
-        {errors.customerName && <Text style={styles.errorText}>{errors.customerName}</Text>}
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Section icon="person-outline" title="Your details">
+          <TextInput
+            style={[styles.input, errors.customerName && styles.inputError]}
+            placeholder="Full name"
+            placeholderTextColor={colors.textMuted}
+            value={customerName}
+            onChangeText={setCustomerName}
+            autoComplete="name"
+          />
+          <FieldError message={errors.customerName} />
 
-        <TextInput
-          style={[styles.input, errors.contactNumber && styles.inputError]}
-          placeholder="Mobile number (09XXXXXXXXX)"
-          placeholderTextColor={colors.textMuted}
-          value={contactNumber}
-          onChangeText={setContactNumber}
-          keyboardType="phone-pad"
-          autoComplete="tel"
-        />
-        {errors.contactNumber && <Text style={styles.errorText}>{errors.contactNumber}</Text>}
+          <TextInput
+            style={[styles.input, errors.contactNumber && styles.inputError]}
+            placeholder="Mobile number (09XXXXXXXXX)"
+            placeholderTextColor={colors.textMuted}
+            value={contactNumber}
+            onChangeText={setContactNumber}
+            keyboardType="phone-pad"
+            autoComplete="tel"
+          />
+          <FieldError message={errors.contactNumber} />
+        </Section>
 
-        <Text style={styles.sectionTitle}>How do you want it?</Text>
-        <View style={styles.segmentRow}>
-          {SERVICE_TYPES.map((option) => {
-            const isActive = serviceType === option.value;
+        <Section icon="location-outline" title="Delivery address">
+          <View style={styles.locationCard}>
+            <Ionicons
+              name={locationStatus === 'error' ? 'warning-outline' : 'navigate-circle-outline'}
+              size={18}
+              color={locationStatus === 'error' ? colors.danger : colors.primary}
+            />
+            <View style={styles.locationTextGroup}>
+              <Text style={styles.locationTitle}>
+                {locationStatus === 'locating' ? 'Locating you…' : 'Current location (GPS)'}
+              </Text>
+              <Text style={styles.locationValue} numberOfLines={2}>
+                {locationDisplayName || locationError || 'Location not set yet'}
+              </Text>
+            </View>
+            <Pressable
+              onPress={requestLocation}
+              disabled={locationStatus === 'locating'}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Use my current location"
+            >
+              {locationStatus === 'locating' ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="refresh" size={18} color={colors.primary} />
+              )}
+            </Pressable>
+          </View>
+
+          <TextInput
+            style={[styles.input, styles.multiline, errors.address && styles.inputError]}
+            placeholder="House/unit no., street, barangay, landmark"
+            placeholderTextColor={colors.textMuted}
+            value={address}
+            onChangeText={handleAddressChange}
+            multiline
+          />
+          <FieldError message={errors.address} />
+          <Text style={styles.hint}>
+            Pulled from your phone's GPS — edit it if the house number or
+            landmark is missing.
+          </Text>
+        </Section>
+
+        <Section icon="bicycle-outline" title="Delivery option">
+          <View style={styles.segmentRow}>
+            {DELIVERY_MODES.map((option) => {
+              const isActive = deliveryMode === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  style={[styles.segment, isActive && styles.segmentActive]}
+                  onPress={() => setDeliveryMode(option.value)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isActive }}
+                >
+                  <View style={styles.segmentTop}>
+                    <Ionicons
+                      name={option.icon}
+                      size={16}
+                      color={isActive ? colors.primary : colors.textSecondary}
+                    />
+                    <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive]}>
+                      {option.label}
+                    </Text>
+                  </View>
+                  <Text style={[styles.segmentPrice, isActive && styles.segmentPriceActive]}>
+                    {formatPeso(modeFees[option.value])}
+                  </Text>
+                  <Text style={styles.segmentEta}>{option.eta}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {undeliverableReason && (
+            <View style={styles.errorRow}>
+              <Ionicons name="alert-circle" size={14} color={colors.danger} />
+              <Text style={styles.errorText}>{undeliverableReason}</Text>
+            </View>
+          )}
+        </Section>
+
+        <Section icon="wallet-outline" title="Payment">
+          {PAYMENT_METHODS.map((option) => {
+            const isActive = paymentMethod === option.value;
             return (
               <Pressable
                 key={option.value}
-                style={[styles.segment, isActive && styles.segmentActive]}
-                onPress={() => setServiceType(option.value)}
+                style={[styles.paymentRow, isActive && styles.paymentRowActive]}
+                onPress={() => setPaymentMethod(option.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isActive }}
               >
-                <Text style={styles.segmentEmoji}>{option.emoji}</Text>
-                <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive]}>
+                <Ionicons
+                  name={option.icon}
+                  size={18}
+                  color={isActive ? colors.primary : colors.textSecondary}
+                />
+                <Text style={[styles.paymentLabel, isActive && styles.paymentLabelActive]}>
                   {option.label}
                 </Text>
+                <View style={[styles.radio, isActive && styles.radioSelected]}>
+                  {isActive && <Ionicons name="checkmark" size={12} color={colors.onPrimary} />}
+                </View>
               </Pressable>
             );
           })}
-        </View>
+          <TextInput
+            style={styles.input}
+            placeholder="Payment reference number (optional)"
+            placeholderTextColor={colors.textMuted}
+            value={referenceNumber}
+            onChangeText={setReferenceNumber}
+          />
+        </Section>
 
-        {serviceType === 'delivery' && (
-          <>
-            <TextInput
-              style={[styles.input, styles.multiline, errors.address && styles.inputError]}
-              placeholder="Delivery address (street, barangay, landmark)"
-              placeholderTextColor={colors.textMuted}
-              value={address}
-              onChangeText={setAddress}
-              multiline
-            />
-            {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
-          </>
-        )}
-
-        <Text style={styles.sectionTitle}>Payment</Text>
-        {PAYMENT_METHODS.map((option) => {
-          const isActive = paymentMethod === option.value;
-          return (
-            <Pressable
-              key={option.value}
-              style={[styles.paymentRow, isActive && styles.paymentRowActive]}
-              onPress={() => setPaymentMethod(option.value)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: isActive }}
-            >
-              <View style={[styles.radio, isActive && styles.radioSelected]}>
-                {isActive && <View style={styles.radioDot} />}
-              </View>
-              <Text style={styles.paymentLabel}>{option.label}</Text>
-            </Pressable>
-          );
-        })}
-        <TextInput
-          style={styles.input}
-          placeholder="Payment reference number (optional)"
-          placeholderTextColor={colors.textMuted}
-          value={referenceNumber}
-          onChangeText={setReferenceNumber}
-        />
-
-        <Text style={styles.sectionTitle}>Notes</Text>
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          placeholder="Anything we should know? (optional)"
-          placeholderTextColor={colors.textMuted}
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-        />
+        <Section icon="chatbubble-ellipses-outline" title="Notes">
+          <TextInput
+            style={[styles.input, styles.multiline]}
+            placeholder="Anything we should know? (optional)"
+            placeholderTextColor={colors.textMuted}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+          />
+        </Section>
 
         <View style={styles.summary}>
+          <Text style={styles.summaryTitle}>Order summary</Text>
           {merchantIds.map((merchantId) => (
             <View key={merchantId} style={styles.summaryRow}>
               <Text style={styles.summaryLabel} numberOfLines={1}>
@@ -259,6 +412,7 @@ export default function CheckoutScreen() {
               </Text>
             </View>
           ))}
+          <View style={styles.summaryDivider} />
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
             <Text style={styles.summaryValue}>{formatPeso(subtotal)}</Text>
@@ -281,20 +435,32 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
-        {submitError && <Text style={styles.submitError}>{submitError}</Text>}
+        {submitError && (
+          <View style={styles.submitErrorBox}>
+            <Ionicons name="alert-circle" size={16} color={colors.danger} />
+            <Text style={styles.submitError}>{submitError}</Text>
+          </View>
+        )}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
         <Pressable
-          style={[styles.cta, (isSubmitting || cartItems.length === 0) && styles.ctaDisabled]}
+          style={({ pressed }) => [
+            styles.cta,
+            (isSubmitting || !canPlaceOrder) && styles.ctaDisabled,
+            pressed && styles.ctaPressed,
+          ]}
           onPress={handlePlaceOrder}
-          disabled={isSubmitting || cartItems.length === 0}
+          disabled={isSubmitting || !canPlaceOrder}
           accessibilityRole="button"
         >
           {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.onPrimary} />
           ) : (
-            <Text style={styles.ctaText}>Place order · {formatPeso(total)}</Text>
+            <>
+              <Ionicons name="lock-closed" size={16} color={colors.onPrimary} />
+              <Text style={styles.ctaText}>Place order · {formatPeso(total)}</Text>
+            </>
           )}
         </Pressable>
       </View>
@@ -304,88 +470,149 @@ export default function CheckoutScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.text,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  input: {
+  scroll: { padding: spacing.lg, paddingBottom: 170 },
+
+  section: {
     backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  sectionIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: colors.text, letterSpacing: -0.2 },
+
+  input: {
+    backgroundColor: colors.surfaceSunken,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'transparent',
     paddingHorizontal: spacing.md,
-    paddingVertical: 12,
+    paddingVertical: 13,
     fontSize: 15,
     color: colors.text,
     marginBottom: spacing.sm,
   },
-  multiline: { minHeight: 72, textAlignVertical: 'top' },
-  inputError: { borderColor: colors.danger },
-  errorText: { color: colors.danger, fontSize: 13, marginBottom: spacing.sm },
+  multiline: { minHeight: 76, textAlignVertical: 'top' },
+  inputError: { borderColor: colors.danger, backgroundColor: colors.dangerLight },
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: spacing.sm },
+  errorText: { flex: 1, color: colors.danger, fontSize: 12.5, fontWeight: '600' },
+
   segmentRow: { flexDirection: 'row', gap: spacing.sm },
   segment: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    gap: 4,
+    backgroundColor: colors.surfaceSunken,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: 'transparent',
     paddingVertical: spacing.md,
   },
   segmentActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  segmentEmoji: { fontSize: 20 },
-  segmentLabel: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginTop: 2 },
+  segmentTop: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  segmentLabel: { fontSize: 12.5, fontWeight: '800', color: colors.textSecondary, letterSpacing: 0.3 },
   segmentLabelActive: { color: colors.primaryDark },
+  segmentPrice: { fontSize: 16, fontWeight: '800', color: colors.text },
+  segmentPriceActive: { color: colors.primary },
+  segmentEta: { fontSize: 11.5, color: colors.textMuted, fontWeight: '600' },
+
+  locationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  locationTextGroup: { flex: 1 },
+  locationTitle: { fontSize: 11.5, fontWeight: '800', color: colors.textMuted, letterSpacing: 0.3 },
+  locationValue: { fontSize: 13.5, fontWeight: '600', color: colors.text, marginTop: 2 },
+  hint: { fontSize: 11.5, color: colors.textMuted, lineHeight: 16 },
+
   paymentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceSunken,
     borderRadius: radius.md,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: 'transparent',
     padding: spacing.md,
     marginBottom: spacing.sm,
     gap: spacing.md,
   },
-  paymentRowActive: { borderColor: colors.primary },
-  paymentLabel: { fontSize: 15, fontWeight: '600', color: colors.text },
+  paymentRowActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  paymentLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
+  paymentLabelActive: { fontWeight: '800' },
   radio: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: radius.full,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioSelected: { borderColor: colors.primary },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+  radioSelected: { borderColor: colors.primary, backgroundColor: colors.primary },
+
   summary: {
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: spacing.lg,
-    marginTop: spacing.xl,
+    ...shadows.sm,
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
-  summaryLabel: { flex: 1, color: colors.textSecondary, fontSize: 14 },
-  multiMerchantNote: {
-    color: colors.textSecondary,
-    fontSize: 12,
+  summaryDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
     marginBottom: spacing.sm,
   },
-  summaryValue: { fontWeight: '600', color: colors.text, fontSize: 14 },
+  summaryLabel: { flex: 1, color: colors.textSecondary, fontSize: 14 },
+  summaryValue: { fontWeight: '700', color: colors.text, fontSize: 14 },
+  multiMerchantNote: { color: colors.textMuted, fontSize: 12, marginBottom: spacing.sm },
   summaryTotalRow: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     marginBottom: 0,
   },
   summaryTotalLabel: { fontWeight: '800', fontSize: 16, color: colors.text },
-  summaryTotalValue: { fontWeight: '800', fontSize: 16, color: colors.primary },
-  submitError: { color: colors.danger, marginTop: spacing.md, textAlign: 'center' },
+  summaryTotalValue: { fontWeight: '800', fontSize: 20, color: colors.primary },
+
+  submitErrorBox: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    backgroundColor: colors.dangerLight,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+  },
+  submitError: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '600', lineHeight: 19 },
+
   footer: {
     position: 'absolute',
     left: 0,
@@ -394,15 +621,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
+    ...shadows.lg,
   },
   cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
     backgroundColor: colors.primary,
     borderRadius: radius.lg,
-    paddingVertical: 15,
-    alignItems: 'center',
+    paddingVertical: 16,
   },
+  ctaPressed: { backgroundColor: colors.primaryDark },
   ctaDisabled: { backgroundColor: colors.textMuted },
-  ctaText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  ctaText: { color: colors.onPrimary, fontWeight: '800', fontSize: 16 },
 });

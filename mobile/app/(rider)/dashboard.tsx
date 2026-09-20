@@ -18,8 +18,8 @@ import { DeliveryCard } from '../../src/components/rider/DeliveryCard';
 
 export default function RiderHomeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const riderId = user?.id ?? null;
+  const { effectiveUserId, isViewingAs } = useAuth();
+  const riderId = effectiveUserId;
 
   const { presence, isOnline, refetch: refetchPresence } = useRiderPresence(riderId);
   // Keep tracking while online so the fix never goes stale under dispatch.
@@ -27,7 +27,9 @@ export default function RiderHomeScreen() {
   useEffect(() => {
     if (isOnline) setIsTracking(true);
   }, [isOnline]);
-  const location = useRiderLocation(isTracking || isOnline);
+  // Never sample GPS while previewing: rider_update_location writes against the
+  // caller's own auth.uid(), which would corrupt the admin's presence row.
+  const location = useRiderLocation(!isViewingAs && (isTracking || isOnline));
 
   const { offers, now, refetch: refetchOffers } = useRiderOffers(riderId, isOnline);
   const { deliveries, isLoading, refetch: refetchDeliveries } = useRiderDeliveries(riderId);
@@ -49,6 +51,7 @@ export default function RiderHomeScreen() {
 
   const onTogglePresence = useCallback(
     async (next: boolean) => {
+      if (isViewingAs) return;
       setError(null);
       setIsTogglingPresence(true);
       try {
@@ -66,11 +69,12 @@ export default function RiderHomeScreen() {
         setIsTogglingPresence(false);
       }
     },
-    [location.coords, refetchPresence]
+    [isViewingAs, location.coords, refetchPresence]
   );
 
   const onAccept = useCallback(
     async (offerId: string) => {
+      if (isViewingAs) return;
       setBusyOfferId(offerId);
       setError(null);
       try {
@@ -82,11 +86,12 @@ export default function RiderHomeScreen() {
         setBusyOfferId(null);
       }
     },
-    [refetchOffers, refetchDeliveries]
+    [isViewingAs, refetchOffers, refetchDeliveries]
   );
 
   const onReject = useCallback(
     async (offerId: string) => {
+      if (isViewingAs) return;
       setBusyOfferId(offerId);
       try {
         await riderOffersApi.reject(offerId);
@@ -97,7 +102,7 @@ export default function RiderHomeScreen() {
         setBusyOfferId(null);
       }
     },
-    [refetchOffers]
+    [isViewingAs, refetchOffers]
   );
 
   const openDelivery = useCallback(
@@ -121,6 +126,7 @@ export default function RiderHomeScreen() {
         lastFixAt={location.lastUpdate ?? presence?.lastLocationUpdate ?? null}
         isLocationFresh={isLocationFresh(location.lastUpdate, now)}
         error={error}
+        isReadOnly={isViewingAs}
         onToggle={onTogglePresence}
       />
 
@@ -138,6 +144,7 @@ export default function RiderHomeScreen() {
             item={item}
             now={now}
             isBusy={busyOfferId === item.offer.id}
+            isReadOnly={isViewingAs}
             onAccept={onAccept}
             onReject={onReject}
           />

@@ -67,13 +67,73 @@ const renderProvider = () =>
     </LocationProvider>
   );
 
+// Mapbox is tried first for a house-number-level address; tests stay offline
+// by default and opt in with stubMapboxAddress().
+const mockedFetch = jest.fn();
+
+const stubMapboxAddress = (
+  properties: Record<string, unknown>,
+  fullAddress = 'raw display name'
+) =>
+  mockedFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {
+            mapbox_id: 'addr-1',
+            full_address: fullAddress,
+            coordinates: { latitude: FAR_COORDS.latitude, longitude: FAR_COORDS.longitude },
+            ...properties,
+          },
+        },
+      ],
+    }),
+  });
+
 describe('LocationProvider (mobile)', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
     jest.clearAllMocks();
+    process.env.EXPO_PUBLIC_MAPBOX_TOKEN = 'pk.test-mobile-token';
+    (globalThis as unknown as { fetch: jest.Mock }).fetch = mockedFetch;
+    mockedFetch.mockRejectedValue(new Error('offline'));
     mockedReverseGeocode.mockResolvedValue([
       { street: 'San Roque', city: 'Pili', region: 'Camarines Sur' },
     ]);
+  });
+
+  describe('Mapbox addresses', () => {
+    it('prefers the Mapbox address, including the house number', async () => {
+      // Arrange
+      grantPermission();
+      stubPosition(FAR_COORDS);
+      stubMapboxAddress(
+        { context: { address: { address_number: '1', street_name: 'Rizal Street' } } },
+        '1, Rizal Street, Naga, Camarines Sur'
+      );
+
+      // Act
+      renderProvider();
+
+      // Assert
+      await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
+      expect(screen.getByTestId('label')).toHaveTextContent('1 Rizal Street');
+      const saved = JSON.parse((await AsyncStorage.getItem(USER_LOCATION_STORAGE_KEY)) ?? 'null');
+      expect(saved).toMatchObject({ displayName: '1, Rizal Street, Naga, Camarines Sur' });
+    });
+
+    it('falls back to the on-device geocoder when Mapbox is unreachable', async () => {
+      grantPermission();
+      stubPosition(FAR_COORDS);
+
+      renderProvider();
+
+      await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
+      expect(screen.getByTestId('label')).toHaveTextContent('San Roque');
+    });
   });
 
   describe('first open (nothing saved)', () => {

@@ -1,24 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../src/lib/supabase';
 import { isTerminalStatus } from '../../src/lib/orderStatus';
+import {
+  CUSTOMER_STATUS_FLOW,
+  describeOrderStatus,
+  getStatusStepIndex,
+} from '../../src/lib/orderStatusDisplay';
 import { useOrderRealtime } from '../../src/hooks/useOrderRealtime';
 import type { OrderUpdatePayload } from '../../src/lib/notificationMessages';
-import { colors, radius, spacing } from '../../src/theme';
+import { Button } from '../../src/components/ui';
+import { colors, radius, shadows, spacing } from '../../src/theme';
 
 const POLL_INTERVAL_MS = 15_000;
 /** Once the realtime socket is live the poll is only a safety net. */
 const RELAXED_POLL_INTERVAL_MS = 60_000;
-
-const STATUS_STEPS = [
-  { key: 'pending', label: 'Order placed', emoji: '🧾' },
-  { key: 'confirmed', label: 'Confirmed', emoji: '✅' },
-  { key: 'preparing', label: 'Preparing', emoji: '🍳' },
-  { key: 'ready', label: 'Ready', emoji: '📦' },
-  { key: 'out_for_delivery', label: 'Out for delivery', emoji: '🛵' },
-  { key: 'completed', label: 'Completed', emoji: '🎉' },
-] as const;
 
 export default function OrderStatusScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -60,116 +58,216 @@ export default function OrderStatusScreen() {
   }, [id, isSubscribed]);
 
   const isCancelled = status === 'cancelled';
-  const currentIndex = STATUS_STEPS.findIndex((step) => step.key === status);
+  const currentIndex = getStatusStepIndex(status);
+  const current = describeOrderStatus(status);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
-      <Text style={styles.emoji}>{isCancelled ? '❌' : '🎉'}</Text>
-      <Text style={styles.title}>{isCancelled ? 'Order cancelled' : 'Order placed!'}</Text>
-      <Text style={styles.subtitle}>
-        {isCancelled
-          ? 'This order has been cancelled. Contact the merchant if this is unexpected.'
-          : "We'll update this screen — and notify you — as the restaurant works on your order."}
-      </Text>
+      <View style={[styles.headline, { backgroundColor: current.background }]}>
+        <View style={[styles.headlineIcon, { backgroundColor: colors.surface }]}>
+          <Ionicons name={current.icon} size={28} color={current.color} />
+        </View>
+        <Text style={[styles.headlineStatus, { color: current.color }]}>{current.label}</Text>
+        <Text style={styles.headlineBody}>
+          {isCancelled
+            ? 'This order has been cancelled. Contact the merchant if this is unexpected.'
+            : "We'll update this screen — and notify you — as your order moves along."}
+        </Text>
+        <View style={styles.liveRow}>
+          <View style={[styles.liveDot, { backgroundColor: isSubscribed ? colors.success : colors.textMuted }]} />
+          <Text style={styles.liveText}>{isSubscribed ? 'Live updates on' : 'Checking for updates…'}</Text>
+        </View>
+      </View>
 
-      <View style={styles.orderIdCard}>
-        <Text style={styles.orderIdLabel}>Order reference</Text>
-        <Text style={styles.orderIdValue}>{id?.slice(0, 8).toUpperCase()}</Text>
+      <View style={styles.referenceCard}>
+        <View>
+          <Text style={styles.referenceLabel}>Order reference</Text>
+          <Text style={styles.referenceValue}>{id?.slice(0, 8).toUpperCase()}</Text>
+        </View>
+        <Ionicons name="qr-code-outline" size={28} color={colors.textMuted} />
       </View>
 
       {!!riderName && !isCancelled && (
         <View style={styles.riderCard}>
-          <Text style={styles.riderLabel}>Your rider</Text>
-          <Text style={styles.riderValue}>🛵 {riderName}</Text>
+          <View style={styles.riderIcon}>
+            <Ionicons name="bicycle" size={20} color={colors.onPrimary} />
+          </View>
+          <View style={styles.riderText}>
+            <Text style={styles.riderLabel}>Your rider</Text>
+            <Text style={styles.riderValue}>{riderName}</Text>
+          </View>
         </View>
       )}
 
       {!isCancelled && (
         <View style={styles.timeline}>
-          {STATUS_STEPS.map((step, index) => {
-            const reached = currentIndex >= 0 && index <= currentIndex;
+          {CUSTOMER_STATUS_FLOW.map((step, index) => {
+            const presentation = describeOrderStatus(step);
+            const isReached = currentIndex >= 0 && index <= currentIndex;
+            const isCurrent = index === currentIndex;
+            const isLast = index === CUSTOMER_STATUS_FLOW.length - 1;
+
             return (
-              <View key={step.key} style={styles.stepRow}>
-                <Text style={[styles.stepEmoji, !reached && styles.stepPending]}>{step.emoji}</Text>
-                <Text style={[styles.stepLabel, reached ? styles.stepReached : styles.stepPending]}>
-                  {step.label}
-                </Text>
-                {index === currentIndex && !isTerminalStatus(step.key) && (
-                  <View style={styles.nowBadge}>
-                    <Text style={styles.nowBadgeText}>Now</Text>
+              <View key={step} style={styles.stepRow}>
+                <View style={styles.stepRail}>
+                  <View
+                    style={[
+                      styles.stepDot,
+                      isReached && { backgroundColor: presentation.color, borderColor: presentation.color },
+                    ]}
+                  >
+                    {isReached && (
+                      <Ionicons name="checkmark" size={12} color={colors.onPrimary} />
+                    )}
                   </View>
-                )}
+                  {!isLast && (
+                    <View
+                      style={[styles.stepLine, isReached && { backgroundColor: presentation.color }]}
+                    />
+                  )}
+                </View>
+
+                <View style={styles.stepBody}>
+                  <Text style={[styles.stepLabel, !isReached && styles.stepLabelPending]}>
+                    {presentation.label}
+                  </Text>
+                  {isCurrent && !isTerminalStatus(step) && (
+                    <View style={[styles.nowBadge, { backgroundColor: presentation.background }]}>
+                      <Text style={[styles.nowBadgeText, { color: presentation.color }]}>
+                        Happening now
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
             );
           })}
         </View>
       )}
 
-      <Pressable style={styles.cta} onPress={() => router.dismissTo('/')} accessibilityRole="button">
-        <Text style={styles.ctaText}>Back to restaurants</Text>
-      </Pressable>
+      <Button
+        label="Back to restaurants"
+        onPress={() => router.dismissTo('/')}
+        variant="secondary"
+        size="lg"
+        style={styles.cta}
+      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  container: { alignItems: 'center', padding: spacing.xl },
-  emoji: { fontSize: 56 },
-  title: { fontSize: 24, fontWeight: '800', color: colors.text, marginTop: spacing.lg },
-  subtitle: {
-    fontSize: 15,
+  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+
+  headline: {
+    alignItems: 'center',
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+  },
+  headlineIcon: {
+    width: 62,
+    height: 62,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
+  },
+  headlineStatus: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: spacing.md,
+    letterSpacing: -0.4,
+  },
+  headlineBody: {
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 20,
     marginTop: spacing.sm,
-    lineHeight: 21,
   },
-  orderIdCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    marginTop: spacing.xl,
+  liveRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md },
+  liveDot: { width: 7, height: 7, borderRadius: radius.full },
+  liveText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+
+  referenceCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  orderIdLabel: { fontSize: 12, color: colors.textMuted },
-  orderIdValue: { fontSize: 22, fontWeight: '800', color: colors.primary, marginTop: 2 },
-  riderCard: {
-    alignSelf: 'stretch',
-    backgroundColor: colors.accentLight,
-    borderRadius: radius.md,
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: spacing.lg,
     marginTop: spacing.lg,
+    ...shadows.sm,
+  },
+  referenceLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '700' },
+  referenceValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+
+  riderCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  riderLabel: { fontSize: 12, color: colors.textSecondary },
-  riderValue: { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 2 },
-  timeline: {
-    alignSelf: 'stretch',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    marginTop: spacing.xl,
     gap: spacing.md,
-  },
-  stepRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  stepEmoji: { fontSize: 18 },
-  stepLabel: { fontSize: 15, fontWeight: '600' },
-  stepReached: { color: colors.text },
-  stepPending: { color: colors.textMuted, opacity: 0.5 },
-  nowBadge: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-  },
-  nowBadgeText: { color: colors.primary, fontSize: 11, fontWeight: '800' },
-  cta: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    paddingVertical: 15,
-    paddingHorizontal: spacing.xxl,
-    marginTop: spacing.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginTop: spacing.md,
+    ...shadows.sm,
   },
-  ctaText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  riderIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  riderText: { flex: 1 },
+  riderLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '700' },
+  riderValue: { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 1 },
+
+  timeline: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+    ...shadows.sm,
+  },
+  stepRow: { flexDirection: 'row', gap: spacing.md },
+  stepRail: { alignItems: 'center', width: 24 },
+  stepDot: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.full,
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepLine: { flex: 1, width: 2, backgroundColor: colors.border, marginVertical: 2 },
+  stepBody: { flex: 1, paddingBottom: spacing.lg },
+  stepLabel: { fontSize: 15, fontWeight: '700', color: colors.text },
+  stepLabelPending: { color: colors.textMuted },
+  nowBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 3,
+    marginTop: spacing.xs,
+  },
+  nowBadgeText: { fontSize: 11, fontWeight: '800' },
+
+  cta: { marginTop: spacing.lg },
 });

@@ -11,13 +11,15 @@ import { colors } from '../theme';
  * changes, so deep links such as /order/[id] keep working for everyone.
  */
 export const RoleGate = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, isRoleLoading, roleContext } = useAuth();
+  const { user, isLoading, isRoleLoading, roleContext, viewAs } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const handledKeyRef = useRef<string | null>(null);
 
   const isReady = !isLoading && !isRoleLoading;
-  const identityKey = `${user?.id ?? 'guest'}:${roleContext.role}`;
+  // The previewed account is part of the identity: entering, switching or
+  // leaving a "view as" preview must re-route to that role's landing screen.
+  const identityKey = `${user?.id ?? 'guest'}:${roleContext.role}:${viewAs?.userId ?? ''}`;
   const topSegment = segments[0] as string | undefined;
 
   useEffect(() => {

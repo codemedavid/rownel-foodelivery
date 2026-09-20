@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Vibration } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { mapNotification } from '../lib/adminMappers';
@@ -13,6 +13,8 @@ interface Options {
 
 const VIBRATE_PATTERN = [0, 200, 100, 200];
 
+let channelSeq = 0;
+
 /**
  * Listens for new rows in `notifications` addressed to this user and reacts
  * in-app (vibration, unread bump, optional local banner).
@@ -21,10 +23,18 @@ export const useStaffOrderAlerts = (
   userId: string | null | undefined,
   { isPushAvailable, onNotification }: Options
 ): void => {
+  // Kept in refs so option changes never tear down and re-create the channel:
+  // `removeChannel` resolves asynchronously, so re-subscribing in the same tick
+  // makes supabase-js throw "tried to subscribe multiple times".
+  const optionsRef = useRef({ isPushAvailable, onNotification });
+  optionsRef.current = { isPushAvailable, onNotification };
+
   useEffect(() => {
     if (!userId) return;
+    // Unique topic per subscription: a remount before the previous channel has
+    // finished unsubscribing must not collide with it.
     const channel = supabase
-      .channel(`notifications-${userId}`)
+      .channel(`notifications-${userId}-${++channelSeq}`)
       .on(
         'postgres_changes',
         {
@@ -39,8 +49,8 @@ export const useStaffOrderAlerts = (
           Vibration.vibrate(VIBRATE_PATTERN);
           // Ring in-app while the app is open (push only plays when backgrounded).
           if (isNewOrder) playNewOrderSound();
-          onNotification?.();
-          if (!isPushAvailable) {
+          optionsRef.current.onNotification?.();
+          if (!optionsRef.current.isPushAvailable) {
             presentLocalNotification(
               notification.title,
               notification.body,
@@ -54,5 +64,5 @@ export const useStaffOrderAlerts = (
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, isPushAvailable, onNotification]);
+  }, [userId]);
 };

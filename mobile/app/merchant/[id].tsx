@@ -6,15 +6,18 @@ import {
   SectionList,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMerchant } from '../../src/hooks/useMerchants';
 import { useMenu } from '../../src/hooks/useMenu';
 import { MenuItemRow } from '../../src/components/MenuItemRow';
 import { BasketBar } from '../../src/components/BasketBar';
+import { groupMenuItemsByCategory, searchMenuItems } from '../../src/lib/menuSearch';
 import { colors, formatPeso, radius, spacing } from '../../src/theme';
 import { MenuItem } from '../../src/types';
 
@@ -23,18 +26,18 @@ export default function MerchantScreen() {
   const { merchant, isLoading: merchantLoading } = useMerchant(id);
   const { menuItems, isLoading: menuLoading, error } = useMenu(id);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [menuSearch, setMenuSearch] = useState('');
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const listRef = useRef<SectionList<MenuItem>>(null);
 
-  const sections = useMemo(() => {
-    const byCategory = new Map<string, MenuItem[]>();
-    for (const item of menuItems) {
-      const list = byCategory.get(item.category) ?? [];
-      byCategory.set(item.category, [...list, item]);
-    }
-    return [...byCategory.entries()].map(([title, data]) => ({ title, data }));
-  }, [menuItems]);
+  const matchingItems = useMemo(
+    () => searchMenuItems(menuItems, menuSearch),
+    [menuItems, menuSearch]
+  );
+
+  const sections = useMemo(() => groupMenuItemsByCategory(matchingItems), [matchingItems]);
+  const hasMenuQuery = Boolean(menuSearch.trim());
 
   const openItem = (item: MenuItem) =>
     router.push({ pathname: '/item/[id]', params: { id: item.id, merchantId: id } });
@@ -60,7 +63,7 @@ export default function MerchantScreen() {
     );
   }
 
-  const renderHeader = () => (
+  const listHeader = (
     <View>
       <View>
         <Image
@@ -102,6 +105,37 @@ export default function MerchantScreen() {
         <Text style={styles.minOrder}>Minimum order {formatPeso(merchant.minimumOrder)}</Text>
       </View>
 
+      <View style={styles.menuSearchBox}>
+        <Ionicons name="search" size={16} color={colors.textMuted} />
+        <TextInput
+          style={styles.menuSearchInput}
+          placeholder={`Search ${merchant.name}'s menu`}
+          placeholderTextColor={colors.textMuted}
+          value={menuSearch}
+          onChangeText={setMenuSearch}
+          returnKeyType="search"
+          autoCorrect={false}
+          autoCapitalize="none"
+          accessibilityLabel="Search this menu"
+        />
+        {hasMenuQuery && (
+          <Pressable
+            onPress={() => setMenuSearch('')}
+            hitSlop={8}
+            accessibilityLabel="Clear menu search"
+          >
+            <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+          </Pressable>
+        )}
+      </View>
+
+      {hasMenuQuery ? (
+        <Text style={styles.menuSearchSummary}>
+          {matchingItems.length} {matchingItems.length === 1 ? 'dish' : 'dishes'} match "
+          {menuSearch.trim()}"
+        </Text>
+      ) : null}
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -135,13 +169,19 @@ export default function MerchantScreen() {
         renderSectionHeader={({ section }) => (
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={listHeader}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
-            {error ? `Couldn't load the menu: ${error}` : 'No menu items yet.'}
+            {error
+              ? `Couldn't load the menu: ${error}`
+              : hasMenuQuery
+                ? `No dish matches "${menuSearch.trim()}" on this menu.`
+                : 'No menu items yet.'}
           </Text>
         }
         contentContainerStyle={{ paddingBottom: 120 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         stickySectionHeadersEnabled={false}
         onScrollToIndexFailed={() => undefined}
       />
@@ -189,6 +229,25 @@ const styles = StyleSheet.create({
   stat: { fontSize: 13, fontWeight: '600', color: colors.text },
   statDivider: { marginHorizontal: spacing.sm, color: colors.textMuted },
   minOrder: { fontSize: 12, color: colors.textMuted, marginTop: spacing.xs },
+  menuSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  menuSearchInput: { flex: 1, paddingVertical: 11, fontSize: 15, color: colors.text },
+  menuSearchSummary: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
   chipsRow: {
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,

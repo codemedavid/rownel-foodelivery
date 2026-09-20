@@ -5,6 +5,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useLiveQuery } from '../../src/hooks/useLiveQuery';
 import { useMerchants } from '../../src/hooks/useMerchants';
 import { adminStaffApi } from '../../src/lib/adminStaffApi';
+import { viewAsTargetFromStaff } from '../../src/lib/viewAs';
 import type { StaffRecord } from '../../src/lib/adminTypes';
 import { colors, spacing } from '../../src/theme';
 import { Button, EmptyState } from '../../src/components/ui';
@@ -12,7 +13,7 @@ import { StaffRow } from '../../src/components/admin/StaffRow';
 
 export default function StaffScreen() {
   const router = useRouter();
-  const { roleContext } = useAuth();
+  const { roleContext, startViewAs } = useAuth();
   const { merchants } = useMerchants();
   const fetcher = useCallback(() => adminStaffApi.list(), []);
   const { data, isLoading, error, refetch } = useLiveQuery(fetcher, [], {
@@ -39,6 +40,14 @@ export default function StaffScreen() {
     [refetch]
   );
 
+  const onViewAs = useCallback(
+    (staff: StaffRecord) => {
+      startViewAs(viewAsTargetFromStaff(staff));
+      router.replace('/(admin)/orders');
+    },
+    [startViewAs, router]
+  );
+
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await refetch();
@@ -61,7 +70,13 @@ export default function StaffScreen() {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         renderItem={({ item }) => (
-          <StaffRow staff={item} merchantNames={merchantNames} isBusy={busyId === item.id} onToggleActive={toggleActive} />
+          <StaffRow
+            staff={item}
+            merchantNames={merchantNames}
+            isBusy={busyId === item.id}
+            onToggleActive={toggleActive}
+            onViewAs={onViewAs}
+          />
         )}
         ListEmptyComponent={isLoading ? null : <EmptyState emoji="👥" title="No staff yet" body="Add your first staff account." />}
       />

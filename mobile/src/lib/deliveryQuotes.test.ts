@@ -3,6 +3,7 @@ import {
   quoteMerchants,
   selectPrimaryMerchantId,
   getDeliveryFeeTotal,
+  hasEconomyOption,
 } from './deliveryQuotes';
 import { Merchant } from '../types';
 
@@ -133,5 +134,76 @@ describe('selectPrimaryMerchantId / getDeliveryFeeTotal', () => {
   it('returns no primary merchant and a zero fee for an empty basket', () => {
     expect(selectPrimaryMerchantId({})).toBeNull();
     expect(getDeliveryFeeTotal({})).toBe(0);
+  });
+});
+
+describe('pasabuy (economy) mode', () => {
+  it('charges the merchant flat pasabuy fee instead of the distance-based fee', () => {
+    // Arrange
+    const merchant: Merchant = { ...baseMerchant, fixedDeliveryFee: 25 };
+
+    // Act
+    const quote = quoteMerchantDelivery(merchant, nearby, 'economy');
+
+    // Assert
+    expect(quote.deliverable).toBe(true);
+    expect(quote.deliveryFee).toBe(25);
+  });
+
+  it('allows the wider pasabuy radius when rush delivery is out of range', () => {
+    // Arrange
+    const merchant: Merchant = {
+      ...baseMerchant,
+      maxDeliveryDistanceKm: 1,
+      pasabuyMaxDistanceKm: 5,
+      fixedDeliveryFee: 25,
+    };
+
+    // Act
+    const rush = quoteMerchantDelivery(merchant, nearby, 'priority');
+    const pasabuy = quoteMerchantDelivery(merchant, nearby, 'economy');
+
+    // Assert
+    expect(rush.deliverable).toBe(false);
+    expect(pasabuy.deliverable).toBe(true);
+    expect(pasabuy.deliveryFee).toBe(25);
+  });
+
+  it('reports the pasabuy radius when the address is beyond it', () => {
+    // Arrange
+    const merchant: Merchant = { ...baseMerchant, pasabuyMaxDistanceKm: 1 };
+
+    // Act
+    const quote = quoteMerchantDelivery(merchant, nearby, 'economy');
+
+    // Assert
+    expect(quote.deliverable).toBe(false);
+    expect(quote.reason).toBe('Outside Pasabuy radius (1 km max).');
+  });
+
+  it('falls back to the standard delivery radius when no pasabuy radius is set', () => {
+    // Arrange
+    const merchant: Merchant = { ...baseMerchant, maxDeliveryDistanceKm: 1 };
+
+    // Act
+    const quote = quoteMerchantDelivery(merchant, nearby, 'economy');
+
+    // Assert
+    expect(quote.deliverable).toBe(false);
+  });
+});
+
+describe('hasEconomyOption', () => {
+  it('is true when any merchant in the basket has a flat pasabuy fee', () => {
+    const merchantsById = {
+      'm-1': baseMerchant,
+      'm-2': { ...baseMerchant, id: 'm-2', fixedDeliveryFee: 25 },
+    };
+
+    expect(hasEconomyOption(['m-1', 'm-2'], merchantsById)).toBe(true);
+  });
+
+  it('is false when no merchant offers a flat pasabuy fee', () => {
+    expect(hasEconomyOption(['m-1'], { 'm-1': baseMerchant })).toBe(false);
   });
 });

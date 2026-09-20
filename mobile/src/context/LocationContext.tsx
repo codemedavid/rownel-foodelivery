@@ -9,6 +9,7 @@ import React, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ExpoLocation from 'expo-location';
 import { Coordinates, hasMovedBeyondThreshold } from '../lib/merchantDistance';
+import { reverseGeocode } from '../lib/geocoding';
 
 export const USER_LOCATION_STORAGE_KEY = 'userDeliveryLocation';
 
@@ -67,6 +68,23 @@ const readSavedLocation = async (): Promise<StoredUserLocation | null> => {
 
 const resolveLocationFromCoords = async (coords: Coordinates): Promise<StoredUserLocation> => {
   const coordsLabel = `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+
+  // Mapbox first: it returns the house number and full street line the
+  // website uses, which is what a rider actually needs to find the door.
+  try {
+    const osm = await reverseGeocode(coords.latitude, coords.longitude);
+    if (osm.displayName) {
+      return {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        displayName: osm.displayName,
+        street: osm.street,
+      };
+    }
+  } catch {
+    // OSM unreachable or rate-limited — fall through to the on-device geocoder.
+  }
+
   try {
     const [address] = await ExpoLocation.reverseGeocodeAsync({
       latitude: coords.latitude,
@@ -81,8 +99,17 @@ const resolveLocationFromCoords = async (coords: Coordinates): Promise<StoredUse
       };
     }
 
-    const street = address.street || address.name || 'Current location';
-    const displayName = [address.city || address.district, address.region]
+    const houseNumber = address.streetNumber ?? '';
+    const street =
+      [houseNumber, address.street].filter(Boolean).join(' ').trim() ||
+      address.name ||
+      'Current location';
+    const displayName = [
+      street,
+      address.district,
+      address.city || address.subregion,
+      address.region,
+    ]
       .filter(Boolean)
       .join(', ');
     return {

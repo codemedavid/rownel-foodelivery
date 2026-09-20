@@ -1,20 +1,33 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useLiveQuery } from '../src/hooks/useLiveQuery';
 import { notificationsApi } from '../src/lib/notificationsApi';
 import type { AppNotification } from '../src/lib/adminTypes';
 import { parseNotificationRoute } from '../src/lib/pushRouting';
 import { timeAgo } from '../src/lib/formatters';
-import { colors, radius, spacing } from '../src/theme';
+import { colors, radius, shadows, spacing } from '../src/theme';
 import { Button, EmptyState } from '../src/components/ui';
 
-const KIND_EMOJI: Record<AppNotification['kind'], string> = {
-  new_order: '🧾',
-  status_change: '🔔',
-  rider_assigned: '🛵',
-  new_offer: '📬',
+type KindStyle = { icon: keyof typeof Ionicons.glyphMap; color: string; background: string };
+
+const KIND_STYLES: Record<AppNotification['kind'], KindStyle> = {
+  new_order: { icon: 'receipt-outline', color: colors.info, background: colors.infoLight },
+  status_change: {
+    icon: 'notifications-outline',
+    color: colors.accentDark,
+    background: colors.accentLight,
+  },
+  rider_assigned: { icon: 'bicycle-outline', color: colors.primary, background: colors.primaryLight },
+  new_offer: { icon: 'mail-unread-outline', color: colors.success, background: colors.successLight },
+};
+
+const FALLBACK_KIND: KindStyle = {
+  icon: 'notifications-outline',
+  color: colors.textSecondary,
+  background: colors.surfaceSunken,
 };
 
 export default function NotificationsScreen() {
@@ -66,29 +79,45 @@ export default function NotificationsScreen() {
             unread.length > 0 ? <Button label="Mark all read" variant="ghost" size="sm" onPress={markAllRead} /> : null,
         }}
       />
-      {error && <Text style={styles.error}>{error.message}</Text>}
+      {error && (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle" size={16} color={colors.danger} />
+          <Text style={styles.error}>{error.message}</Text>
+        </View>
+      )}
       <FlatList
         data={notifications}
         keyExtractor={(n) => n.id}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => open(item)}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.row, !item.readAt && styles.unread, pressed && { opacity: 0.7 }]}
-          >
-            <Text style={styles.emoji}>{KIND_EMOJI[item.kind] ?? '🔔'}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.body}>{item.body}</Text>
-              <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
-            </View>
-            {!item.readAt && <View style={styles.dot} />}
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const kind = KIND_STYLES[item.kind] ?? FALLBACK_KIND;
+          return (
+            <Pressable
+              onPress={() => open(item)}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.row, !item.readAt && styles.unread, pressed && { opacity: 0.7 }]}
+            >
+              <View style={[styles.iconTile, { backgroundColor: kind.background }]}>
+                <Ionicons name={kind.icon} size={19} color={kind.color} />
+              </View>
+              <View style={styles.rowBody}>
+                <Text style={[styles.title, !item.readAt && styles.titleUnread]}>{item.title}</Text>
+                <Text style={styles.body}>{item.body}</Text>
+                <Text style={styles.time}>{timeAgo(item.createdAt)}</Text>
+              </View>
+              {!item.readAt && <View style={styles.dot} />}
+            </Pressable>
+          );
+        }}
         ListEmptyComponent={
-          isLoading ? null : <EmptyState emoji="🔕" title="No notifications yet" body="Order updates will show up here." />
+          isLoading ? null : (
+            <EmptyState
+              icon="notifications-off-outline"
+              title="No notifications yet"
+              body="Order updates will show up here."
+            />
+          )
         }
       />
     </View>
@@ -102,15 +131,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.md,
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: spacing.lg,
     alignItems: 'center',
+    ...shadows.sm,
   },
   unread: { borderLeftWidth: 3, borderLeftColor: colors.primary },
-  emoji: { fontSize: 22 },
-  title: { fontSize: 14, fontWeight: '700', color: colors.text },
-  body: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  time: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  error: { color: colors.danger, margin: spacing.lg, fontSize: 13 },
+  iconTile: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowBody: { flex: 1 },
+  title: { fontSize: 14.5, fontWeight: '700', color: colors.text },
+  titleUnread: { fontWeight: '800' },
+  body: { fontSize: 13, color: colors.textSecondary, marginTop: 2, lineHeight: 18 },
+  time: { fontSize: 11, color: colors.textMuted, marginTop: 5, fontWeight: '600' },
+  dot: { width: 9, height: 9, borderRadius: radius.full, backgroundColor: colors.primary },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.dangerLight,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    margin: spacing.lg,
+    marginBottom: 0,
+  },
+  error: { flex: 1, color: colors.danger, fontSize: 13, fontWeight: '600' },
 });

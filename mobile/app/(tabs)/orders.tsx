@@ -1,195 +1,172 @@
-import React, { useCallback, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { supabase } from '../../src/lib/supabase';
-import { loadOrderHistory, type OrderHistoryRecord } from '../../src/lib/orderHistory';
-import { useAuth } from '../../src/context/AuthContext';
-import { colors, formatPeso, radius, spacing } from '../../src/theme';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useCustomerOrders } from '../../src/hooks/useCustomerOrders';
+import { isTerminalStatus } from '../../src/lib/orderStatus';
+import { describeOrderStatus } from '../../src/lib/orderStatusDisplay';
+import { EmptyState, SegmentedControl, StatusPill, type Segment } from '../../src/components/ui';
+import { colors, formatPeso, radius, shadows, spacing } from '../../src/theme';
+import type { CustomerOrder } from '../../src/lib/customerOrders';
 
-interface OrderListEntry {
-  orderId: string;
-  merchantName: string;
-  total: number;
-  placedAt: number;
-  status?: string;
-}
+type Filter = 'active' | 'past';
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pending', color: '#b45309' },
-  confirmed: { label: 'Confirmed', color: '#1d4ed8' },
-  preparing: { label: 'Preparing', color: '#c2410c' },
-  ready: { label: 'Ready', color: colors.success },
-  out_for_delivery: { label: 'Out for delivery', color: '#b45309' },
-  completed: { label: 'Completed', color: colors.textSecondary },
-  cancelled: { label: 'Cancelled', color: colors.danger },
+const formatPlacedAt = (placedAt: number): string => {
+  if (!placedAt) return '';
+  const date = new Date(placedAt);
+  const isToday = new Date().toDateString() === date.toDateString();
+  const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return isToday
+    ? `Today · ${time}`
+    : `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${time}`;
 };
 
-const mergeAccountOrders = (
-  local: OrderListEntry[],
-  account: OrderListEntry[]
-): OrderListEntry[] => {
-  const seen = new Set(local.map((entry) => entry.orderId));
-  const merged = [...local];
-  for (const entry of account) {
-    if (!seen.has(entry.orderId)) merged.push(entry);
-  }
-  return merged.sort((a, b) => b.placedAt - a.placedAt);
-};
+const isActiveOrder = (order: CustomerOrder): boolean =>
+  !order.status || !isTerminalStatus(order.status);
 
 export default function OrdersScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const [entries, setEntries] = useState<OrderListEntry[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { orders, isRefreshing, refresh } = useCustomerOrders();
+  const [filter, setFilter] = useState<Filter>('active');
 
-  const load = useCallback(async () => {
-    const history = await loadOrderHistory();
-    const local: OrderListEntry[] = history.map((record: OrderHistoryRecord) => ({ ...record }));
+  const active = useMemo(() => orders.filter(isActiveOrder), [orders]);
+  const past = useMemo(() => orders.filter((order) => !isActiveOrder(order)), [orders]);
+  const visible = filter === 'active' ? active : past;
 
-    let account: OrderListEntry[] = [];
-    if (user) {
-      try {
-        const { data, error } = await supabase.rpc('list_my_orders');
-        if (!error && Array.isArray(data)) {
-          account = data.map((row: Record<string, unknown>) => ({
-            orderId: String(row.id),
-            merchantName: 'Your account order',
-            total: Number(row.total ?? 0),
-            placedAt: row.created_at ? new Date(String(row.created_at)).getTime() : 0,
-            status: typeof row.status === 'string' ? row.status : undefined,
-          }));
-        }
-      } catch (err) {
-        console.warn('Failed to load account orders:', err);
-      }
-    }
+  const segments: readonly Segment<Filter>[] = [
+    { value: 'active', label: 'Active', count: active.length },
+    { value: 'past', label: 'Past', count: past.length },
+  ];
 
-    const merged = mergeAccountOrders(local, account);
-
-    // Attach live statuses to device orders that don't have one yet.
-    const withoutStatus = merged.filter((entry) => !entry.status).slice(0, 10);
-    const results = await Promise.allSettled(
-      withoutStatus.map((entry) =>
-        supabase.rpc('get_order_public', { p_order_id: entry.orderId })
-      )
-    );
-    const statusById = new Map<string, string>();
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled' && !result.value.error && result.value.data) {
-        const row = result.value.data as { status?: string };
-        if (row.status) statusById.set(withoutStatus[index].orderId, row.status);
-      }
-    });
-
-    setEntries(
-      merged.map((entry) => ({
-        ...entry,
-        status: entry.status ?? statusById.get(entry.orderId),
-      }))
-    );
-  }, [user]);
-
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
-
-  const onRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await load();
-    setIsRefreshing(false);
-  }, [load]);
-
-  if (entries.length === 0) {
+  if (orders.length === 0) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.emptyEmoji}>🧾</Text>
-        <Text style={styles.emptyTitle}>No orders yet</Text>
-        <Text style={styles.emptyText}>
-          Orders you place will show up here with their live status.
-        </Text>
-        <Pressable style={styles.browseButton} onPress={() => router.push('/')}>
-          <Text style={styles.browseText}>Browse restaurants</Text>
-        </Pressable>
+        <EmptyState
+          icon="receipt-outline"
+          title="No orders yet"
+          body="Orders you place will show up here with their live status."
+          actionLabel="Browse restaurants"
+          onActionPress={() => router.push('/')}
+        />
       </View>
     );
   }
 
   return (
-    <FlatList
-      style={styles.list}
-      contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
-      data={entries}
-      keyExtractor={(entry) => entry.orderId}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
-      renderItem={({ item }) => {
-        const status = item.status ? STATUS_LABELS[item.status] : undefined;
-        return (
-          <Pressable
-            style={styles.card}
-            onPress={() => router.push({ pathname: '/order/[id]', params: { id: item.orderId } })}
-            accessibilityRole="button"
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.merchant} numberOfLines={1}>
-                {item.merchantName}
-              </Text>
-              {status && (
-                <Text style={[styles.status, { color: status.color }]}>{status.label}</Text>
-              )}
-            </View>
-            <View style={styles.cardFooter}>
-              <Text style={styles.date}>
-                {item.placedAt ? new Date(item.placedAt).toLocaleString() : ''}
-              </Text>
-              <Text style={styles.total}>{formatPeso(item.total)}</Text>
-            </View>
-          </Pressable>
-        );
-      }}
-    />
+    <View style={styles.screen}>
+      <View style={styles.filterBar}>
+        <SegmentedControl segments={segments} value={filter} onChange={setFilter} />
+      </View>
+
+      <FlatList
+        data={visible}
+        keyExtractor={(entry) => entry.orderId}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refresh}
+            tintColor={colors.primary}
+          />
+        }
+        ListEmptyComponent={
+          <EmptyState
+            icon={filter === 'active' ? 'checkmark-done-outline' : 'time-outline'}
+            title={filter === 'active' ? 'Nothing in progress' : 'No past orders'}
+            body={
+              filter === 'active'
+                ? 'All your orders are wrapped up. Hungry again?'
+                : 'Completed and cancelled orders land here.'
+            }
+          />
+        }
+        renderItem={({ item }) => <OrderRow order={item} onPress={() => router.push({ pathname: '/order/[id]', params: { id: item.orderId } })} />}
+      />
+    </View>
+  );
+}
+
+function OrderRow({ order, onPress }: { order: CustomerOrder; onPress: () => void }) {
+  const { color, background, icon } = describeOrderStatus(order.status);
+  const isLive = isActiveOrder(order);
+
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Order from ${order.merchantName}, ${formatPeso(order.total)}`}
+    >
+      <View style={[styles.iconTile, { backgroundColor: background }]}>
+        <Ionicons name={icon} size={20} color={color} />
+      </View>
+
+      <View style={styles.body}>
+        <Text style={styles.merchant} numberOfLines={1}>
+          {order.merchantName}
+        </Text>
+        <Text style={styles.reference}>
+          #{order.orderId.slice(0, 8).toUpperCase()} · {formatPlacedAt(order.placedAt)}
+        </Text>
+        <View style={styles.footer}>
+          <StatusPill status={order.status} />
+          <Text style={styles.total}>{formatPeso(order.total)}</Text>
+        </View>
+      </View>
+
+      {isLive ? (
+        <View style={styles.liveDot} />
+      ) : (
+        <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+      )}
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { flex: 1, backgroundColor: colors.background },
-  centered: {
-    flex: 1,
+  screen: { flex: 1, backgroundColor: colors.background },
+  centered: { flex: 1, justifyContent: 'center', backgroundColor: colors.background },
+  filterBar: {
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  list: { padding: spacing.lg, gap: spacing.md },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    ...shadows.sm,
+  },
+  pressed: { opacity: 0.85 },
+  iconTile: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.xl,
-    backgroundColor: colors.background,
   },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: spacing.md },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.xs,
-  },
-  browseButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.lg,
-    paddingVertical: 13,
-    paddingHorizontal: spacing.xl,
-    marginTop: spacing.lg,
-  },
-  browseText: { color: '#fff', fontWeight: '800' },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  merchant: { fontSize: 15, fontWeight: '700', color: colors.text, flex: 1 },
-  status: { fontSize: 13, fontWeight: '700' },
-  cardFooter: {
+  body: { flex: 1, gap: 2 },
+  merchant: { fontSize: 15.5, fontWeight: '800', color: colors.text },
+  reference: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+  footer: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.sm,
     marginTop: spacing.sm,
   },
-  date: { fontSize: 12, color: colors.textMuted },
-  total: { fontSize: 14, fontWeight: '800', color: colors.primary },
+  total: { fontSize: 15, fontWeight: '800', color: colors.text },
+  liveDot: {
+    width: 9,
+    height: 9,
+    borderRadius: radius.full,
+    backgroundColor: colors.success,
+  },
 });

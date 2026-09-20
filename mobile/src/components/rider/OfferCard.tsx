@@ -9,12 +9,14 @@ interface Props {
   item: OfferWithOrder;
   now: number;
   isBusy: boolean;
+  /** Admin preview: the offer is shown but cannot be answered. */
+  isReadOnly?: boolean;
   onAccept: (offerId: string) => void;
   onReject: (offerId: string) => void;
 }
 
 /** An incoming offer with its live expiry countdown. */
-export const OfferCard = ({ item, now, isBusy, onAccept, onReject }: Props) => {
+export const OfferCard = ({ item, now, isBusy, isReadOnly = false, onAccept, onReject }: Props) => {
   const { offer, order } = item;
   const seconds = secondsRemaining(offer, now);
   const isUrgent = seconds <= 10;
@@ -47,13 +49,14 @@ export const OfferCard = ({ item, now, isBusy, onAccept, onReject }: Props) => {
         <Button
           label="Accept"
           isLoading={isBusy}
+          disabled={isReadOnly}
           onPress={() => onAccept(offer.id)}
           style={styles.action}
         />
         <Button
           label="Skip"
           variant="secondary"
-          disabled={isBusy}
+          disabled={isBusy || isReadOnly}
           onPress={() => onReject(offer.id)}
           style={styles.action}
         />

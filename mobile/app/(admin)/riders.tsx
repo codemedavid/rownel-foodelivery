@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useLiveQuery } from '../../src/hooks/useLiveQuery';
 import { adminRidersApi } from '../../src/lib/adminRidersApi';
+import { viewAsTargetFromRider } from '../../src/lib/viewAs';
 import type { RiderRecord } from '../../src/lib/adminTypes';
 import { timeAgo } from '../../src/lib/formatters';
 import { colors, radius, spacing } from '../../src/theme';
@@ -17,7 +18,7 @@ const PRESENCE_COLORS = {
 
 export default function RidersScreen() {
   const router = useRouter();
-  const { roleContext } = useAuth();
+  const { roleContext, startViewAs } = useAuth();
   const fetcher = useCallback(
     async () => {
       const [riders, presence] = await Promise.all([adminRidersApi.listAll(), adminRidersApi.listPresence()]);
@@ -47,6 +48,14 @@ export default function RidersScreen() {
       }
     },
     [refetch]
+  );
+
+  const onViewAs = useCallback(
+    (rider: RiderRecord) => {
+      startViewAs(viewAsTargetFromRider(rider));
+      router.replace('/(rider)/dashboard');
+    },
+    [startViewAs, router]
   );
 
   const onRefresh = useCallback(async () => {
@@ -95,6 +104,12 @@ export default function RidersScreen() {
                 </View>
               </View>
               <View style={styles.controls}>
+                <Button
+                  label="View as rider"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => onViewAs(item)}
+                />
                 <View style={styles.switchRow}>
                   <Text style={styles.switchLabel}>Approved</Text>
                   <Switch

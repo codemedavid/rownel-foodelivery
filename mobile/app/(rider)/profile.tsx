@@ -13,9 +13,9 @@ const PRESENCE_COLORS = {
 } as const;
 
 export default function RiderProfileScreen() {
-  const { user, signOut } = useAuth();
-  const { profile, isLoading, refetch } = useRiderProfile(user?.id);
-  const { presence } = useRiderPresence(user?.id);
+  const { user, signOut, effectiveUserId, isViewingAs, stopViewAs } = useAuth();
+  const { profile, isLoading, refetch } = useRiderProfile(effectiveUserId);
+  const { presence } = useRiderPresence(effectiveUserId);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -53,7 +53,7 @@ export default function RiderProfileScreen() {
           <View style={styles.header}>
             <View style={styles.copy}>
               <Text style={styles.name}>{profile.name}</Text>
-              <Text style={styles.meta}>{user?.email}</Text>
+              <Text style={styles.meta}>{isViewingAs ? 'Admin preview' : user?.email}</Text>
             </View>
             <Badge label={status} color={palette.color} backgroundColor={palette.bg} />
           </View>
@@ -71,7 +71,11 @@ export default function RiderProfileScreen() {
         </View>
       )}
 
-      <Button label="Sign out" variant="danger" onPress={onSignOut} />
+      {isViewingAs ? (
+        <Button label="Exit view as" variant="secondary" onPress={stopViewAs} />
+      ) : (
+        <Button label="Sign out" variant="danger" onPress={onSignOut} />
+      )}
     </ScrollView>
   );
 }
