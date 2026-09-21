@@ -11,7 +11,7 @@ const EAS_ACCOUNT = 'itscodemedavid';
 const EAS_PROJECT_SLUG = 'rownel-foodelivery';
 
 /** Paste the build id from `eas build:list` (or the tail of the Expo build URL). */
-export const ANDROID_EAS_BUILD_ID = '94b83e3a-31bb-4821-8532-6223965c3a50';
+export const ANDROID_EAS_BUILD_ID = 'a7c8a822-f296-4b4f-aed4-5051536088bb';
 
 /**
  * Overrides the Expo install page. Set this when the APK is served from
@@ -23,7 +23,7 @@ export const ANDROID_INSTALL_URL_OVERRIDE = '';
 export const IOS_APP_STORE_URL = '';
 
 export const APP_VERSION = '1.0.0';
-export const APK_SIZE_LABEL = '~111 MB';
+export const APK_SIZE_LABEL = '~106 MB';
 export const ANDROID_MIN_OS = 'Android 8.0';
 export const IOS_MIN_OS = 'iOS 16';
 export const SUPPORT_EMAIL = 'support@row-nel.com';
