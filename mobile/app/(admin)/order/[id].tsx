@@ -4,7 +4,10 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../../src/context/AuthContext';
 import { useLiveQuery } from '../../../src/hooks/useLiveQuery';
 import { useMerchants } from '../../../src/hooks/useMerchants';
+import { useOrderTracking } from '../../../src/hooks/useOrderTracking';
 import { adminOrdersApi } from '../../../src/lib/adminOrdersApi';
+import { OrderRouteMap } from '../../../src/components/map/OrderRouteMap';
+import { toMapPoint } from '../../../src/lib/map/orderPoints';
 import type { RiderSummary, StaffOrderStatus } from '../../../src/lib/adminTypes';
 import { canAssignRider, canUnassignRider } from '../../../src/lib/orderActions';
 import { statusStyle } from '../../../src/lib/statusColors';
@@ -60,10 +63,18 @@ export default function StaffOrderDetailScreen() {
     realtime: id ? [{ table: 'order_offers', filter: `order_id=eq.${id}` }] : [],
   });
 
-  const merchantName = useMemo(
-    () => merchants.find((m) => m.id === order?.merchantId)?.name,
+  const merchant = useMemo(
+    () => merchants.find((m) => m.id === order?.merchantId),
     [merchants, order?.merchantId]
   );
+  const merchantName = merchant?.name;
+
+  // The assigned rider's live position, so an admin can see a stalled delivery
+  // rather than having to ring the rider to find out.
+  const { presence } = useOrderTracking({
+    riderId: order?.assignedRiderId ?? null,
+    isAwaitingRider: false,
+  });
 
   useEffect(() => {
     if (!order?.assignedRiderId) {
@@ -152,6 +163,10 @@ export default function StaffOrderDetailScreen() {
 
   const status = statusStyle(order.status);
 
+  const riderPoint = toMapPoint(presence?.latitude, presence?.longitude);
+  const pickup = toMapPoint(merchant?.latitude, merchant?.longitude);
+  const dropOff = toMapPoint(order.deliveryLatitude, order.deliveryLongitude);
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: `#${shortOrderId(order.id)}` }} />
@@ -201,6 +216,12 @@ export default function StaffOrderDetailScreen() {
               <Button label="Remove rider" variant="danger" size="sm" onPress={unassignRider} isLoading={isRiderBusy} />
             )}
           </View>
+        </Section>
+      )}
+
+      {order.serviceType === 'delivery' && (
+        <Section title="Route">
+          <OrderRouteMap rider={riderPoint} merchant={pickup} destination={dropOff} />
         </Section>
       )}
 

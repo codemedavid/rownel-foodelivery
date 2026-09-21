@@ -10,7 +10,11 @@ import {
   getStatusStepIndex,
 } from '../../src/lib/orderStatusDisplay';
 import { useOrderRealtime } from '../../src/hooks/useOrderRealtime';
+import { useOrderTracking } from '../../src/hooks/useOrderTracking';
 import type { OrderUpdatePayload } from '../../src/lib/notificationMessages';
+import { OrderRouteMap } from '../../src/components/map/OrderRouteMap';
+import { toMapPoint } from '../../src/lib/map/orderPoints';
+import type { MapPoint } from '../../src/lib/map/mapEmbedProtocol';
 import { Button } from '../../src/components/ui';
 import { colors, radius, shadows, spacing } from '../../src/theme';
 
@@ -18,11 +22,18 @@ const POLL_INTERVAL_MS = 15_000;
 /** Once the realtime socket is live the poll is only a safety net. */
 const RELAXED_POLL_INTERVAL_MS = 60_000;
 
+/** Statuses where the order exists but no rider has been matched to it yet. */
+const AWAITING_RIDER_STATUSES = new Set(['pending', 'confirmed', 'preparing', 'ready']);
+
+const MINUTE_SECONDS = 60;
+
 export default function OrderStatusScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [status, setStatus] = useState<string | null>(null);
   const [riderName, setRiderName] = useState<string | null>(null);
+  const [assignedRiderId, setAssignedRiderId] = useState<string | null>(null);
+  const [destination, setDestination] = useState<MapPoint | null>(null);
 
   const onRealtimeUpdate = useCallback((payload: OrderUpdatePayload) => {
     setStatus(payload.status);
@@ -38,9 +49,17 @@ export default function OrderStatusScreen() {
       try {
         const { data, error } = await supabase.rpc('get_order_public', { p_order_id: id });
         if (cancelled || error || !data) return;
-        const row = data as { status?: string; rider_name?: string | null };
+        const row = data as {
+          status?: string;
+          rider_name?: string | null;
+          assigned_rider_id?: string | null;
+          delivery_latitude?: number | string | null;
+          delivery_longitude?: number | string | null;
+        };
         if (row.status) setStatus(row.status);
         if (row.rider_name !== undefined) setRiderName(row.rider_name ?? null);
+        setAssignedRiderId(row.assigned_rider_id ?? null);
+        setDestination(toMapPoint(row.delivery_latitude, row.delivery_longitude));
       } catch {
         // Keep showing the last known status; the next poll retries.
       }
@@ -58,6 +77,17 @@ export default function OrderStatusScreen() {
   }, [id, isSubscribed]);
 
   const isCancelled = status === 'cancelled';
+  const isAwaitingRider = !assignedRiderId && !!status && AWAITING_RIDER_STATUSES.has(status);
+
+  const { presence, availableRiders } = useOrderTracking({
+    riderId: isCancelled ? null : assignedRiderId,
+    isAwaitingRider: isAwaitingRider && !isCancelled,
+  });
+
+  const riderPoint = toMapPoint(presence?.latitude, presence?.longitude);
+  const secondsSinceUpdate = presence?.lastLocationUpdate
+    ? Math.round((Date.now() - presence.lastLocationUpdate) / 1000)
+    : null;
   const currentIndex = getStatusStepIndex(status);
   const current = describeOrderStatus(status);
 
@@ -86,6 +116,30 @@ export default function OrderStatusScreen() {
         </View>
         <Ionicons name="qr-code-outline" size={28} color={colors.textMuted} />
       </View>
+
+      {!isCancelled && (
+        <View style={styles.mapSection}>
+          <View style={styles.mapHeader}>
+            <Text style={styles.mapTitle}>
+              {riderPoint ? 'Rider location' : 'Riders near you'}
+            </Text>
+            {secondsSinceUpdate !== null && !!riderPoint && (
+              <Text style={styles.mapMeta}>
+                Updated{' '}
+                {secondsSinceUpdate < MINUTE_SECONDS
+                  ? `${secondsSinceUpdate}s`
+                  : `${Math.round(secondsSinceUpdate / MINUTE_SECONDS)}m`}{' '}
+                ago
+              </Text>
+            )}
+          </View>
+          <OrderRouteMap
+            rider={riderPoint}
+            destination={destination}
+            ambientRiders={availableRiders}
+          />
+        </View>
+      )}
 
       {!!riderName && !isCancelled && (
         <View style={styles.riderCard}>
@@ -190,6 +244,14 @@ const styles = StyleSheet.create({
   liveDot: { width: 7, height: 7, borderRadius: radius.full },
   liveText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
 
+  mapSection: { gap: spacing.sm },
+  mapHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  mapTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
+  mapMeta: { fontSize: 11, color: colors.textMuted },
   referenceCard: {
     flexDirection: 'row',
     alignItems: 'center',

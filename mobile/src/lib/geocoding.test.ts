@@ -1,265 +1,223 @@
+// Address lookups go through the web deployment's proxy rather than straight to
+// Apple, so these tests assert on what the phone puts on the wire and on how it
+// classifies each way the round trip can fail. The classification is the part
+// that matters in the UI: a misconfigured build must stop the search dead,
+// while a flaky connection must leave the next keystroke free to retry.
+
 import {
-  formatDisplayName,
-  formatStreetLine,
   isWithinPhilippines,
   reverseGeocode,
-  searchAddresses,
+  suggestAddresses,
 } from './geocoding';
+import { GeocodingError, isGeocodingConfigError } from './geocodingError';
 
-const addressProperties = {
-  mapbox_id: 'addr-1',
-  feature_type: 'address',
-  full_address: '1 Rizal Street, Poblacion, Tagbilaran, Bohol, Philippines',
-  name: '1 Rizal Street',
-  coordinates: { longitude: 123.8854, latitude: 9.6496 },
-  context: {
-    address: { address_number: '1', street_name: 'Rizal Street' },
-    street: { name: 'Rizal Street' },
-    place: { name: 'Tagbilaran' },
-    country: { name: 'Philippines', country_code: 'PH' },
-  },
+const WEB_ORIGIN = 'https://row-nel.com';
+
+const MANILA = { latitude: 14.5995, longitude: 120.9842 };
+
+const CANDIDATE = {
+  placeId: '/v1/search?q=Jollibee',
+  name: 'Jollibee Rizal Avenue',
+  displayName: 'Jollibee Rizal Avenue, Santa Cruz, Manila',
+  context: 'Santa Cruz, Manila',
+  latitude: MANILA.latitude,
+  longitude: MANILA.longitude,
 };
 
-const placeProperties = {
-  mapbox_id: 'place-1',
-  feature_type: 'place',
-  full_address: 'Island Mall, Panglao, Bohol, Philippines',
-  name: 'Island Mall',
-  coordinates: { longitude: 123.7489, latitude: 9.578 },
-  context: { country: { name: 'Philippines', country_code: 'PH' } },
-};
-
-const foreignProperties = {
-  mapbox_id: 'place-py',
-  feature_type: 'locality',
-  full_address: 'San Roque, Asuncion, Paraguay',
-  name: 'San Roque',
-  coordinates: { longitude: -57.5759, latitude: -25.2637 },
-  context: { country: { name: 'Paraguay', country_code: 'PY' } },
-};
-
-const collectionOf = (...properties: unknown[]) => ({
-  type: 'FeatureCollection',
-  features: properties.map((p) => ({ type: 'Feature', properties: p })),
-});
-
-const mockFetchOnce = (body: unknown, ok = true) => {
-  (global.fetch as jest.Mock).mockResolvedValueOnce({
-    ok,
-    status: ok ? 200 : 500,
+const jsonResponse = (body: unknown, status = 200): Response =>
+  ({
+    ok: status >= 200 && status < 300,
+    status,
     json: async () => body,
-  });
-};
+  }) as Response;
 
-const lastUrl = (): URL => {
-  const calls = (global.fetch as jest.Mock).mock.calls;
-  return new URL(calls[calls.length - 1][0]);
-};
+describe('address lookups', () => {
+  const originalOrigin = process.env.EXPO_PUBLIC_WEB_ORIGIN;
+  let fetchMock: jest.Mock;
 
-beforeEach(() => {
-  process.env.EXPO_PUBLIC_MAPBOX_TOKEN = 'pk.test-mobile-token';
-  global.fetch = jest.fn();
-});
-
-describe('formatDisplayName', () => {
-  it('prefers the full address', () => {
-    expect(formatDisplayName(addressProperties)).toBe(
-      '1 Rizal Street, Poblacion, Tagbilaran, Bohol, Philippines'
-    );
+  beforeEach(() => {
+    process.env.EXPO_PUBLIC_WEB_ORIGIN = WEB_ORIGIN;
+    fetchMock = jest.fn().mockResolvedValue(jsonResponse({ results: [] }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
   });
 
-  it('falls back to the feature name when no full address is present', () => {
-    expect(formatDisplayName({ name: 'Somewhere, PH' })).toBe('Somewhere, PH');
+  afterEach(() => {
+    process.env.EXPO_PUBLIC_WEB_ORIGIN = originalOrigin;
+    jest.restoreAllMocks();
   });
 
-  it('returns an empty string when nothing is known', () => {
-    expect(formatDisplayName({})).toBe('');
-  });
-});
+  const requestedUrl = (): string => String(fetchMock.mock.calls[0][0]);
 
-describe('formatStreetLine', () => {
-  it('combines the house number and street name', () => {
-    expect(formatStreetLine(addressProperties)).toBe('1 Rizal Street');
+  describe('suggestAddresses', () => {
+    it('asks the web deployment, never Apple directly', async () => {
+      // Arrange
+
+      // Act
+      await suggestAddresses('jollibee');
+
+      // Assert — an Apple token must never reach an installed binary
+      expect(requestedUrl()).toContain(`${WEB_ORIGIN}/api/maps-search`);
+      expect(requestedUrl()).not.toContain('maps-api.apple.com');
+    });
+
+    it('returns the candidates the proxy sent', async () => {
+      // Arrange
+      fetchMock.mockResolvedValue(jsonResponse({ results: [CANDIDATE] }));
+
+      // Act
+      const candidates = await suggestAddresses('jollibee');
+
+      // Assert — each row already carries its coordinate, so no second lookup
+      expect(candidates).toEqual([CANDIDATE]);
+    });
+
+    it('sends the phone’s fix so nearby results rank first', async () => {
+      // Arrange
+
+      // Act
+      await suggestAddresses('rizal street', { proximity: MANILA });
+
+      // Assert
+      expect(requestedUrl()).toContain('lat=14.5995');
+      expect(requestedUrl()).toContain('lng=120.9842');
+    });
+
+    it('omits a proximity that is not a real coordinate', async () => {
+      // Arrange
+
+      // Act
+      await suggestAddresses('rizal', { proximity: { latitude: NaN, longitude: NaN } });
+
+      // Assert — NaN in the query string is a 400 from the proxy
+      expect(requestedUrl()).not.toContain('lat=');
+    });
+
+    it('caps the limit at what the proxy accepts', async () => {
+      // Arrange
+
+      // Act
+      await suggestAddresses('rizal', { limit: 50 });
+
+      // Assert
+      expect(requestedUrl()).toContain('limit=10');
+    });
+
+    it('returns nothing for a blank query without calling out', async () => {
+      // Arrange
+
+      // Act
+      const candidates = await suggestAddresses('   ');
+
+      // Assert
+      expect(candidates).toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('reports a missing web origin as a build problem, not an outage', async () => {
+      // Arrange
+      delete process.env.EXPO_PUBLIC_WEB_ORIGIN;
+
+      // Act
+      const error = await suggestAddresses('jollibee').catch((err: unknown) => err);
+
+      // Assert — nothing the customer types will fix this, so searching stops
+      expect(isGeocodingConfigError(error)).toBe(true);
+    });
+
+    it('classifies a refused request as an auth failure', async () => {
+      // Arrange
+      fetchMock.mockResolvedValue(jsonResponse({ error: 'nope' }, 401));
+
+      // Act
+      const error = (await suggestAddresses('x').catch((err: unknown) => err)) as GeocodingError;
+
+      // Assert
+      expect(error.kind).toBe('auth');
+    });
+
+    it('classifies a quota refusal as rate limiting', async () => {
+      // Arrange
+      fetchMock.mockResolvedValue(jsonResponse({ error: 'quota' }, 429));
+
+      // Act
+      const error = (await suggestAddresses('x').catch((err: unknown) => err)) as GeocodingError;
+
+      // Assert — transient: the customer should try again shortly
+      expect(error.kind).toBe('rate-limit');
+      expect(isGeocodingConfigError(error)).toBe(false);
+    });
+
+    it('classifies a dropped connection as a network failure', async () => {
+      // Arrange
+      fetchMock.mockRejectedValue(new TypeError('Network request failed'));
+
+      // Act
+      const error = (await suggestAddresses('x').catch((err: unknown) => err)) as GeocodingError;
+
+      // Assert
+      expect(error.kind).toBe('network');
+    });
+
+    it('reports a superseded request as cancelled, not as a failure', async () => {
+      // Arrange
+      const controller = new AbortController();
+      fetchMock.mockImplementation(() => {
+        controller.abort();
+        const abortError = new Error('Aborted');
+        abortError.name = 'AbortError';
+        return Promise.reject(abortError);
+      });
+
+      // Act — the next keystroke cancels this one; the UI must show nothing
+      const error = (await suggestAddresses('x', { signal: controller.signal }).catch(
+        (err: unknown) => err
+      )) as GeocodingError;
+
+      // Assert
+      expect(error.kind).toBe('aborted');
+    });
   });
 
-  it('uses the feature name when no street detail is known', () => {
-    expect(formatStreetLine(placeProperties)).toBe('Island Mall');
-  });
+  describe('reverseGeocode', () => {
+    it('asks the proxy for the coordinate it was given', async () => {
+      // Arrange
+      fetchMock.mockResolvedValue(
+        jsonResponse({
+          placeId: '',
+          displayName: '1 Rizal Avenue, Santa Cruz, Manila',
+          street: '1 Rizal Avenue',
+          ...MANILA,
+        })
+      );
 
-  it('returns a safe label when nothing is known', () => {
-    expect(formatStreetLine({})).toBe('Current location');
+      // Act
+      const result = await reverseGeocode(MANILA.latitude, MANILA.longitude);
+
+      // Assert
+      expect(requestedUrl()).toContain('/api/maps-reverse');
+      expect(requestedUrl()).toContain('lat=14.5995');
+      expect(result.street).toBe('1 Rizal Avenue');
+    });
+
+    it('surfaces an outage so the caller can fall back to the device geocoder', async () => {
+      // Arrange
+      fetchMock.mockResolvedValue(jsonResponse({ error: 'down' }, 502));
+
+      // Act / Assert
+      await expect(reverseGeocode(MANILA.latitude, MANILA.longitude)).rejects.toBeInstanceOf(
+        GeocodingError
+      );
+    });
   });
 });
 
 describe('isWithinPhilippines', () => {
-  it('accepts a Philippine coordinate', () => {
-    expect(isWithinPhilippines(14.5995, 120.9842)).toBe(true);
-  });
-
-  it('rejects a coordinate outside the country box', () => {
-    expect(isWithinPhilippines(35.6762, 139.6503)).toBe(false);
-  });
-});
-
-describe('reverseGeocode', () => {
-  it('returns the street-level address for a GPS fix', async () => {
+  it('accepts a coastal pin and rejects a neighbouring country', async () => {
     // Arrange
-    mockFetchOnce(collectionOf(addressProperties));
-
-    // Act
-    const result = await reverseGeocode(9.6496, 123.8854);
-
-    // Assert
-    expect(result).toEqual({
-      placeId: 'addr-1',
-      displayName: '1 Rizal Street, Poblacion, Tagbilaran, Bohol, Philippines',
-      street: '1 Rizal Street',
-      latitude: 9.6496,
-      longitude: 123.8854,
-      countryCode: 'ph',
-    });
-  });
-
-  it('calls the Mapbox reverse endpoint with separate lat/lng parameters', async () => {
-    // Arrange
-    mockFetchOnce(collectionOf(addressProperties));
-
-    // Act
-    await reverseGeocode(9.6496, 123.8854);
-
-    // Assert
-    const url = lastUrl();
-    expect(url.pathname).toBe('/search/geocode/v6/reverse');
-    expect(url.searchParams.get('latitude')).toBe('9.6496');
-    expect(url.searchParams.get('longitude')).toBe('123.8854');
-    expect(url.searchParams.get('access_token')).toBe('pk.test-mobile-token');
-  });
-
-  it('falls back to the requested coordinates when there is no match', async () => {
-    // Arrange
-    mockFetchOnce(collectionOf());
-
-    // Act
-    const result = await reverseGeocode(9.5, 123.5);
-
-    // Assert
-    expect(result.latitude).toBe(9.5);
-    expect(result.longitude).toBe(123.5);
-    expect(result.street).toBe('Current location');
-    expect(result.displayName).toBe('9.50000, 123.50000');
-  });
-
-  it('throws when Mapbox is unreachable', async () => {
-    // Arrange
-    mockFetchOnce({}, false);
+    process.env.EXPO_PUBLIC_WEB_ORIGIN = WEB_ORIGIN;
 
     // Act / Assert
-    await expect(reverseGeocode(9.5, 123.5)).rejects.toThrow('Mapbox request failed (500)');
-  });
-});
-
-describe('searchAddresses', () => {
-  it('returns an empty list for a blank query without calling the network', async () => {
-    // Arrange / Act
-    const results = await searchAddresses('  ');
-
-    // Assert
-    expect(results).toEqual([]);
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('maps Mapbox features to address suggestions', async () => {
-    // Arrange
-    mockFetchOnce(collectionOf(addressProperties, placeProperties));
-
-    // Act
-    const results = await searchAddresses('Rizal');
-
-    // Assert
-    expect(results).toHaveLength(2);
-    expect(results[0]).toEqual({
-      placeId: 'addr-1',
-      displayName: '1 Rizal Street, Poblacion, Tagbilaran, Bohol, Philippines',
-      latitude: 9.6496,
-      longitude: 123.8854,
-      countryCode: 'ph',
-    });
-  });
-
-  it('bounds the search to the Philippines', async () => {
-    // Arrange
-    mockFetchOnce(collectionOf(addressProperties));
-
-    // Act
-    await searchAddresses('Rizal', { limit: 4 });
-
-    // Assert
-    const url = lastUrl();
-    expect(url.pathname).toBe('/search/geocode/v6/forward');
-    expect(url.searchParams.get('country')).toBe('ph');
-    expect(url.searchParams.get('bbox')).toBe('116.9283,4.5873,126.6042,21.3218');
-    expect(url.searchParams.get('limit')).toBe('4');
-  });
-
-  it('drops features without usable coordinates', async () => {
-    // Arrange
-    mockFetchOnce(
-      collectionOf(
-        { mapbox_id: 'broken', full_address: 'Nowhere', coordinates: { latitude: null, longitude: null } },
-        addressProperties
-      )
-    );
-
-    // Act
-    const results = await searchAddresses('Rizal');
-
-    // Assert
-    expect(results).toHaveLength(1);
-    expect(results[0].placeId).toBe('addr-1');
-  });
-
-  it('biases results toward the supplied proximity point in lng,lat order', async () => {
-    // Arrange
-    mockFetchOnce(collectionOf(placeProperties));
-
-    // Act
-    await searchAddresses('Rizal Street', {
-      proximity: { latitude: 9.6496, longitude: 123.8854 },
-    });
-
-    // Assert
-    expect(lastUrl().searchParams.get('proximity')).toBe('123.8854,9.6496');
-  });
-
-  it('falls back to IP-based proximity when no reference point is known', async () => {
-    // Arrange
-    mockFetchOnce(collectionOf(placeProperties));
-
-    // Act
-    await searchAddresses('Rizal Street');
-
-    // Assert
-    expect(lastUrl().searchParams.get('proximity')).toBe('ip');
-  });
-
-  it('drops suggestions that fall outside the Philippines', async () => {
-    // Arrange
-    mockFetchOnce(collectionOf(foreignProperties, placeProperties));
-
-    // Act
-    const results = await searchAddresses('San Roque');
-
-    // Assert
-    expect(results.map((result) => result.displayName)).toEqual([
-      'Island Mall, Panglao, Bohol, Philippines',
-    ]);
-  });
-
-  it('throws when the access token is missing', async () => {
-    // Arrange
-    delete process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-
-    // Act / Assert
-    await expect(searchAddresses('Rizal')).rejects.toThrow('EXPO_PUBLIC_MAPBOX_TOKEN');
+    expect(isWithinPhilippines(4.55, 116.95)).toBe(true);
+    expect(isWithinPhilippines(5.98, 116.07)).toBe(false);
   });
 });

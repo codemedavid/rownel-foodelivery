@@ -15,9 +15,8 @@ is roughly two orders of magnitude further away.
 
 ## Scope
 
-Web app only. The Expo app in `mobile/` still geocodes through Mapbox and is
-unchanged; MapKit JS is a browser SDK and has no React Native build. Migrating
-it means Apple's REST Maps Server API, which is a separate piece of work.
+Web app only. The Expo app in `mobile/` followed later and now uses the same
+Apple account — see [mobile-mapkit.tdd.md](./mobile-mapkit.tdd.md).
 
 ## Authentication
 

@@ -69,20 +69,22 @@ const readSavedLocation = async (): Promise<StoredUserLocation | null> => {
 const resolveLocationFromCoords = async (coords: Coordinates): Promise<StoredUserLocation> => {
   const coordsLabel = `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
 
-  // Mapbox first: it returns the house number and full street line the
-  // website uses, which is what a rider actually needs to find the door.
+  // Apple Maps first, through the web deployment's proxy: it returns the house
+  // number and full street line the website shows, which is what a rider
+  // actually needs to find the door. Expo's on-device geocoder usually drops
+  // the number, so it is the fallback rather than the first choice.
   try {
-    const osm = await reverseGeocode(coords.latitude, coords.longitude);
-    if (osm.displayName) {
+    const resolved = await reverseGeocode(coords.latitude, coords.longitude);
+    if (resolved.displayName) {
       return {
         latitude: coords.latitude,
         longitude: coords.longitude,
-        displayName: osm.displayName,
-        street: osm.street,
+        displayName: resolved.displayName,
+        street: resolved.street,
       };
     }
   } catch {
-    // OSM unreachable or rate-limited — fall through to the on-device geocoder.
+    // Unreachable, unconfigured or rate-limited — use the on-device geocoder.
   }
 
   try {

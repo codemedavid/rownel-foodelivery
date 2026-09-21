@@ -3,7 +3,10 @@ import { Alert, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '../../../src/context/AuthContext';
 import { useLiveQuery } from '../../../src/hooks/useLiveQuery';
+import { useMerchants } from '../../../src/hooks/useMerchants';
 import { riderOrdersApi } from '../../../src/lib/riderOrdersApi';
+import { OrderRouteMap } from '../../../src/components/map/OrderRouteMap';
+import { toMapPoint } from '../../../src/lib/map/orderPoints';
 import { nextRiderAction, type RiderAction } from '../../../src/lib/riderActions';
 import { openDirections } from '../../../src/lib/mapsLink';
 import { openDialer } from '../../../src/lib/phoneLink';
@@ -25,6 +28,7 @@ export default function RiderDeliveryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isViewingAs } = useAuth();
+  const { merchants } = useMerchants();
   const [isBusy, setIsBusy] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -104,6 +108,12 @@ export default function RiderDeliveryScreen() {
   const style = statusStyle(order.status);
   const action = nextRiderAction(order);
 
+  // The merchant's own coordinates, so the map shows both ends of the job —
+  // where the food is collected and where it is going.
+  const merchant = merchants.find((candidate) => candidate.id === order.merchantId);
+  const pickup = toMapPoint(merchant?.latitude, merchant?.longitude);
+  const dropOff = toMapPoint(order.deliveryLatitude, order.deliveryLongitude);
+
   return (
     <ScrollView
       style={styles.screen}
@@ -127,6 +137,8 @@ export default function RiderDeliveryScreen() {
           <Button label="Call" variant="secondary" onPress={onCall} style={styles.action} />
         </View>
       </View>
+
+      <OrderRouteMap merchant={pickup} destination={dropOff} />
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Order</Text>

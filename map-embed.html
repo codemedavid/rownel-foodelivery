@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- No user scaling: pinch-zoom belongs to the map, not to the page around
+         it, or a two-finger gesture zooms the WebView instead of the map. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Map</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #f6f6f8;
+        /* Matches the Expo app's type, so a MapKit label never looks foreign. */
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      #map {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The host draws its own loading and failure states over the WebView, so
+         this page stays empty until MapKit has something to show. -->
+    <div id="map"></div>
+    <script type="module" src="/src/mapEmbed/main.ts"></script>
+  </body>
+</html>

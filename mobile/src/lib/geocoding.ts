@@ -1,44 +1,34 @@
-// Mapbox Geocoding v6 — mirrors the web app's src/lib/geocoding.ts so mobile
-// shows the same street-level addresses as the website. Expo's built-in
-// reverse geocoder often omits the house number, which is the part a rider needs.
+// Address search and reverse geocoding via Apple Maps.
+//
+// This used to call Mapbox directly with a token compiled into the app. It now
+// goes through the web deployment's /api/maps-search and /api/maps-reverse,
+// which call Apple's Maps Server API — the same Apple account the website's
+// MapKit JS maps use, so a customer sees identical suggestions in both places.
+//
+// Two reasons it proxies rather than calling Apple from the phone:
+//   * An Apple `server_api` token takes no `origin` claim, so one shipped in
+//     the app could spend this account's quota from anywhere.
+//   * A token in an installed binary cannot be rotated without a new release.
+//
+// Results carry named `latitude` / `longitude` rather than a coordinate tuple,
+// so the ordering can never be flipped at a call site.
 
-const FORWARD_URL = 'https://api.mapbox.com/search/geocode/v6/forward';
-const REVERSE_URL = 'https://api.mapbox.com/search/geocode/v6/reverse';
+import { buildReverseUrl, buildSearchUrl, MapsConfigError } from './map/mapsConfig';
+import { classifyHttpStatus, GeocodingError, isAbortError } from './geocodingError';
 
 const REQUEST_TIMEOUT_MS = 8000;
-// 10 is the Mapbox forward-geocoding maximum.
+
+// More than this and the dropdown stops being usable on a phone. The proxy
+// enforces the same ceiling; asking for more is a 400.
 const MAX_SUGGESTION_LIMIT = 10;
 const DEFAULT_SUGGESTION_LIMIT = MAX_SUGGESTION_LIMIT;
 
-// Lets Mapbox rank nearby streets above same-named ones across the country
-// when the caller has no coordinates of its own to offer.
-const IP_PROXIMITY = 'ip';
-
-// minLon,minLat,maxLon,maxLat — bounds autocomplete to the archipelago.
-const PHILIPPINES_BBOX = '116.9283,4.5873,126.6042,21.3218';
-const PHILIPPINES_COUNTRY_CODE = 'ph';
+// A slightly looser box than the search region: a pin on the coastline should
+// still reverse geocode rather than be rejected as foreign.
 const PH_LAT_MIN = 4.5;
 const PH_LAT_MAX = 21.5;
 const PH_LNG_MIN = 116.9;
 const PH_LNG_MAX = 126.7;
-
-export interface MapboxFeatureProperties {
-  mapbox_id?: string;
-  feature_type?: string;
-  full_address?: string;
-  name?: string;
-  place_formatted?: string;
-  coordinates?: { longitude?: number | null; latitude?: number | null };
-  context?: {
-    address?: { address_number?: string; street_name?: string };
-    street?: { name?: string };
-    country?: { country_code?: string };
-  };
-}
-
-interface MapboxFeatureCollection {
-  features?: { properties?: MapboxFeatureProperties }[];
-}
 
 export interface ReverseGeocodeResult {
   placeId: string;
@@ -59,25 +49,16 @@ export interface AddressSuggestion {
   countryCode?: string;
 }
 
-export const isWithinPhilippines = (latitude: number, longitude: number): boolean =>
-  latitude >= PH_LAT_MIN &&
-  latitude <= PH_LAT_MAX &&
-  longitude >= PH_LNG_MIN &&
-  longitude <= PH_LNG_MAX;
-
-/** The full "1 Rizal Street, Poblacion, …" line the web app displays. */
-export const formatDisplayName = (properties: MapboxFeatureProperties): string =>
-  properties.full_address || properties.name || '';
-
-/** "1 Rizal Street" — house number + street, falling back to the feature name. */
-export const formatStreetLine = (properties: MapboxFeatureProperties): string => {
-  const address = properties.context?.address;
-  const houseNumber = address?.address_number?.trim() ?? '';
-  const streetName = address?.street_name?.trim() || properties.context?.street?.name?.trim() || '';
-  const composed = [houseNumber, streetName].filter(Boolean).join(' ').trim();
-
-  return composed || properties.name?.trim() || 'Current location';
-};
+/**
+ * One row in the autocomplete list. It already carries the coordinate, so
+ * selecting a row places the pin immediately — no second lookup.
+ */
+export interface AddressCandidate extends AddressSuggestion {
+  /** Headline for the row: the business or street name on its own. */
+  name: string;
+  /** Town / province line, for a secondary row in the UI. */
+  context: string;
+}
 
 /** A point to rank results around — usually the phone's last GPS fix. */
 export interface ProximityPoint {
@@ -85,129 +66,133 @@ export interface ProximityPoint {
   longitude: number;
 }
 
-const toProximityParam = (proximity?: ProximityPoint | null): string => {
-  if (!proximity) return IP_PROXIMITY;
-  const { latitude, longitude } = proximity;
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return IP_PROXIMITY;
-  // Mapbox takes [lng, lat] — the opposite order to the rest of this app.
-  return `${longitude},${latitude}`;
-};
+export interface SuggestOptions {
+  limit?: number;
+  proximity?: ProximityPoint | null;
+  /** Cancels a request the customer's next keystroke has superseded. */
+  signal?: AbortSignal;
+}
 
-const requireAccessToken = (): string => {
-  const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-  if (!token) {
-    throw new Error('Missing EXPO_PUBLIC_MAPBOX_TOKEN. Add a Mapbox public token to the app env.');
-  }
-  return token;
-};
+export const isWithinPhilippines = (latitude: number, longitude: number): boolean =>
+  latitude >= PH_LAT_MIN &&
+  latitude <= PH_LAT_MAX &&
+  longitude >= PH_LNG_MIN &&
+  longitude <= PH_LNG_MAX;
 
-const buildUrl = (baseUrl: string, params: Record<string, string>): string =>
-  `${baseUrl}?${new URLSearchParams({ ...params, access_token: requireAccessToken() })}`;
+const isUsablePoint = (point: ProximityPoint | null | undefined): point is ProximityPoint =>
+  !!point && Number.isFinite(point.latitude) && Number.isFinite(point.longitude);
 
-const formatCoordinates = (latitude: number, longitude: number): string =>
-  `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-
-const readCoordinates = (
-  properties: MapboxFeatureProperties
-): { latitude: number; longitude: number } | null => {
-  const { latitude, longitude } = properties.coordinates ?? {};
-
-  // Guard before any coercion: Number(null) is 0, a valid-looking coordinate.
-  if (typeof latitude !== 'number' || typeof longitude !== 'number') return null;
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-
-  return { latitude, longitude };
-};
-
-const readCountryCode = (properties: MapboxFeatureProperties): string | undefined =>
-  properties.context?.country?.country_code?.toLowerCase();
-
-const fetchFeatures = async (url: string): Promise<MapboxFeatureProperties[]> => {
+/**
+ * Runs one proxy request, mapping every way it can fail onto a kind the UI can
+ * act on. A timeout aborts the fetch, which is why an abort raised by our own
+ * controller is reported as a network failure rather than a cancellation —
+ * the caller's own signal is checked first.
+ */
+const requestJson = async <T>(url: string, callerSignal?: AbortSignal): Promise<T> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  const onCallerAbort = () => controller.abort();
+  callerSignal?.addEventListener('abort', onCallerAbort);
+
   try {
     const response = await fetch(url, {
       headers: { Accept: 'application/json' },
       signal: controller.signal,
     });
+
     if (!response.ok) {
-      throw new Error(`Mapbox request failed (${response.status})`);
+      throw new GeocodingError(
+        classifyHttpStatus(response.status),
+        `Address lookup failed (${response.status})`,
+        { status: response.status }
+      );
     }
-    const data = (await response.json()) as MapboxFeatureCollection;
-    return (data.features ?? []).map((feature) => feature.properties ?? {});
+
+    return (await response.json()) as T;
+  } catch (error: unknown) {
+    if (error instanceof GeocodingError) throw error;
+
+    if (isAbortError(error)) {
+      // The caller superseded this request; that is not a failure.
+      if (callerSignal?.aborted) {
+        throw new GeocodingError('aborted', 'Address lookup was cancelled', { cause: error });
+      }
+      throw new GeocodingError('network', 'Address lookup timed out', { cause: error });
+    }
+
+    throw new GeocodingError('network', 'Could not reach the address service', { cause: error });
   } finally {
     clearTimeout(timer);
+    callerSignal?.removeEventListener('abort', onCallerAbort);
   }
 };
 
-/** Street-level address for a GPS fix. Throws when Mapbox is unreachable. */
+/** A missing EXPO_PUBLIC_WEB_ORIGIN is a build problem, not an outage. */
+const toGeocodingError = (error: unknown): GeocodingError => {
+  if (error instanceof GeocodingError) return error;
+  if (error instanceof MapsConfigError) {
+    return new GeocodingError('config', error.message, { cause: error });
+  }
+  return new GeocodingError('unknown', 'Address lookup failed', { cause: error });
+};
+
+/**
+ * Autocomplete rows for a partial query, bounded to the Philippines by the
+ * proxy. Businesses and landmarks are indexed as well as street addresses —
+ * Philippine customers locate themselves by store name far more often than by
+ * house number.
+ */
+export const suggestAddresses = async (
+  query: string,
+  options: SuggestOptions = {}
+): Promise<AddressCandidate[]> => {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const params = new URLSearchParams({
+    q: trimmed,
+    limit: String(Math.min(options.limit ?? DEFAULT_SUGGESTION_LIMIT, MAX_SUGGESTION_LIMIT)),
+  });
+  if (isUsablePoint(options.proximity)) {
+    params.set('lat', String(options.proximity.latitude));
+    params.set('lng', String(options.proximity.longitude));
+  }
+
+  try {
+    const body = await requestJson<{ results?: AddressCandidate[] }>(
+      buildSearchUrl(params),
+      options.signal
+    );
+    return body.results ?? [];
+  } catch (error: unknown) {
+    throw toGeocodingError(error);
+  }
+};
+
+/**
+ * Kept for callers that only need a flat suggestion list. The proxy returns the
+ * richer candidate shape; this drops the parts they do not use.
+ */
+export const searchAddresses = async (
+  query: string,
+  options: SuggestOptions = {}
+): Promise<AddressSuggestion[]> => suggestAddresses(query, options);
+
+/**
+ * Street-level address for a GPS fix or a dropped pin. A coordinate Apple has
+ * no match for is not an error — the result carries a coordinate label, so an
+ * off-grid pin is still usable.
+ */
 export const reverseGeocode = async (
   latitude: number,
   longitude: number
 ): Promise<ReverseGeocodeResult> => {
-  const features = await fetchFeatures(
-    buildUrl(REVERSE_URL, { latitude: String(latitude), longitude: String(longitude) })
-  );
-  const properties = features[0];
+  const params = new URLSearchParams({ lat: String(latitude), lng: String(longitude) });
 
-  // No match is not an error — an off-grid pin still needs a usable label.
-  if (!properties) {
-    return {
-      placeId: '',
-      displayName: formatCoordinates(latitude, longitude),
-      street: 'Current location',
-      latitude,
-      longitude,
-    };
+  try {
+    return await requestJson<ReverseGeocodeResult>(buildReverseUrl(params));
+  } catch (error: unknown) {
+    throw toGeocodingError(error);
   }
-
-  const coordinates = readCoordinates(properties) ?? { latitude, longitude };
-
-  return {
-    placeId: properties.mapbox_id ?? '',
-    displayName: formatDisplayName(properties) || formatCoordinates(latitude, longitude),
-    street: formatStreetLine(properties),
-    latitude: coordinates.latitude,
-    longitude: coordinates.longitude,
-    countryCode: readCountryCode(properties),
-  };
-};
-
-/** Address autocomplete, bounded to the Philippines like the web checkout. */
-export const searchAddresses = async (
-  query: string,
-  options?: { limit?: number; proximity?: ProximityPoint | null }
-): Promise<AddressSuggestion[]> => {
-  const trimmed = query.trim();
-  if (!trimmed) return [];
-
-  const limit = Math.min(options?.limit ?? DEFAULT_SUGGESTION_LIMIT, MAX_SUGGESTION_LIMIT);
-  const features = await fetchFeatures(
-    buildUrl(FORWARD_URL, {
-      q: trimmed,
-      limit: String(limit),
-      country: PHILIPPINES_COUNTRY_CODE,
-      bbox: PHILIPPINES_BBOX,
-      proximity: toProximityParam(options?.proximity),
-    })
-  );
-
-  return features
-    .map((properties) => {
-      const coordinates = readCoordinates(properties);
-      const displayName = formatDisplayName(properties);
-      if (!coordinates || !displayName) return null;
-
-      return {
-        placeId: properties.mapbox_id ?? '',
-        displayName,
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
-        countryCode: readCountryCode(properties),
-      };
-    })
-    .filter((suggestion): suggestion is AddressSuggestion => suggestion !== null)
-    // Belt and braces: the country filter should already have done this, but a
-    // foreign suggestion is worse than no suggestion for a PH-only app.
-    .filter((suggestion) => isWithinPhilippines(suggestion.latitude, suggestion.longitude));
 };

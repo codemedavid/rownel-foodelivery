@@ -30,6 +30,10 @@ import { appendOrderRecord } from '../src/lib/orderHistory';
 import { requestOrderNotificationPermission } from '../src/hooks/useOrderStatusNotifications';
 import { useCart } from '../src/context/CartContext';
 import { useUserLocation } from '../src/context/LocationContext';
+import { AddressAutocompleteInput } from '../src/components/AddressAutocompleteInput';
+import { MapLocationPicker } from '../src/components/map/MapLocationPicker';
+import type { AddressCandidate } from '../src/lib/geocoding';
+import type { MapPoint } from '../src/lib/map/mapEmbedProtocol';
 import { colors, formatPeso, radius, shadows, spacing } from '../src/theme';
 import { DeliveryMode, PaymentMethod } from '../src/types';
 
@@ -116,15 +120,28 @@ export default function CheckoutScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Where the order actually goes. It starts as the phone's GPS fix and is
+  // replaced the moment the customer moves the pin or picks a suggestion —
+  // the map is the authority once they have touched it, because a gate on the
+  // far side of a block is metres from the fix and a different fee away.
+  const [pinnedLocation, setPinnedLocation] = useState<MapPoint | null>(null);
+
+  // A map inside a ScrollView loses every pan to the parent, so the screen
+  // stops scrolling for as long as the customer is touching the map.
+  const [isMapActive, setIsMapActive] = useState(false);
+
   // Both modes are quoted so each option can show its own price up front,
   // mirroring the web checkout.
+  // The pin wins over the GPS fix: it is what the customer last said is right.
+  const deliveryPoint = pinnedLocation ?? userLocation;
+
   const priorityQuotes = useMemo(
-    () => quoteMerchants(merchantIds, merchantsById, userLocation, 'priority'),
-    [merchantIds, merchantsById, userLocation]
+    () => quoteMerchants(merchantIds, merchantsById, deliveryPoint, 'priority'),
+    [merchantIds, merchantsById, deliveryPoint]
   );
   const economyQuotes = useMemo(
-    () => quoteMerchants(merchantIds, merchantsById, userLocation, 'economy'),
-    [merchantIds, merchantsById, userLocation]
+    () => quoteMerchants(merchantIds, merchantsById, deliveryPoint, 'economy'),
+    [merchantIds, merchantsById, deliveryPoint]
   );
 
   const quotes = deliveryMode === 'economy' ? economyQuotes : priorityQuotes;
@@ -144,8 +161,8 @@ export default function CheckoutScreen() {
   const deliveryFee = getDeliveryFeeTotal(quotes);
   const total = subtotal + deliveryFee;
 
-  // Prefill the address with the GPS/Mapbox address, but never overwrite
-  // what the customer has typed themselves.
+  // Prefill the address from the GPS reverse geocode, but never overwrite what
+  // the customer has typed or pinned themselves.
   const isAddressEditedRef = useRef(false);
   useEffect(() => {
     if (isAddressEditedRef.current || !locationDisplayName) return;
@@ -155,6 +172,20 @@ export default function CheckoutScreen() {
   const handleAddressChange = (value: string) => {
     isAddressEditedRef.current = true;
     setAddress(value);
+  };
+
+  /** A suggestion carries its own coordinate, so the pin moves with the text. */
+  const handleSuggestionSelect = (candidate: AddressCandidate) => {
+    isAddressEditedRef.current = true;
+    setAddress(candidate.displayName);
+    setPinnedLocation({ latitude: candidate.latitude, longitude: candidate.longitude });
+  };
+
+  /** The pin moved on the map; the address follows what it reverse-geocoded to. */
+  const handlePinSelect = (point: MapPoint, resolvedAddress: string) => {
+    isAddressEditedRef.current = true;
+    setPinnedLocation(point);
+    setAddress(resolvedAddress);
   };
 
   const undeliverableMerchantId = merchantIds.find((id) => quotes[id]?.deliverable === false);
@@ -186,8 +217,8 @@ export default function CheckoutScreen() {
         contactNumber,
         serviceType: 'delivery',
         address,
-        deliveryLatitude: userLocation?.latitude,
-        deliveryLongitude: userLocation?.longitude,
+        deliveryLatitude: deliveryPoint?.latitude,
+        deliveryLongitude: deliveryPoint?.longitude,
         paymentMethod,
         deliveryMode: resolveDeliveryMode(offersEconomy, deliveryMode),
         referenceNumber: referenceNumber || undefined,
@@ -248,7 +279,12 @@ export default function CheckoutScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={!isMapActive}
+        keyboardShouldPersistTaps="handled"
+      >
         <Section icon="person-outline" title="Your details">
           <TextInput
             style={[styles.input, errors.customerName && styles.inputError]}
@@ -302,18 +338,27 @@ export default function CheckoutScreen() {
             </Pressable>
           </View>
 
-          <TextInput
-            style={[styles.input, styles.multiline, errors.address && styles.inputError]}
-            placeholder="House/unit no., street, barangay, landmark"
-            placeholderTextColor={colors.textMuted}
+          <AddressAutocompleteInput
             value={address}
             onChangeText={handleAddressChange}
-            multiline
+            onSelect={handleSuggestionSelect}
+            proximity={deliveryPoint}
+            placeholder="House/unit no., street, barangay, landmark"
+            hasError={!!errors.address}
+            isMultiline
           />
           <FieldError message={errors.address} />
+
+          <MapLocationPicker
+            location={deliveryPoint}
+            onLocationSelect={handlePinSelect}
+            onInteractionStart={() => setIsMapActive(true)}
+            onInteractionEnd={() => setIsMapActive(false)}
+          />
+
           <Text style={styles.hint}>
-            Pulled from your phone's GPS — edit it if the house number or
-            landmark is missing.
+            Search a landmark, or drag the pin to the exact gate. The pin is
+            what your rider navigates to.
           </Text>
         </Section>
 
