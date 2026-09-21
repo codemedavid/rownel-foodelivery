@@ -12,6 +12,8 @@ import { ridersApi, offersApi, ordersApi, messagesApi, earningsApi } from '../li
 import type { OfferWithOrder, Order } from '../lib/deliveryTypes';
 import { useRiderProfile, ratingAverage } from '../hooks/useRiderProfile';
 import { useRiderLocation } from '../hooks/useRiderLocation';
+import { useNow } from '../hooks/useNow';
+import { canRetryGps, riderGpsStatus, type RiderGpsStatus } from '../lib/riderGps';
 import { useRiderNotifications } from '../hooks/useRiderNotifications';
 import { requestNotificationPermission, notificationPermission } from '../lib/notificationUtils';
 import { compressImage } from '../lib/imageCompression';
@@ -20,6 +22,9 @@ import RiderTrackingMap from './RiderTrackingMap';
 import OrderChat from './OrderChat';
 
 type Tab = 'home' | 'chats' | 'map' | 'earnings' | 'profile';
+
+/** How often the GPS line re-reads the clock. */
+const GPS_STATUS_TICK_MS = 5_000;
 
 // ─── Root ────────────────────────────────────────────────────────────────────
 const RiderDashboard: React.FC = () => {
@@ -84,15 +89,26 @@ const RiderDashboard: React.FC = () => {
   const [notifDismissed, setNotifDismissed] = useState(false);
 
   useEffect(() => { if (isOnline) setEnableTracking(true); }, [isOnline]);
-  const location = useRiderLocation(enableTracking || isOnline);
+  // The watch runs from the moment the dashboard opens. rider_set_online
+  // rejects anyone without a fix from the last 120s, so waiting for the rider
+  // to be online before looking for GPS is a deadlock. Writes stay gated on
+  // actually being on shift.
+  const location = useRiderLocation(true, { publish: enableTracking || isOnline });
 
-  const locationStale = useMemo(() => {
-    if (!location.lastUpdate) return true;
-    return Date.now() - location.lastUpdate > 60_000;
-  }, [location.lastUpdate]);
+  // "x ago" and the staleness window both need a clock that moves.
+  const now = useNow(GPS_STATUS_TICK_MS);
+  const gpsStatus = riderGpsStatus({
+    permission: location.permission,
+    hasFix: !!location.coords,
+    lastFixAt: location.lastUpdate,
+    error: location.error,
+    searchStartedAt: location.searchStartedAt,
+    now,
+  });
 
-  const locationReady =
-    location.permission === 'granted' && !!location.coords && !locationStale;
+  // A parked rider gets no new positions from the browser, so an ageing fix
+  // must not lock them out of the toggle — the heartbeat keeps the server fresh.
+  const locationReady = location.permission === 'granted' && !!location.coords;
 
   const goOnline = async () => {
     setError('');
@@ -166,7 +182,7 @@ const RiderDashboard: React.FC = () => {
           </div>
 
           <button
-            onClick={locationReady ? (isOnline ? goOffline : goOnline) : () => setEnableTracking(true)}
+            onClick={locationReady ? (isOnline ? goOffline : goOnline) : location.retry}
             disabled={!authReady && locationReady}
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${
               !authReady && locationReady
@@ -213,16 +229,15 @@ const RiderDashboard: React.FC = () => {
         {activeTab === 'home' && (
           <HomeTab
             location={location}
-            locationStale={locationStale}
+            gpsStatus={gpsStatus}
             isOnline={isOnline}
             authReady={authReady}
             offers={offers}
             sortedOrders={sortedOrders}
             busyOrderId={busyOrderId}
-            onRequestLocation={() => setEnableTracking(true)}
+            onRetryLocation={location.retry}
             onGoOnline={goOnline}
             onGoOffline={goOffline}
-            onSetDenied={() => ridersApi.setLocationPermission('denied').catch(() => {})}
             onAcceptOffer={handleAccept}
             onRejectOffer={handleReject}
             onPickup={handlePickup}
@@ -240,8 +255,8 @@ const RiderDashboard: React.FC = () => {
             isOnline={isOnline}
             authReady={authReady}
             location={location}
-            locationStale={locationStale}
-            onRequestLocation={() => setEnableTracking(true)}
+            gpsStatus={gpsStatus}
+            onRetryLocation={location.retry}
             onGoOnline={goOnline}
             onGoOffline={goOffline}
             onSignOut={() => signOut().then(() => navigate('/rider/login'))}
@@ -293,16 +308,15 @@ const RiderDashboard: React.FC = () => {
 // ─── Home Tab ────────────────────────────────────────────────────────────────
 interface HomeTabProps {
   location: ReturnType<typeof useRiderLocation>;
-  locationStale: boolean;
+  gpsStatus: RiderGpsStatus;
   isOnline: boolean;
   authReady: boolean;
   offers: OfferWithOrder[];
   sortedOrders: Order[];
   busyOrderId: string | null;
-  onRequestLocation: () => void;
+  onRetryLocation: () => void;
   onGoOnline: () => void;
   onGoOffline: () => void;
-  onSetDenied: () => void;
   onAcceptOffer: (offerId: string) => void;
   onRejectOffer: (offerId: string) => void;
   onPickup: (orderId: string) => void;
@@ -311,22 +325,21 @@ interface HomeTabProps {
 }
 
 const HomeTab: React.FC<HomeTabProps> = ({
-  location, locationStale, isOnline, authReady,
+  location, gpsStatus, isOnline, authReady,
   offers, sortedOrders, busyOrderId,
-  onRequestLocation, onGoOnline, onGoOffline, onSetDenied,
+  onRetryLocation, onGoOnline, onGoOffline,
   onAcceptOffer, onRejectOffer, onPickup, onDeliver, onViewDetail,
 }) => (
   <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
     <LocationBanner
-      permission={location.permission}
+      status={gpsStatus}
       coords={location.coords}
-      stale={locationStale}
+      locationError={location.error}
       isOnline={isOnline}
       authReady={authReady}
-      onRequest={onRequestLocation}
+      onRetry={onRetryLocation}
       onGoOnline={onGoOnline}
       onGoOffline={onGoOffline}
-      onSetDenied={onSetDenied}
     />
 
     {offers.length > 0 && (
@@ -763,12 +776,12 @@ const ProfileTab: React.FC<{
   isOnline: boolean;
   authReady: boolean;
   location: ReturnType<typeof useRiderLocation>;
-  locationStale: boolean;
-  onRequestLocation: () => void;
+  gpsStatus: RiderGpsStatus;
+  onRetryLocation: () => void;
   onGoOnline: () => void;
   onGoOffline: () => void;
   onSignOut: () => void;
-}> = ({ profile, avg, isOnline, authReady, location, locationStale, onRequestLocation, onGoOnline, onGoOffline, onSignOut }) => {
+}> = ({ profile, avg, isOnline, authReady, location, gpsStatus, onRetryLocation, onGoOnline, onGoOffline, onSignOut }) => {
   const { user } = useAuth();
   const { updateProfile } = useRiderProfile();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -917,15 +930,14 @@ const ProfileTab: React.FC<{
       <div className="bg-white rounded-2xl p-5">
         <h3 className="font-semibold text-black mb-4 text-sm uppercase tracking-wide">Status</h3>
         <LocationBanner
-          permission={location.permission}
+          status={gpsStatus}
           coords={location.coords}
-          stale={locationStale}
+          locationError={location.error}
           isOnline={isOnline}
           authReady={authReady}
-          onRequest={onRequestLocation}
+          onRetry={onRetryLocation}
           onGoOnline={onGoOnline}
           onGoOffline={onGoOffline}
-          onSetDenied={() => {}}
         />
       </div>
 
@@ -942,22 +954,36 @@ const ProfileTab: React.FC<{
 
 // ─── Location Banner ──────────────────────────────────────────────────────────
 interface LocationBannerProps {
-  permission: 'granted' | 'denied' | 'unknown';
+  status: RiderGpsStatus;
   coords: { latitude: number; longitude: number } | null;
-  stale: boolean;
+  locationError: string | null;
   isOnline: boolean;
   authReady: boolean;
-  onRequest: () => void;
+  onRetry: () => void;
   onGoOnline: () => void;
   onGoOffline: () => void;
-  onSetDenied: () => void;
 }
 
+const SEARCH_COPY: Record<'searching' | 'slow' | 'error', { title: string; body: string }> = {
+  searching: {
+    title: 'Waiting for GPS…',
+    body: 'Allow location when your browser asks. This usually takes a few seconds.',
+  },
+  slow: {
+    title: 'Still looking for GPS',
+    body: 'Move somewhere with a clearer view of the sky, then try again.',
+  },
+  error: {
+    title: "Can't get your location",
+    body: 'Your device did not return a position.',
+  },
+};
+
 const LocationBanner: React.FC<LocationBannerProps> = ({
-  permission, coords, stale, isOnline, authReady,
-  onRequest, onGoOnline, onGoOffline,
+  status, coords, locationError, isOnline, authReady,
+  onRetry, onGoOnline, onGoOffline,
 }) => {
-  if (permission === 'denied') {
+  if (status === 'denied') {
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
         <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
@@ -971,22 +997,30 @@ const LocationBanner: React.FC<LocationBannerProps> = ({
     );
   }
 
-  if (permission === 'unknown' || !coords) {
+  // No fix yet: say so plainly, and offer a retry once waiting stops being normal.
+  if (status === 'searching' || status === 'slow' || status === 'error') {
+    const copy = SEARCH_COPY[status];
     return (
-      <button
-        onClick={onRequest}
-        className="w-full bg-red-600 text-white py-3.5 rounded-xl hover:bg-red-700 active:scale-[0.98] transition-all font-semibold flex items-center justify-center gap-2"
-      >
-        <MapPin className="h-4 w-4" /> Enable Location to Start
-      </button>
-    );
-  }
-
-  if (stale) {
-    return (
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-2">
-        <Clock className="h-4 w-4 text-amber-600 shrink-0" />
-        <p className="text-amber-800 text-sm">Waiting for GPS fix…</p>
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <div className="flex items-start gap-3">
+          {status === 'searching'
+            ? <Loader2 className="h-4 w-4 text-gray-400 shrink-0 mt-0.5 animate-spin" />
+            : <MapPin className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />}
+          <div className="min-w-0">
+            <p className="font-semibold text-black text-sm">{copy.title}</p>
+            <p className="text-gray-500 text-xs mt-0.5">
+              {status === 'error' && locationError ? locationError : copy.body}
+            </p>
+          </div>
+        </div>
+        {canRetryGps(status) && (
+          <button
+            onClick={onRetry}
+            className="w-full bg-red-600 text-white py-3 rounded-xl hover:bg-red-700 active:scale-[0.98] transition-all font-semibold flex items-center justify-center gap-2 text-sm"
+          >
+            <MapPin className="h-4 w-4" /> Try Again
+          </button>
+        )}
       </div>
     );
   }
@@ -1000,10 +1034,25 @@ const LocationBanner: React.FC<LocationBannerProps> = ({
             {isOnline ? 'Online — receiving orders' : 'Offline'}
           </span>
         </div>
-        <span className="text-[11px] text-gray-400 font-mono">
-          {coords.latitude.toFixed(4)}, {coords.longitude.toFixed(4)}
-        </span>
+        {coords && (
+          <span className="text-[11px] text-gray-400 font-mono">
+            {coords.latitude.toFixed(4)}, {coords.longitude.toFixed(4)}
+          </span>
+        )}
       </div>
+
+      {status === 'stale' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-2">
+          <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+          <p className="text-amber-800 text-xs flex-1">
+            GPS has not updated in the last minute. Keep this tab open so orders can reach you.
+          </p>
+          <button onClick={onRetry} className="text-amber-900 text-xs font-semibold whitespace-nowrap">
+            Refresh
+          </button>
+        </div>
+      )}
+
       <button
         onClick={isOnline ? onGoOffline : onGoOnline}
         disabled={!authReady}

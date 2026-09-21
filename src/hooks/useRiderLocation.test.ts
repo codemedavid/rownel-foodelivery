@@ -7,11 +7,16 @@
  *  - throttling (20 s) → two rapid updates → one API call
  *  - permission denied → calls ridersApi.setLocationPermission with 'denied'
  *  - cleanup on unmount → clearWatch called
+ *  - first fix seeded via getCurrentPosition, not only on movement
+ *  - publish:false → watches without writing to the server
+ *  - heartbeat → a parked rider is re-published inside the stale window
+ *  - retry() → restarts the watch after a failed search
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRiderLocation } from './useRiderLocation';
+import { HEARTBEAT_CHECK_MS, LOCATION_HEARTBEAT_MS } from '../lib/riderGps';
 
 // ─── Mock lib/deliveryApi ─────────────────────────────────────────────────────
 
@@ -74,6 +79,9 @@ describe('useRiderLocation()', () => {
     mockSetLocationPermission.mockClear();
     getGeoMock().watchPosition.mockClear();
     getGeoMock().clearWatch.mockClear();
+    // Default the one-shot seeding read to silence unless a test answers it.
+    getGeoMock().getCurrentPosition.mockReset();
+    getGeoMock().getCurrentPosition.mockImplementation(() => undefined);
     // Default watchPosition to return id=1 and not invoke callbacks automatically
     getGeoMock().watchPosition.mockReturnValue(1);
   });
@@ -274,5 +282,98 @@ describe('useRiderLocation()', () => {
     rerender({ enabled: false });
 
     expect(getGeoMock().clearWatch).toHaveBeenCalledWith(88);
+  });
+
+  // ─── unblocking the rider ──────────────────────────────────────────────────
+
+  it('seeds a first fix from getCurrentPosition instead of waiting for movement', async () => {
+    // Arrange: the watch never fires; only the one-shot read answers.
+    getGeoMock().getCurrentPosition.mockImplementation((onSuccess: PositionCallback) => {
+      onSuccess(makePosition(17.5747, 120.3869));
+    });
+
+    // Act
+    const { result } = renderHook(() => useRiderLocation(true));
+    await act(async () => { await Promise.resolve(); });
+
+    // Assert
+    expect(result.current.coords).toEqual({ latitude: 17.5747, longitude: 120.3869 });
+    expect(result.current.permission).toBe('granted');
+  });
+
+  it('watches without writing to the server while publish is off', async () => {
+    getGeoMock().getCurrentPosition.mockImplementation((onSuccess: PositionCallback) => {
+      onSuccess(makePosition(17.5747, 120.3869));
+    });
+
+    const { result } = renderHook(() => useRiderLocation(true, { publish: false }));
+    vi.advanceTimersByTime(20_000);
+    await act(async () => { await Promise.resolve(); });
+
+    expect(result.current.coords).not.toBeNull();
+    expect(mockUpdateLocation).not.toHaveBeenCalled();
+  });
+
+  it('re-publishes the last fix so a standing-still rider stays dispatchable', async () => {
+    getGeoMock().getCurrentPosition.mockImplementation((onSuccess: PositionCallback) => {
+      onSuccess(makePosition(17.5747, 120.3869));
+    });
+
+    renderHook(() => useRiderLocation(true));
+    await act(async () => { await Promise.resolve(); });
+    expect(mockUpdateLocation).toHaveBeenCalledTimes(1);
+
+    // No movement at all: the watch stays silent past the server's stale window.
+    await act(async () => {
+      vi.advanceTimersByTime(LOCATION_HEARTBEAT_MS + HEARTBEAT_CHECK_MS);
+      await Promise.resolve();
+    });
+
+    expect(mockUpdateLocation).toHaveBeenCalledTimes(2);
+    expect(mockUpdateLocation).toHaveBeenLastCalledWith(17.5747, 120.3869);
+  });
+
+  it('surfaces a failed search and restarts the watch on retry', async () => {
+    getGeoMock().getCurrentPosition.mockImplementation((_s: PositionCallback, onError: PositionErrorCallback) => {
+      onError(makeGeoError(3, 'Timeout expired'));
+    });
+
+    const { result } = renderHook(() => useRiderLocation(true));
+    await act(async () => { await Promise.resolve(); });
+
+    expect(result.current.error).toBe('Timeout expired');
+    expect(result.current.coords).toBeNull();
+
+    // Act: the rider taps retry and the browser answers this time.
+    getGeoMock().getCurrentPosition.mockImplementation((onSuccess: PositionCallback) => {
+      onSuccess(makePosition(17.5747, 120.3869));
+    });
+    await act(async () => {
+      result.current.retry();
+      await Promise.resolve();
+    });
+
+    expect(result.current.coords).toEqual({ latitude: 17.5747, longitude: 120.3869 });
+    expect(result.current.error).toBeNull();
+    expect(getGeoMock().watchPosition).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores a timeout that arrives after a good fix', async () => {
+    let errorCb!: PositionErrorCallback;
+    getGeoMock().watchPosition.mockImplementation((_s: PositionCallback, onError: PositionErrorCallback) => {
+      errorCb = onError;
+      return 7;
+    });
+    getGeoMock().getCurrentPosition.mockImplementation((onSuccess: PositionCallback) => {
+      onSuccess(makePosition(17.5747, 120.3869));
+    });
+
+    const { result } = renderHook(() => useRiderLocation(true));
+    await act(async () => { await Promise.resolve(); });
+
+    await act(async () => { errorCb(makeGeoError(3, 'Timeout expired')); });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.coords).toEqual({ latitude: 17.5747, longitude: 120.3869 });
   });
 });

@@ -92,6 +92,7 @@ vi.mock('../hooks/useRiderProfile', () => ({
 // ── useRiderLocation ──────────────────────────────────────────────────────────
 // We mock the whole hook so tests can control permission/coords/stale state.
 const mockUseRiderLocation = vi.fn();
+const mockRetryLocation = vi.fn();
 
 vi.mock('../hooks/useRiderLocation', () => ({
   useRiderLocation: (...args: any[]) => mockUseRiderLocation(...args),
@@ -143,14 +144,15 @@ function setupDefaults(overrides: {
   mockMarkPickedUp.mockResolvedValue(undefined);
   mockMarkDelivered.mockResolvedValue(undefined);
 
-  mockUseRiderLocation.mockReturnValue(
-    overrides.location ?? {
-      permission: 'granted',
-      coords: { latitude: 14.5995, longitude: 120.9842 },
-      lastUpdate: Date.now(),
-      error: null,
-    }
-  );
+  mockUseRiderLocation.mockReturnValue({
+    permission: 'granted',
+    coords: { latitude: 14.5995, longitude: 120.9842 },
+    lastUpdate: Date.now(),
+    error: null,
+    searchStartedAt: null,
+    retry: mockRetryLocation,
+    ...overrides.location,
+  });
 }
 
 function renderDashboard() {
@@ -174,12 +176,48 @@ describe('RiderDashboard', () => {
     expect(screen.getByText(/ABC123/)).toBeInTheDocument();
   });
 
-  it('shows the "Enable location" button when permission is unknown', () => {
+  it('says it is waiting for GPS while the first fix is still coming', () => {
     setupDefaults({
       location: { permission: 'unknown', coords: null, lastUpdate: null, error: null },
     });
     renderDashboard();
-    expect(screen.getByRole('button', { name: /enable location/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/waiting for gps/i).length).toBeGreaterThan(0);
+  });
+
+  it('offers a retry once the search has failed', async () => {
+    setupDefaults({
+      location: {
+        permission: 'unknown',
+        coords: null,
+        lastUpdate: null,
+        error: 'Timeout expired',
+        searchStartedAt: null,
+      },
+    });
+    renderDashboard();
+
+    const retry = screen.getAllByRole('button', { name: /try again/i })[0];
+    expect(screen.getAllByText(/timeout expired/i).length).toBeGreaterThan(0);
+
+    await userEvent.click(retry);
+
+    expect(mockRetryLocation).toHaveBeenCalled();
+  });
+
+  it('keeps the toggle usable when the fix has aged past the stale window', () => {
+    setupDefaults({
+      location: {
+        permission: 'granted',
+        coords: { latitude: 14.5995, longitude: 120.9842 },
+        lastUpdate: Date.now() - 5 * 60_000,
+        error: null,
+      },
+    });
+    renderDashboard();
+
+    // A parked rider stops getting positions; the heartbeat keeps the server
+    // fresh, so an old fix must not lock them out of going online.
+    expect(screen.getAllByRole('button', { name: /go online/i }).length).toBeGreaterThan(0);
   });
 
   it('shows the location-blocked message when permission is denied', () => {

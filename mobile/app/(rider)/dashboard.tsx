@@ -8,7 +8,7 @@ import { useRiderDeliveries } from '../../src/hooks/useRiderDeliveries';
 import { useRiderLocation } from '../../src/hooks/useRiderLocation';
 import { riderOffersApi } from '../../src/lib/riderOffersApi';
 import { riderPresenceApi } from '../../src/lib/riderPresenceApi';
-import { canGoOnline, isLocationFresh } from '../../src/lib/riderActions';
+import { canGoOnline } from '../../src/lib/riderActions';
 import type { Order } from '../../src/lib/adminTypes';
 import { colors, spacing } from '../../src/theme';
 import { EmptyState } from '../../src/components/ui';
@@ -22,14 +22,21 @@ export default function RiderHomeScreen() {
   const riderId = effectiveUserId;
 
   const { presence, isOnline, refetch: refetchPresence } = useRiderPresence(riderId);
-  // Keep tracking while online so the fix never goes stale under dispatch.
+  // Keep publishing while online so the fix never goes stale under dispatch.
   const [isTracking, setIsTracking] = useState(false);
   useEffect(() => {
     if (isOnline) setIsTracking(true);
   }, [isOnline]);
-  // Never sample GPS while previewing: rider_update_location writes against the
-  // caller's own auth.uid(), which would corrupt the admin's presence row.
-  const location = useRiderLocation(!isViewingAs && (isTracking || isOnline));
+  // The sensor runs from the moment the dashboard opens: rider_set_online
+  // refuses anyone without a fix, so waiting for "online" to start the watch
+  // would leave the rider permanently stuck on "Waiting for GPS".
+  // Writes are a different matter — never publish while previewing, because
+  // rider_update_location writes against the caller's own auth.uid() and would
+  // corrupt the admin's presence row.
+  const location = useRiderLocation({
+    enabled: !isViewingAs,
+    publish: !isViewingAs && (isTracking || isOnline),
+  });
 
   const { offers, now, refetch: refetchOffers } = useRiderOffers(riderId, isOnline);
   const { deliveries, isLoading, refetch: refetchDeliveries } = useRiderDeliveries(riderId);
@@ -123,11 +130,14 @@ export default function RiderHomeScreen() {
         isBusy={isTogglingPresence}
         canGoOnline={canGoOnline(location)}
         permission={location.permission}
+        hasFix={!!location.coords}
         lastFixAt={location.lastUpdate ?? presence?.lastLocationUpdate ?? null}
-        isLocationFresh={isLocationFresh(location.lastUpdate, now)}
+        searchStartedAt={location.searchStartedAt}
+        locationError={location.error}
         error={error}
         isReadOnly={isViewingAs}
         onToggle={onTogglePresence}
+        onRetryGps={location.retry}
       />
 
       <Text style={styles.sectionTitle}>New offers</Text>
