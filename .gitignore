@@ -49,3 +49,10 @@ supabase/.temp/
 # so these are deleted from the repo rather than committed — keep the original
 # in a password manager and the value in MAPKIT_PRIVATE_KEY.
 *.p8
+
+# App Store Connect API keys
+credentials/*
+!credentials/README.md
+
+# Local EAS build artifacts (download them from Expo instead)
+mobile/build/

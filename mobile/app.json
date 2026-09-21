@@ -8,7 +8,6 @@
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "com.rownel.foodelivery",
-      "buildNumber": "1",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -46,10 +45,12 @@
           "color": "#dc2626",
           "defaultChannel": "orders",
           "sounds": [
-            "./assets/sounds/new-order.wav"
+            "./assets/sounds/new_order.wav"
           ]
         }
-      ]
+      ],
+      "expo-font",
+      "expo-asset"
     ],
     "scheme": "rownelfood",
     "extra": {

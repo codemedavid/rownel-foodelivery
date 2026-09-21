@@ -12,12 +12,17 @@
 //   node --experimental-strip-types scripts/applyMerchantImageUrls.mjs           # dry run
 //   node --experimental-strip-types scripts/applyMerchantImageUrls.mjs --commit  # write
 //   node --experimental-strip-types scripts/applyMerchantImageUrls.mjs --rollback <file>
+//
+// --only-missing re-checks the live table and keeps just the columns that are
+// still empty. The manifest's targets were decided against a snapshot, and a
+// merchant may have uploaded their own logo or cover since; without this guard
+// a re-run would quietly replace it with the catalog asset.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { loadEnv, requireEnv, projectRoot } from './loadEnv.mjs';
-import { buildMerchantRowUpdates, parseMerchantRowId } from '../src/lib/imageCatalog.ts';
+import { buildMerchantRowUpdates, parseMerchantRowId, isLiveImageUrl } from '../src/lib/imageCatalog.ts';
 
 const IMAGES_DIR = resolve(projectRoot, 'docs/images');
 const MANIFEST_PATH = resolve(IMAGES_DIR, 'merchant-manifest.json');
@@ -25,6 +30,7 @@ const SNAPSHOT_PATH = resolve(IMAGES_DIR, 'merchant-snapshot.json');
 
 const args = process.argv.slice(2);
 const isCommit = args.includes('--commit');
+const isOnlyMissing = args.includes('--only-missing');
 const rollbackIndex = args.indexOf('--rollback');
 const rollbackFile = rollbackIndex >= 0 ? args[rollbackIndex + 1] : null;
 
@@ -36,9 +42,32 @@ const { VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, ADMIN_EMAIL, ADMIN_PASSWORD }
   'ADMIN_PASSWORD',
 ]);
 
-const updates = rollbackFile
+const planned = rollbackFile
   ? JSON.parse(readFileSync(resolve(process.cwd(), rollbackFile), 'utf8'))
   : buildMerchantRowUpdates(JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')));
+
+// Signing in early: --only-missing has to read the live table before deciding.
+const supabase = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY);
+const { error: authError } = await supabase.auth.signInWithPassword({
+  email: ADMIN_EMAIL,
+  password: ADMIN_PASSWORD,
+});
+if (authError) {
+  console.error(`Admin sign-in failed: ${authError.message}`);
+  process.exit(1);
+}
+
+let updates = planned;
+if (isOnlyMissing && !rollbackFile) {
+  const { data, error } = await supabase.from('merchants').select('id, logo_url, cover_image_url');
+  if (error) {
+    console.error(`Failed to read merchants: ${error.message}`);
+    process.exit(1);
+  }
+  const liveByMerchantId = new Map(data.map((row) => [row.id, row]));
+  updates = planned.filter((update) => !isLiveImageUrl(liveByMerchantId.get(update.merchantId)?.[update.column]));
+  console.log(`--only-missing: ${planned.length} planned -> ${updates.length} column(s) still without an image.`);
+}
 
 if (updates.length === 0) {
   console.log('Nothing to apply: no uploaded merchant manifest entries.');
@@ -77,17 +106,6 @@ if (!rollbackFile) {
     }));
   writeFileSync(rollbackPath, `${JSON.stringify(rollback, null, 2)}\n`);
   console.log(`rollback snapshot written to ${rollbackPath}`);
-}
-
-// merchants writes require an authenticated session (RLS).
-const supabase = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY);
-const { error: authError } = await supabase.auth.signInWithPassword({
-  email: ADMIN_EMAIL,
-  password: ADMIN_PASSWORD,
-});
-if (authError) {
-  console.error(`Admin sign-in failed: ${authError.message}`);
-  process.exit(1);
 }
 
 let applied = 0;

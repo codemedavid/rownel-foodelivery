@@ -1726,10 +1726,20 @@
     "rowIds": [
       "55174b87-c21d-4b29-8d32-2bc36742495b::logo"
     ],
-    "candidates": [],
-    "chosenUrl": null,
-    "imagekitUrl": null,
-    "status": "no-candidate"
+    "candidates": [
+      {
+        "url": "https://graph.facebook.com/Guji.Cafe/picture?width=1000&height=1000",
+        "source": "Official Guji Cafe Facebook page (facebook.com/Guji.Cafe) profile image at 1000x1000 - the GUJI registered wordmark. Guji Cafe is a La Union / Ilocos Sur cafe chain (Lingsat CSF La Union, Rizal Tagudin); a logo belongs to the brand, not the branch.",
+        "confidence": "official",
+        "verified": true
+      }
+    ],
+    "chosenUrl": "https://graph.facebook.com/Guji.Cafe/picture?width=1000&height=1000",
+    "imagekitUrl": "https://ik.imagekit.io/hvqkkhesl/merchants/guji-cafe-balaoan_logo_JCv7ZDw4S",
+    "status": "uploaded",
+    "targetRowIds": [
+      "55174b87-c21d-4b29-8d32-2bc36742495b::logo"
+    ]
   },
   {
     "key": "guji-cafe-balaoan::cover-image",

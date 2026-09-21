@@ -43,7 +43,7 @@ export const ANDROID_CHANNEL_ID = "orders";
 /** Android channel that carries the custom ring (created by the mobile app). */
 export const NEW_ORDERS_CHANNEL_ID = "new-orders";
 /** Bundled in the mobile app via the expo-notifications plugin (assets/sounds). */
-export const NEW_ORDER_SOUND = "new-order.wav";
+export const NEW_ORDER_SOUND = "new_order.wav";
 
 export const soundForKind = (kind: string): string =>
   kind === "new_order" ? NEW_ORDER_SOUND : "default";

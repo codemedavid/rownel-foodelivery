@@ -3,7 +3,7 @@ import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-aud
 /** Same clip the web dashboard plays (public/sounds/new-order.mp3). */
 export const NEW_ORDER_SOUND = require('../../assets/sounds/new-order.mp3');
 /** Bundled via the expo-notifications plugin for push/local notification sound. */
-export const NEW_ORDER_NOTIFICATION_SOUND = 'new-order.wav';
+export const NEW_ORDER_NOTIFICATION_SOUND = 'new_order.wav';
 
 const VOLUME = 0.9;
 

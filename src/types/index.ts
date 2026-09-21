@@ -137,6 +137,9 @@ export interface SiteSettings {
   site_description: string;
   currency: string;
   currency_code: string;
+  /** Optional: where contact-based services (Pabili, Errands, Surprise) are requested. */
+  contact_number?: string;
+  messenger_url?: string;
 }
 
 export interface Promotion {

@@ -39,21 +39,7 @@ const CustomerRiderPanel: React.FC<Props> = ({
   );
   const riderMsgCount = (messages ?? []).filter((m) => m.senderType === 'rider').length;
 
-  // Notify when rider is first assigned
-  const prevAssignedRef = useRef<string | undefined>(undefined);
-  const assignedInitRef = useRef(true);
-  useEffect(() => {
-    if (assignedInitRef.current) {
-      assignedInitRef.current = false;
-      prevAssignedRef.current = assignedRiderId;
-      return;
-    }
-    if (!prevAssignedRef.current && assignedRiderId) {
-      showNotification('Rider Assigned!', 'A rider has been assigned to your order.');
-    }
-    prevAssignedRef.current = assignedRiderId;
-  }, [assignedRiderId]);
-
+  // Rider-assignment notifications are raised globally by useCustomerOrderNotifications.
   // Notify on new rider message (only when chat is closed)
   const prevMsgCountRef = useRef<number | null>(null);
   useEffect(() => {

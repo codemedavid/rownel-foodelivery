@@ -31,7 +31,8 @@
       "ios": {
         "ascApiKeyPath": "../credentials/AuthKey_ASC.p8",
         "ascApiKeyIssuerId": "$ASC_ISSUER_ID",
-        "ascApiKeyId": "$ASC_KEY_ID"
+        "ascApiKeyId": "$ASC_KEY_ID",
+        "ascAppId": "6814378905"
       }
     }
   }

@@ -7,7 +7,7 @@ import { isValidExpoPushToken } from './pushTokens';
 export const ORDERS_CHANNEL_ID = 'orders';
 /** Android plays sound per channel, so new orders get their own ringing channel. */
 export const NEW_ORDERS_CHANNEL_ID = 'new-orders';
-const NEW_ORDER_SOUND_FILE = 'new-order.wav';
+const NEW_ORDER_SOUND_FILE = 'new_order.wav';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

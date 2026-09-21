@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LogOut, ReceiptText, Shield, Truck, User, UtensilsCrossed } from 'lucide-react';
+import { LogOut, ReceiptText, Shield, Smartphone, Trash2, Truck, User, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { deleteMyAccount } from '../lib/accountApi';
 
 type AuthMode = 'signin' | 'register';
 
@@ -45,7 +46,7 @@ function GuestProfile() {
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
       <div className="text-center mb-6">
-        <div className="mx-auto w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4">
+        <div className="mx-auto w-16 h-16 bg-brand-600 rounded-full flex items-center justify-center mb-4">
           <User className="h-8 w-8 text-white" />
         </div>
         <h2 className="text-xl font-semibold text-gray-900">
@@ -68,7 +69,7 @@ function GuestProfile() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-600 focus:border-transparent"
               placeholder="Your name"
               required
             />
@@ -84,7 +85,7 @@ function GuestProfile() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-600 focus:border-transparent"
             placeholder="you@example.com"
             required
           />
@@ -99,7 +100,7 @@ function GuestProfile() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-600 focus:border-transparent"
             placeholder="Your password"
             minLength={6}
             required
@@ -120,7 +121,7 @@ function GuestProfile() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
+          className="w-full py-3 bg-brand-600 text-white rounded-lg font-semibold hover:bg-brand-700 transition-colors disabled:opacity-60"
         >
           {mode === 'signin' ? 'Sign In' : 'Create Account'}
         </button>
@@ -131,7 +132,7 @@ function GuestProfile() {
           <button
             type="button"
             onClick={() => switchMode('register')}
-            className="text-sm text-red-600 font-medium hover:underline"
+            className="text-sm text-brand-700 font-medium hover:underline"
           >
             New here? Create account
           </button>
@@ -139,7 +140,7 @@ function GuestProfile() {
           <button
             type="button"
             onClick={() => switchMode('signin')}
-            className="text-sm text-red-600 font-medium hover:underline"
+            className="text-sm text-brand-700 font-medium hover:underline"
           >
             Already have an account? Sign in
           </button>
@@ -151,8 +152,28 @@ function GuestProfile() {
 
 function SignedInProfile() {
   const { user, signOut, isAdmin, isStaff, isRider } = useAuth();
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const displayName =
     (user?.user_metadata?.full_name as string | undefined) || user?.email || 'Account';
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      // deleteMyAccount signs out, so AuthProvider swaps this screen for the
+      // signed-out one; there is no state left here to reset.
+      await deleteMyAccount();
+    } catch (error: unknown) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : 'Your account could not be deleted. Please try again.'
+      );
+      setIsDeleting(false);
+    }
+  };
 
   const shortcuts = [
     isAdmin && { to: '/admin', label: 'Admin Dashboard', icon: Shield },
@@ -163,7 +184,7 @@ function SignedInProfile() {
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl shadow-sm p-6 text-center">
-        <div className="mx-auto w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4">
+        <div className="mx-auto w-16 h-16 bg-brand-600 rounded-full flex items-center justify-center mb-4">
           <User className="h-8 w-8 text-white" />
         </div>
         <h2 className="text-lg font-semibold text-gray-900">{displayName}</h2>
@@ -175,7 +196,7 @@ function SignedInProfile() {
           to="/orders"
           className="flex items-center gap-3 px-5 py-4 text-gray-700 hover:bg-gray-50 transition-colors"
         >
-          <ReceiptText size={20} className="text-red-600" />
+          <ReceiptText size={20} className="text-brand-700" />
           <span className="font-medium">My Orders</span>
         </Link>
         {shortcuts.map(({ to, label, icon: Icon }) => (
@@ -184,10 +205,17 @@ function SignedInProfile() {
             to={to}
             className="flex items-center gap-3 px-5 py-4 text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            <Icon size={20} className="text-red-600" />
+            <Icon size={20} className="text-brand-700" />
             <span className="font-medium">{label}</span>
           </Link>
         ))}
+        <Link
+          to="/download"
+          className="flex items-center gap-3 px-5 py-4 text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <Smartphone size={20} className="text-brand-700" />
+          <span className="font-medium">Get the Row-Nel app</span>
+        </Link>
         <button
           type="button"
           onClick={() => signOut()}
@@ -196,7 +224,56 @@ function SignedInProfile() {
           <LogOut size={20} />
           <span className="font-medium">Sign Out</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setIsConfirmingDelete(true)}
+          disabled={isDeleting}
+          className="w-full flex items-center gap-3 border-t border-gray-100 px-5 py-4 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+        >
+          <Trash2 size={20} />
+          <span className="font-medium">Delete Account</span>
+        </button>
       </div>
+
+      {isConfirmingDelete && (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-5">
+          <h2 className="font-semibold text-red-800">Delete your account?</h2>
+          <p className="mt-2 text-sm leading-relaxed text-red-700">
+            This permanently deletes your account and removes your name, phone number and saved
+            addresses. Past orders are kept as receipts, with your personal details removed. This
+            cannot be undone.
+          </p>
+
+          {deleteError && (
+            <p role="alert" className="mt-3 text-sm font-medium text-red-800">
+              {deleteError}
+            </p>
+          )}
+
+          <div className="mt-4 flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsConfirmingDelete(false);
+                setDeleteError(null);
+              }}
+              disabled={isDeleting}
+              className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-60"
+            >
+              Keep my account
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleDeleteAccount()}
+              disabled={isDeleting}
+              className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+            >
+              {isDeleting ? 'Deleting…' : 'Delete account'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

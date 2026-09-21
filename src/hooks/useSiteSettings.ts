@@ -25,7 +25,9 @@ export const useSiteSettings = () => {
         site_logo: data.find(s => s.id === 'site_logo')?.value || '',
         site_description: data.find(s => s.id === 'site_description')?.value || '',
         currency: data.find(s => s.id === 'currency')?.value || 'PHP',
-        currency_code: data.find(s => s.id === 'currency_code')?.value || 'PHP'
+        currency_code: data.find(s => s.id === 'currency_code')?.value || 'PHP',
+        contact_number: data.find(s => s.id === 'contact_number')?.value || '',
+        messenger_url: data.find(s => s.id === 'messenger_url')?.value || '',
       };
 
       setSiteSettings(settings);
