@@ -77,6 +77,34 @@ const requestJson = async <T>(url: string): Promise<T> => {
 const toCoordinateParam = ({ latitude, longitude }: MapPoint): string =>
   `${latitude},${longitude}`;
 
+const HTTP_BAD_REQUEST = 400;
+
+/** A request Apple would not accept — our bug, not the customer's query. */
+const isBadRequest = (error: unknown): boolean =>
+  error instanceof AppleMapsRequestError && error.status === HTTP_BAD_REQUEST;
+
+/**
+ * Apple takes `searchLocation` and `searchRegion` as alternatives, not as a
+ * pair: sending both answers 400. The phone's own fix is the better hint when
+ * there is one, so it wins and the region is dropped — `limitToCountries` is
+ * what actually keeps a search inside the Philippines either way.
+ */
+const buildSearchUrl = (query: string, proximity: MapPoint | null | undefined): string => {
+  const params = new URLSearchParams({
+    q: query,
+    lang: LANGUAGE,
+    limitToCountries: PHILIPPINES_COUNTRY_CODE,
+  });
+
+  if (proximity) {
+    params.set('searchLocation', toCoordinateParam(proximity));
+  } else {
+    params.set('searchRegion', PHILIPPINES_SEARCH_REGION);
+  }
+
+  return `${SEARCH_URL}?${params}`;
+};
+
 export interface SearchOptions {
   /** A point to rank results around — usually the phone's last GPS fix. */
   proximity?: MapPoint | null;
@@ -88,8 +116,8 @@ export interface SearchOptions {
  *
  * `resultTypeFilter` is deliberately not sent. Left off, Apple returns both
  * addresses and businesses, which is what a Philippine customer searching by
- * store name needs — and an unrecognised filter value is silently honoured as
- * "match nothing" rather than refused, which is a bad way to find out.
+ * store name needs — and an unrecognised filter value is honoured as "match
+ * nothing" rather than refused, which is a bad way to find out.
  */
 export const searchAddresses = async (
   query: string,
@@ -98,17 +126,20 @@ export const searchAddresses = async (
   const trimmed = query.trim();
   if (!trimmed) return [];
 
-  const params = new URLSearchParams({
-    q: trimmed,
-    lang: LANGUAGE,
-    limitToCountries: PHILIPPINES_COUNTRY_CODE,
-    searchRegion: PHILIPPINES_SEARCH_REGION,
-  });
-  if (options.proximity) {
-    params.set('searchLocation', toCoordinateParam(options.proximity));
+  let body: { results?: ApplePlace[] };
+  try {
+    body = await requestJson<{ results?: ApplePlace[] }>(
+      buildSearchUrl(trimmed, options.proximity)
+    );
+  } catch (error: unknown) {
+    // Apple rejected the request rather than the query. Which combinations of
+    // hint parameters it accepts is not documented, and sending a location and
+    // a region together turned out to be one it refuses — so rather than
+    // returning nothing, ask again with no hint at all. `limitToCountries`
+    // still holds the search to the Philippines; only the ranking is poorer.
+    if (!isBadRequest(error) || !options.proximity) throw error;
+    body = await requestJson<{ results?: ApplePlace[] }>(buildSearchUrl(trimmed, null));
   }
-
-  const body = await requestJson<{ results?: ApplePlace[] }>(`${SEARCH_URL}?${params}`);
 
   return (body.results ?? [])
     .map(toAddressCandidate)

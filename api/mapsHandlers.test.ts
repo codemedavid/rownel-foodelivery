@@ -168,6 +168,69 @@ describe('the maps proxy endpoints', () => {
       expect(requested).toContain('searchLocation=14.5995%2C120.9842');
     });
 
+    it('sends the location and the region as alternatives, never together', async () => {
+      // Arrange
+      const fetchMock = stubApple();
+
+      // Act — Apple answers 400 to both at once, which cost a live outage
+      await search('?q=jollibee&lat=14.5995&lng=120.9842');
+
+      // Assert — the country limit is what holds the search to the PH anyway
+      const appleUrl = fetchMock.mock.calls
+        .map(([input]) => String(input))
+        .find((url) => url.includes('/v1/search'))!;
+      expect(appleUrl).toContain('searchLocation=');
+      expect(appleUrl).not.toContain('searchRegion=');
+      expect(appleUrl).toContain('limitToCountries=PH');
+    });
+
+    it('retries without the location hint when Apple refuses the request', async () => {
+      // Arrange — first search 400s, the retry succeeds
+      let searchCalls = 0;
+      const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.startsWith(APPLE_TOKEN_URL)) {
+          return jsonOk({ accessToken: ACCESS_TOKEN, expiresInSeconds: 1800 });
+        }
+        searchCalls += 1;
+        if (searchCalls === 1) return new Response('bad request', { status: 400 });
+        return jsonOk({
+          results: [
+            {
+              name: 'Jollibee',
+              formattedAddressLines: ['Rizal Avenue', 'Manila'],
+              coordinate: { latitude: 14.5995, longitude: 120.9842 },
+            },
+          ],
+        });
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      // Act
+      const response = await search('?q=jollibee&lat=14.5995&lng=120.9842');
+      const body = (await response.json()) as { results: unknown[] };
+
+      // Assert — worse ranking beats an empty dropdown
+      expect(response.status).toBe(200);
+      expect(body.results).toHaveLength(1);
+      expect(searchCalls).toBe(2);
+    });
+
+    it('does not retry a refusal when there was no hint to drop', async () => {
+      // Arrange
+      const fetchMock = stubApple({ data: new Response('bad request', { status: 400 }) });
+
+      // Act — retrying the identical request would only spend the quota twice
+      const response = await search('?q=jollibee');
+
+      // Assert
+      expect(response.status).toBe(502);
+      const searchCalls = fetchMock.mock.calls.filter(([input]) =>
+        String(input).includes('/v1/search')
+      );
+      expect(searchCalls).toHaveLength(1);
+    });
+
     it('refuses an empty query without spending a service call', async () => {
       // Arrange
       const fetchMock = stubApple();
