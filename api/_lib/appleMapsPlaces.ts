@@ -1,11 +1,11 @@
 // Translates Apple Maps Server API responses into the shapes both clients use.
 //
-// The Server API and MapKit JS describe the same places with different field
-// names — `location: {lat, lng}` here against `coordinate: {latitude,
-// longitude}` there, `formattedAddressLines` against `formattedAddress`. This
-// module absorbs that difference so the Expo app sees exactly the objects the
-// web app's src/lib/geocoding.ts returns, and neither client has to know which
-// Apple framework answered.
+// The Server API and MapKit JS describe the same place differently —
+// `formattedAddressLines` as an array here against `formattedAddress` as a
+// string there, and no place id at all on this side. This module absorbs that,
+// so the Expo app receives exactly the objects the web app's
+// src/lib/geocoding.ts returns and neither client has to know which Apple
+// framework answered.
 //
 // Pure functions only: no fetch, no env, no token. That keeps the parsing —
 // where the coordinate-ordering and missing-field mistakes live — testable
@@ -59,15 +59,6 @@ export interface ReverseGeocodeResult {
   countryCode?: string;
 }
 
-/** Apple's autocomplete row. Every field is optional in practice. */
-export interface AppleAutocompleteResult {
-  completionUrl?: string | null;
-  displayLines?: (string | null)[] | null;
-  /** Note the short field names — the Server API does not say latitude/longitude. */
-  location?: { lat?: number | null; lng?: number | null } | null;
-  structuredAddress?: AppleStructuredAddress | null;
-}
-
 export interface AppleStructuredAddress {
   administrativeArea?: string | null;
   administrativeAreaCode?: string | null;
@@ -81,7 +72,7 @@ export interface AppleStructuredAddress {
   dependentLocalities?: (string | null)[] | null;
 }
 
-/** Apple's geocode / reverse-geocode row. */
+/** Apple's place: the shape /v1/search and /v1/reverseGeocode both return. */
 export interface ApplePlace {
   coordinate?: { latitude?: number | null; longitude?: number | null } | null;
   name?: string | null;
@@ -117,35 +108,40 @@ const readCountryCode = (code: string | null | undefined): string | undefined =>
   code?.trim().toLowerCase() || undefined;
 
 /**
- * Apple formats `displayLines` for the locale — typically the place name first
- * and the town/province after. Using them verbatim keeps the label consistent
- * with what Apple Maps itself would show.
+ * A search result as one autocomplete row.
+ *
+ * This reads /v1/search rather than /v1/searchAutocomplete. Autocomplete is
+ * the obvious endpoint and the wrong one here: its rows carry a `location`
+ * only sometimes — a POI completion is a handle to be resolved through its
+ * `completionUrl`, not a placed result — so a dropdown built on it comes back
+ * empty for exactly the business-name searches Philippine customers rely on.
+ * /v1/search answers with real places, every one of which has a coordinate, so
+ * picking a row drops the pin with no second round trip.
  */
-export const toAddressCandidate = (
-  result: AppleAutocompleteResult
-): AddressCandidate | null => {
-  const point = readPoint(result.location?.lat, result.location?.lng);
-  // A completion with no coordinate is a bare query suggestion; it could never
-  // place a pin, so it has no business in a delivery address field.
+export const toAddressCandidate = (place: ApplePlace): AddressCandidate | null => {
+  const point = readPoint(place.coordinate?.latitude, place.coordinate?.longitude);
   if (!point) return null;
   if (!isWithinPhilippines(point.latitude, point.longitude)) return null;
 
-  const lines = cleanLines(result.displayLines);
-  const displayName = lines.join(', ');
-  const name = lines[0] ?? '';
-  if (!displayName || !name) return null;
+  const lines = cleanLines(place.formattedAddressLines);
+  const name = place.name?.trim() || lines[0] || '';
+  if (!name) return null;
+
+  // A plain street address repeats its own first line as the name; a business
+  // does not. Dropping the duplicate keeps "Jollibee, Rizal Avenue, Naga" from
+  // reading as "Jollibee, Jollibee, Rizal Avenue, Naga".
+  const contextLines = lines[0] === name ? lines.slice(1) : lines;
 
   return {
-    // Apple gives no stable place id here. The completion URL is the handle
-    // that would resolve this row through /v1/search, so it serves as one.
-    placeId: result.completionUrl?.trim() || '',
+    // The Server API gives places no stable id. Nothing downstream needs one:
+    // the coordinate is what places the pin.
+    placeId: '',
     name,
-    displayName,
-    context: lines.slice(1).join(', '),
+    displayName: [name, ...contextLines].join(', '),
+    context: contextLines.join(', '),
     latitude: point.latitude,
     longitude: point.longitude,
-    // Apple's autocomplete row carries no country field. Searches are already
-    // limited to the Philippines, so an invented value would add nothing.
+    countryCode: readCountryCode(place.countryCode),
   };
 };
 

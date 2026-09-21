@@ -1,93 +1,105 @@
-// The Server API and MapKit JS name the same fields differently, and the one
-// that bites is `location: {lat, lng}` against `coordinate: {latitude,
-// longitude}`. These tests pin the translation, because a swapped pair puts a
-// Philippine address in the Arabian Sea and nothing downstream would notice.
+// Both search and reverse geocoding read Apple's `Place`, so one mapper shape
+// covers both. The tests pin the translation because a swapped coordinate pair
+// puts a Philippine address in the Arabian Sea and nothing downstream would
+// notice, and because a business row and a plain street row have to render
+// differently without either repeating itself.
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
   isWithinPhilippines,
   toAddressCandidate,
   toReverseGeocodeResult,
-  type AppleAutocompleteResult,
   type ApplePlace,
 } from './appleMapsPlaces.ts';
 
 const MANILA = { latitude: 14.5995, longitude: 120.9842 };
 
-const autocompleteResult = (
-  overrides: Partial<AppleAutocompleteResult> = {}
-): AppleAutocompleteResult => ({
-  completionUrl: '/v1/search?q=Jollibee',
-  displayLines: ['Jollibee Rizal Avenue', 'Santa Cruz, Manila'],
-  location: { lat: MANILA.latitude, lng: MANILA.longitude },
+const searchResult = (overrides: Partial<ApplePlace> = {}): ApplePlace => ({
+  name: 'Jollibee Rizal Avenue',
+  formattedAddressLines: ['Rizal Avenue', 'Santa Cruz', 'Manila'],
+  coordinate: { latitude: MANILA.latitude, longitude: MANILA.longitude },
+  countryCode: 'PH',
   ...overrides,
 });
 
 describe('toAddressCandidate', () => {
-  it('reads the coordinate from Apple’s short lat/lng field names', () => {
-    // Arrange
-    const result = autocompleteResult();
+  it('reads the coordinate every search result carries', () => {
+    // Arrange / Act
+    const candidate = toAddressCandidate(searchResult());
 
-    // Act
-    const candidate = toAddressCandidate(result);
-
-    // Assert
+    // Assert — this is why /v1/search is used over /v1/searchAutocomplete
     expect(candidate).toMatchObject({
       latitude: MANILA.latitude,
       longitude: MANILA.longitude,
     });
   });
 
-  it('splits display lines into a headline and a context line', () => {
+  it('puts the business name in the headline and the address beneath', () => {
     // Arrange / Act
-    const candidate = toAddressCandidate(autocompleteResult());
+    const candidate = toAddressCandidate(searchResult());
 
     // Assert
     expect(candidate).toMatchObject({
       name: 'Jollibee Rizal Avenue',
-      context: 'Santa Cruz, Manila',
-      displayName: 'Jollibee Rizal Avenue, Santa Cruz, Manila',
+      context: 'Rizal Avenue, Santa Cruz, Manila',
+      displayName: 'Jollibee Rizal Avenue, Rizal Avenue, Santa Cruz, Manila',
     });
   });
 
-  it('carries the completion URL as the place id', () => {
-    // Arrange / Act
-    const candidate = toAddressCandidate(autocompleteResult());
+  it('does not repeat a plain street address as its own context', () => {
+    // Arrange — a street result names itself; a business does not
+    const street = searchResult({
+      name: '1 Rizal Avenue',
+      formattedAddressLines: ['1 Rizal Avenue', 'Santa Cruz', 'Manila'],
+    });
+
+    // Act
+    const candidate = toAddressCandidate(street);
 
     // Assert
-    expect(candidate?.placeId).toBe('/v1/search?q=Jollibee');
+    expect(candidate?.displayName).toBe('1 Rizal Avenue, Santa Cruz, Manila');
+    expect(candidate?.context).toBe('Santa Cruz, Manila');
   });
 
-  it('drops a completion with no coordinate, which could never place a pin', () => {
-    // Arrange
-    const result = autocompleteResult({ location: null });
+  it('falls back to the first address line when a place has no name', () => {
+    // Arrange / Act
+    const candidate = toAddressCandidate(searchResult({ name: null }));
 
-    // Act / Assert
-    expect(toAddressCandidate(result)).toBeNull();
+    // Assert
+    expect(candidate?.name).toBe('Rizal Avenue');
+  });
+
+  it('drops a result with no coordinate, which could never place a pin', () => {
+    // Arrange / Act / Assert
+    expect(toAddressCandidate(searchResult({ coordinate: null }))).toBeNull();
   });
 
   it('drops a coordinate outside the Philippines', () => {
     // Arrange — Singapore, which a loose query can surface
-    const result = autocompleteResult({ location: { lat: 1.3521, lng: 103.8198 } });
+    const foreign = searchResult({ coordinate: { latitude: 1.3521, longitude: 103.8198 } });
 
     // Act / Assert
-    expect(toAddressCandidate(result)).toBeNull();
+    expect(toAddressCandidate(foreign)).toBeNull();
   });
 
   it('treats a null coordinate as missing rather than as 0,0', () => {
     // Arrange — Number(null) is 0, which is a real place in the Gulf of Guinea
-    const result = autocompleteResult({ location: { lat: null, lng: null } });
+    const empty = searchResult({ coordinate: { latitude: null, longitude: null } });
 
     // Act / Assert
-    expect(toAddressCandidate(result)).toBeNull();
+    expect(toAddressCandidate(empty)).toBeNull();
   });
 
-  it('drops a completion with no display lines to label it', () => {
-    // Arrange
-    const result = autocompleteResult({ displayLines: ['  ', null] });
+  it('drops a result with nothing to label it', () => {
+    // Arrange / Act / Assert
+    expect(
+      toAddressCandidate(searchResult({ name: null, formattedAddressLines: ['  ', null] }))
+    ).toBeNull();
+  });
 
-    // Act / Assert
-    expect(toAddressCandidate(result)).toBeNull();
+  it('lowercases the country code, as the web client does', () => {
+    // Arrange / Act / Assert
+    expect(toAddressCandidate(searchResult())?.countryCode).toBe('ph');
   });
 });
 

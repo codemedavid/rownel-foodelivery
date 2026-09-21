@@ -15,21 +15,21 @@ import {
   toAddressCandidate,
   toReverseGeocodeResult,
   type AddressCandidate,
-  type AppleAutocompleteResult,
   type ApplePlace,
   type MapPoint,
   type ReverseGeocodeResult,
 } from './appleMapsPlaces.js';
 import { getAppleMapsAccessToken } from './appleMapsAccessToken.js';
 
-const AUTOCOMPLETE_URL = 'https://maps-api.apple.com/v1/searchAutocomplete';
+// /v1/search, not /v1/searchAutocomplete. Autocomplete looks like the right
+// endpoint for a suggestion list and is not: its rows are handles to resolve,
+// and a `location` comes back only sometimes — searching "jollibee naga"
+// through it returns nothing placeable at all. Search answers with real places
+// that always carry a coordinate, for the same one service call.
+const SEARCH_URL = 'https://maps-api.apple.com/v1/search';
 const REVERSE_GEOCODE_URL = 'https://maps-api.apple.com/v1/reverseGeocode';
 
 const LANGUAGE = 'en-US';
-
-// Addresses and businesses, but not bare query completions: those carry no
-// coordinate and would only be discarded on the way back out.
-const RESULT_TYPES = 'Address,Poi';
 
 const REQUEST_TIMEOUT_MS = 8000;
 
@@ -77,16 +77,23 @@ const requestJson = async <T>(url: string): Promise<T> => {
 const toCoordinateParam = ({ latitude, longitude }: MapPoint): string =>
   `${latitude},${longitude}`;
 
-export interface AutocompleteOptions {
+export interface SearchOptions {
   /** A point to rank results around — usually the phone's last GPS fix. */
   proximity?: MapPoint | null;
   limit: number;
 }
 
-/** Address autocomplete, bounded to the Philippines. */
-export const autocompleteAddresses = async (
+/**
+ * Address suggestions for a partial query, bounded to the Philippines.
+ *
+ * `resultTypeFilter` is deliberately not sent. Left off, Apple returns both
+ * addresses and businesses, which is what a Philippine customer searching by
+ * store name needs — and an unrecognised filter value is silently honoured as
+ * "match nothing" rather than refused, which is a bad way to find out.
+ */
+export const searchAddresses = async (
   query: string,
-  options: AutocompleteOptions
+  options: SearchOptions
 ): Promise<AddressCandidate[]> => {
   const trimmed = query.trim();
   if (!trimmed) return [];
@@ -96,15 +103,12 @@ export const autocompleteAddresses = async (
     lang: LANGUAGE,
     limitToCountries: PHILIPPINES_COUNTRY_CODE,
     searchRegion: PHILIPPINES_SEARCH_REGION,
-    resultTypeFilter: RESULT_TYPES,
   });
   if (options.proximity) {
     params.set('searchLocation', toCoordinateParam(options.proximity));
   }
 
-  const body = await requestJson<{ results?: AppleAutocompleteResult[] }>(
-    `${AUTOCOMPLETE_URL}?${params}`
-  );
+  const body = await requestJson<{ results?: ApplePlace[] }>(`${SEARCH_URL}?${params}`);
 
   return (body.results ?? [])
     .map(toAddressCandidate)

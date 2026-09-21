@@ -72,15 +72,42 @@ describe('the maps proxy endpoints', () => {
   });
 
   describe('GET /api/maps-search', () => {
+    it('queries /v1/search, whose rows always carry a coordinate', async () => {
+      // Arrange
+      const fetchMock = stubApple();
+
+      // Act
+      await search('?q=jollibee');
+
+      // Assert — /v1/searchAutocomplete rows often carry no location at all,
+      // which returns an empty dropdown for business-name searches
+      const requested = fetchMock.mock.calls.map(([input]) => String(input)).join(' ');
+      expect(requested).toContain('maps-api.apple.com/v1/search?');
+      expect(requested).not.toContain('searchAutocomplete');
+    });
+
+    it('does not send a resultTypeFilter, which silently matches nothing when wrong', async () => {
+      // Arrange
+      const fetchMock = stubApple();
+
+      // Act
+      await search('?q=jollibee');
+
+      // Assert — omitted, Apple returns both addresses and businesses
+      const requested = fetchMock.mock.calls.map(([input]) => String(input)).join(' ');
+      expect(requested).not.toContain('resultTypeFilter');
+    });
+
     it('returns Apple’s suggestions in the shape the web client uses', async () => {
       // Arrange
       stubApple({
         data: jsonOk({
           results: [
             {
-              completionUrl: '/v1/search?q=Jollibee',
-              displayLines: ['Jollibee Rizal Avenue', 'Santa Cruz, Manila'],
-              location: { lat: 14.5995, lng: 120.9842 },
+              name: 'Jollibee Rizal Avenue',
+              formattedAddressLines: ['Rizal Avenue', 'Santa Cruz', 'Manila'],
+              coordinate: { latitude: 14.5995, longitude: 120.9842 },
+              countryCode: 'PH',
             },
           ],
         }),
@@ -94,12 +121,13 @@ describe('the maps proxy endpoints', () => {
       expect(response.status).toBe(200);
       expect(body.results).toEqual([
         {
-          placeId: '/v1/search?q=Jollibee',
+          placeId: '',
           name: 'Jollibee Rizal Avenue',
-          displayName: 'Jollibee Rizal Avenue, Santa Cruz, Manila',
-          context: 'Santa Cruz, Manila',
+          displayName: 'Jollibee Rizal Avenue, Rizal Avenue, Santa Cruz, Manila',
+          context: 'Rizal Avenue, Santa Cruz, Manila',
           latitude: 14.5995,
           longitude: 120.9842,
+          countryCode: 'ph',
         },
       ]);
     });

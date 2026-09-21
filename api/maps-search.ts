@@ -15,7 +15,7 @@
 // browser token endpoint uses. MAPKIT_ORIGIN does not apply: an Apple
 // `server_api` token takes no origin claim.
 
-import { autocompleteAddresses } from './_lib/appleMapsApi.js';
+import { searchAddresses } from './_lib/appleMapsApi.js';
 import {
   methodNotAllowed,
   okResponse,
@@ -34,13 +34,13 @@ export default async function handler(request: Request): Promise<Response> {
 
   try {
     const params = new URL(request.url).searchParams;
-    const results = await autocompleteAddresses(readQuery(params), {
+    const results = await searchAddresses(readQuery(params), {
       proximity: readOptionalPoint(params),
       limit: readLimit(params),
     });
 
     return okResponse({ results });
   } catch (error: unknown) {
-    return toErrorResponse('address autocomplete', error);
+    return toErrorResponse('address search', error);
   }
 }
