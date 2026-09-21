@@ -19,6 +19,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useUserLocation } from '../../src/context/LocationContext';
 import { useCustomerOrders } from '../../src/hooks/useCustomerOrders';
 import { summarizeOrders } from '../../src/lib/customerOrders';
+import { deleteMyAccount } from '../../src/lib/accountApi';
 import { Avatar, Button } from '../../src/components/ui';
 import { colors, formatPeso, radius, shadows, spacing } from '../../src/theme';
 
@@ -280,6 +281,45 @@ function SignedInProfile() {
       { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
     ]);
 
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const runDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteMyAccount();
+      // deleteMyAccount signs out, so AuthProvider swaps this screen for the
+      // signed-out one; there is no state left here to reset.
+      Alert.alert('Account deleted', 'Your account and personal details have been removed.');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Your account could not be deleted. Please try again.';
+      Alert.alert('Could not delete account', message);
+      setIsDeleting(false);
+    }
+  };
+
+  // Two steps on purpose: this is irreversible, and the second prompt spells
+  // out what is actually destroyed.
+  const confirmDeleteAccount = () =>
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your account and removes your name, phone number and saved addresses. It cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert('This cannot be undone', 'Delete your Row-Nel account permanently?', [
+              { text: 'Keep my account', style: 'cancel' },
+              { text: 'Delete account', style: 'destructive', onPress: () => void runDelete() },
+            ]),
+        },
+      ]
+    );
+
   return (
     <View>
       <View style={[styles.hero, { paddingTop: insets.top + spacing.xl }]}>
@@ -363,6 +403,14 @@ function SignedInProfile() {
             tint={colors.danger}
             onPress={confirmSignOut}
             right={<View />}
+          />
+          <MenuItem
+            icon="trash-outline"
+            label="Delete account"
+            hint="Permanently removes your account and personal details"
+            tint={colors.danger}
+            onPress={isDeleting ? undefined : confirmDeleteAccount}
+            right={isDeleting ? <ActivityIndicator size="small" color={colors.danger} /> : <View />}
             isLast
           />
         </MenuGroup>
