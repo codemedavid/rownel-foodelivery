@@ -264,7 +264,7 @@ function Perk({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: stri
 
 function SignedInProfile() {
   const { user, signOut, isPushAvailable } = useAuth();
-  const { locationLabel, requestLocation } = useUserLocation();
+  const { locationLabel, locationDisplayName, addresses } = useUserLocation();
   const { orders } = useCustomerOrders();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -372,10 +372,13 @@ function SignedInProfile() {
         <MenuGroup title="Delivery">
           <MenuItem
             icon="location-outline"
-            label="Delivery location"
-            hint={locationLabel}
-            onPress={() => requestLocation()}
-            right={<Ionicons name="refresh" size={17} color={colors.textMuted} />}
+            label="Delivery addresses"
+            hint={
+              addresses.length > 0
+                ? `${locationLabel} — ${locationDisplayName}`
+                : 'Add your home and work addresses'
+            }
+            onPress={() => router.push('/addresses')}
           />
           <MenuItem
             icon="basket-outline"

@@ -1,34 +1,64 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ExpoLocation from 'expo-location';
-import { Coordinates, hasMovedBeyondThreshold } from '../lib/merchantDistance';
-import { reverseGeocode } from '../lib/geocoding';
+// Where the order goes.
+//
+// Two sources feed one answer, and the precedence is deliberate:
+//
+//   1. the saved address the customer picked — they said it, so it wins;
+//   2. a GPS fix they asked for by tapping.
+//
+// There is no third case where the app decides for them. The old version
+// auto-detected on every launch and silently re-detected in the background,
+// which meant a customer ordering from the office could watch their delivery
+// address change under them. A saved address now stays put until it is changed
+// on purpose.
+//
+// GPS is never awaited on the launch path. The app opens on the saved address
+// if there is one, and on "Set your address" if there is not.
 
-export const USER_LOCATION_STORAGE_KEY = 'userDeliveryLocation';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { Coordinates } from '../lib/merchantDistance';
+import { useAddressBook, type AddressBookState } from '../hooks/useAddressBook';
+import { useGpsLocation, type GpsStatus } from '../hooks/useGpsLocation';
+import { formatCoordinateLabel } from '../lib/resolveAddress';
+import type { AddressDraft, SavedAddress } from '../lib/savedAddresses';
 
-export interface StoredUserLocation {
-  latitude: number;
-  longitude: number;
-  displayName: string;
-  street: string;
-}
+export { LEGACY_LOCATION_STORAGE_KEY as USER_LOCATION_STORAGE_KEY } from '../lib/addressStorage';
 
-export type LocationStatus = 'idle' | 'locating' | 'ready' | 'error';
+export type LocationStatus = GpsStatus;
+
+const NO_LOCATION_LABEL = 'Set your address';
 
 interface LocationContextValue {
+  /** The point the order is delivered to, or null when nothing is set yet. */
   userLocation: Coordinates | null;
+  /** Short line for headers and rows. */
+  locationLabel: string;
+  /** Full address line, for checkout and the rider. */
+  locationDisplayName: string;
+  /** Unit/gate notes from the selected saved address, or ''. */
+  locationNotes: string;
+  /** True when the live location came from a saved address rather than GPS. */
+  isUsingSavedAddress: boolean;
+
+  /** Reflects the GPS request only — a saved address needs no status. */
   locationStatus: LocationStatus;
   locationError: string | null;
-  locationLabel: string;
-  locationDisplayName: string;
+  /** True while a GPS coordinate is known but its street name is not. */
+  isNamingLocation: boolean;
+  /** Takes a GPS fix. Only ever called from a tap. */
   requestLocation: () => Promise<void>;
+  /** Delivers to the phone's current position instead of a saved address. */
+  deliverToCurrentLocation: () => Promise<void>;
+  clearLocationError: () => void;
+
+  // The address book, passed straight through.
+  addresses: SavedAddress[];
+  selectedAddress: SavedAddress | null;
+  isAddressBookReady: boolean;
+  isAddressBookFull: boolean;
+  saveAddress: (draft: AddressDraft) => Promise<SavedAddress | null>;
+  deleteAddress: (id: string) => Promise<void>;
+  selectAddress: (id: string) => Promise<void>;
+  makeAddressDefault: (id: string) => Promise<void>;
 }
 
 const LocationContext = createContext<LocationContextValue | undefined>(undefined);
@@ -41,220 +71,109 @@ export const useUserLocation = (): LocationContextValue => {
   return context;
 };
 
-const readSavedLocation = async (): Promise<StoredUserLocation | null> => {
-  const raw = await AsyncStorage.getItem(USER_LOCATION_STORAGE_KEY);
-  if (!raw) return null;
-
-  try {
-    const parsed = JSON.parse(raw) as Partial<StoredUserLocation>;
-    if (
-      typeof parsed.latitude === 'number' &&
-      typeof parsed.longitude === 'number' &&
-      typeof parsed.displayName === 'string' &&
-      typeof parsed.street === 'string'
-    ) {
-      return {
-        latitude: parsed.latitude,
-        longitude: parsed.longitude,
-        displayName: parsed.displayName,
-        street: parsed.street,
-      };
-    }
-  } catch {
-    await AsyncStorage.removeItem(USER_LOCATION_STORAGE_KEY);
-  }
-  return null;
-};
-
-const resolveLocationFromCoords = async (coords: Coordinates): Promise<StoredUserLocation> => {
-  const coordsLabel = `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
-
-  // Apple Maps first, through the web deployment's proxy: it returns the house
-  // number and full street line the website shows, which is what a rider
-  // actually needs to find the door. Expo's on-device geocoder usually drops
-  // the number, so it is the fallback rather than the first choice.
-  try {
-    const resolved = await reverseGeocode(coords.latitude, coords.longitude);
-    if (resolved.displayName) {
-      return {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        displayName: resolved.displayName,
-        street: resolved.street,
-      };
-    }
-  } catch {
-    // Unreachable, unconfigured or rate-limited — use the on-device geocoder.
-  }
-
-  try {
-    const [address] = await ExpoLocation.reverseGeocodeAsync({
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-    });
-    if (!address) {
-      return {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        displayName: coordsLabel,
-        street: 'Current location',
-      };
-    }
-
-    const houseNumber = address.streetNumber ?? '';
-    const street =
-      [houseNumber, address.street].filter(Boolean).join(' ').trim() ||
-      address.name ||
-      'Current location';
-    const displayName = [
-      street,
-      address.district,
-      address.city || address.subregion,
-      address.region,
-    ]
-      .filter(Boolean)
-      .join(', ');
-    return {
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      displayName: displayName || coordsLabel,
-      street,
-    };
-  } catch {
-    return {
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      displayName: coordsLabel,
-      street: 'Current location',
-    };
-  }
-};
-
 interface LocationProviderProps {
   children: React.ReactNode;
 }
 
 export function LocationProvider({ children }: LocationProviderProps) {
-  const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
-  const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [locationLabel, setLocationLabel] = useState<string>('Set your location');
-  const [locationDisplayName, setLocationDisplayName] = useState<string>('');
+  const book: AddressBookState = useAddressBook();
+  const gps = useGpsLocation();
 
-  // Each geolocation request gets a generation id; callbacks from an older
-  // generation are ignored so a slow, stale fix can never overwrite a newer one.
-  const requestGenerationRef = useRef(0);
+  // "Deliver where I am right now", chosen over a saved address. Deliberately
+  // not persisted: restoring it on the next launch would put GPS back on the
+  // startup path, which is the slow first launch this rewrite removed. A new
+  // session opens on the saved default and this is one tap away.
+  const [isGpsPreferred, setIsGpsPreferred] = useState(false);
 
-  const applyLocation = useCallback(async (location: StoredUserLocation, save = true) => {
-    setUserLocation({ latitude: location.latitude, longitude: location.longitude });
-    setLocationLabel(location.street);
-    setLocationDisplayName(location.displayName);
-    setLocationStatus('ready');
-    setLocationError(null);
+  const selectedAddress = isGpsPreferred ? null : book.selectedAddress;
 
-    if (save) {
-      await AsyncStorage.setItem(USER_LOCATION_STORAGE_KEY, JSON.stringify(location));
-    }
-  }, []);
+  const requestLocation = useCallback(async (): Promise<void> => {
+    await gps.detect();
+  }, [gps]);
 
-  const requestLocation = useCallback(async () => {
-    const requestId = ++requestGenerationRef.current;
+  const deliverToCurrentLocation = useCallback(async (): Promise<void> => {
+    setIsGpsPreferred(true);
+    const fix = await gps.detect();
+    // A refused or failed fix must not leave the customer with no address at
+    // all when they had a perfectly good saved one.
+    if (!fix) setIsGpsPreferred(false);
+  }, [gps]);
 
-    setLocationStatus('locating');
-    setLocationError(null);
-
-    try {
-      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-      if (requestId !== requestGenerationRef.current) return;
-
-      if (status !== 'granted') {
-        setLocationStatus('error');
-        setLocationError('Location permission was denied. Enable it in Settings to see nearby merchants.');
-        return;
-      }
-
-      const position = await ExpoLocation.getCurrentPositionAsync({
-        accuracy: ExpoLocation.Accuracy.Balanced,
-      });
-      const resolved = await resolveLocationFromCoords(position.coords);
-      if (requestId !== requestGenerationRef.current) return;
-
-      await applyLocation(resolved, true);
-    } catch (error: unknown) {
-      if (requestId !== requestGenerationRef.current) return;
-      setLocationStatus('error');
-      setLocationError(
-        error instanceof Error ? error.message : 'Unable to get your location.'
-      );
-    }
-  }, [applyLocation]);
-
-  // Silently re-check GPS without touching status/error — the saved location
-  // stays usable while (and after) the refresh runs.
-  const refreshLocationInBackground = useCallback(
-    async (savedLocation: StoredUserLocation) => {
-      const requestId = ++requestGenerationRef.current;
-
-      try {
-        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-        if (status !== 'granted' || requestId !== requestGenerationRef.current) return;
-
-        const position = await ExpoLocation.getCurrentPositionAsync({
-          accuracy: ExpoLocation.Accuracy.Balanced,
-        });
-        if (requestId !== requestGenerationRef.current) return;
-
-        // A poor-accuracy fix widens the "not actually moved" band so GPS
-        // noise can't silently relocate the user.
-        const accuracySlackKm = (position.coords.accuracy ?? 0) / 1000;
-        if (!hasMovedBeyondThreshold(savedLocation, position.coords, accuracySlackKm)) {
-          return;
-        }
-
-        const resolved = await resolveLocationFromCoords(position.coords);
-        if (requestId !== requestGenerationRef.current) return;
-
-        await applyLocation(resolved, true);
-      } catch {
-        // Denied or unavailable — keep the saved location.
-      }
+  const selectAddress = useCallback(
+    async (id: string): Promise<void> => {
+      setIsGpsPreferred(false);
+      await book.selectAddress(id);
     },
-    [applyLocation]
+    [book]
   );
 
-  // On every app open: restore the saved location instantly, then re-check GPS.
-  useEffect(() => {
-    let isCancelled = false;
+  const saveAddress = useCallback(
+    async (draft: AddressDraft): Promise<SavedAddress | null> => {
+      const saved = await book.saveAddress(draft);
+      if (saved) setIsGpsPreferred(false);
+      return saved;
+    },
+    [book]
+  );
 
-    const initialize = async () => {
-      const savedLocation = await readSavedLocation();
-      if (isCancelled) return;
+  const value = useMemo<LocationContextValue>(() => {
+    const gpsFix = gps.fix;
 
-      if (savedLocation) {
-        await applyLocation(savedLocation, false);
-        await refreshLocationInBackground(savedLocation);
-      } else {
-        await requestLocation();
-      }
+    // The saved address wins unless the customer explicitly asked for GPS.
+    const userLocation: Coordinates | null = selectedAddress
+      ? { latitude: selectedAddress.latitude, longitude: selectedAddress.longitude }
+      : gpsFix
+        ? { latitude: gpsFix.latitude, longitude: gpsFix.longitude }
+        : null;
+
+    const gpsCoordinateLabel = gpsFix
+      ? formatCoordinateLabel(gpsFix.latitude, gpsFix.longitude)
+      : '';
+
+    const locationLabel = selectedAddress
+      ? selectedAddress.label
+      : gpsFix
+        ? gpsFix.street || gpsCoordinateLabel
+        : NO_LOCATION_LABEL;
+
+    const locationDisplayName = selectedAddress
+      ? selectedAddress.displayName
+      : gpsFix
+        ? gpsFix.displayName || gpsCoordinateLabel
+        : '';
+
+    return {
+      userLocation,
+      locationLabel,
+      locationDisplayName,
+      locationNotes: selectedAddress?.notes ?? '',
+      isUsingSavedAddress: selectedAddress !== null,
+
+      locationStatus: gps.status,
+      locationError: gps.error,
+      isNamingLocation: gps.isNamingFix,
+      requestLocation,
+      deliverToCurrentLocation,
+      clearLocationError: gps.clearError,
+
+      addresses: book.addresses,
+      selectedAddress,
+      isAddressBookReady: book.isReady,
+      isAddressBookFull: book.isFull,
+      saveAddress,
+      deleteAddress: book.deleteAddress,
+      selectAddress,
+      makeAddressDefault: book.makeDefault,
     };
-
-    void initialize();
-
-    return () => {
-      isCancelled = true;
-      // Invalidate in-flight geolocation callbacks on unmount.
-      requestGenerationRef.current += 1;
-    };
-  }, [applyLocation, refreshLocationInBackground, requestLocation]);
-
-  const value: LocationContextValue = {
-    userLocation,
-    locationStatus,
-    locationError,
-    locationLabel,
-    locationDisplayName,
+  }, [
+    book,
+    gps,
     requestLocation,
-  };
+    saveAddress,
+    selectAddress,
+    selectedAddress,
+    deliverToCurrentLocation,
+  ]);
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;
 }

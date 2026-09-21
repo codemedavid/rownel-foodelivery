@@ -66,6 +66,16 @@ export interface ProximityPoint {
   longitude: number;
 }
 
+export interface ReverseGeocodeOptions {
+  /**
+   * Shorter than the default when someone is watching a spinner. The caller
+   * decides what it does with the failure — a GPS fix falls back to the
+   * on-device geocoder, a dropped pin falls back to a coordinate label.
+   */
+  timeoutMs?: number;
+  signal?: AbortSignal;
+}
+
 export interface SuggestOptions {
   limit?: number;
   proximity?: ProximityPoint | null;
@@ -88,9 +98,13 @@ const isUsablePoint = (point: ProximityPoint | null | undefined): point is Proxi
  * controller is reported as a network failure rather than a cancellation —
  * the caller's own signal is checked first.
  */
-const requestJson = async <T>(url: string, callerSignal?: AbortSignal): Promise<T> => {
+const requestJson = async <T>(
+  url: string,
+  callerSignal?: AbortSignal,
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<T> => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   const onCallerAbort = () => controller.abort();
   callerSignal?.addEventListener('abort', onCallerAbort);
@@ -186,12 +200,17 @@ export const searchAddresses = async (
  */
 export const reverseGeocode = async (
   latitude: number,
-  longitude: number
+  longitude: number,
+  options: ReverseGeocodeOptions = {}
 ): Promise<ReverseGeocodeResult> => {
   const params = new URLSearchParams({ lat: String(latitude), lng: String(longitude) });
 
   try {
-    return await requestJson<ReverseGeocodeResult>(buildReverseUrl(params));
+    return await requestJson<ReverseGeocodeResult>(
+      buildReverseUrl(params),
+      options.signal,
+      options.timeoutMs
+    );
   } catch (error: unknown) {
     throw toGeocodingError(error);
   }

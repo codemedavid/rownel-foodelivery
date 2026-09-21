@@ -7,7 +7,8 @@ Connect before you hit Submit for Review.
 
 | Field | Value |
 |---|---|
-| Bundle ID | `com.rownel.foodelivery` |
+| App Store Connect app id | `6814378905` |
+| Bundle ID | `com.rownel.foodelivery` (portal id `Z85A44HZ77`) |
 | SKU | `rownel-ios-001` |
 | Primary language | English (U.S.) |
 | Primary category | Food & Drink |
@@ -127,9 +128,9 @@ So the notes below must be explicit. Fill in the contact fields before submittin
     server-side role on the account and are not part of the customer
     experience.
 
-Before submitting:
-- [ ] Contact first name, last name, phone, email
-- [ ] Decide whether to hand Apple rider/admin logins or declare them internal
+Status: **filled in App Store Connect via the API.**
+Contact: Arnel Calado, +639485390519, abenesanna@gmail.com (E.164 required).
+Rider/admin logins were not handed over; the notes declare them internal-only.
 
 ## App Privacy (data collection questionnaire)
 
@@ -153,25 +154,31 @@ across the board and no App Tracking Transparency prompt is required.
 Requirement: 6.9" iPhone at 1320 x 2868. Apple scales this set down for
 smaller iPhones, and iPad is not needed (`supportsTablet: false`).
 
-Captured from the iPhone 17 Pro Max simulator at Vigan coordinates, in
-`docs/appstore/screenshots/`:
+**Five uploaded**, in narrative order, all verified at exactly 1320 x 2868:
 
-| File | Screen |
-|---|---|
-| `01-home.png` | Storefront, "Near you" with live distances |
-| `02-menu.png` | Merchant menu with categories and prices |
+| # | File | Screen |
+|---|---|---|
+| 1 | `01-home.png` | Storefront, "Near you" with live distances |
+| 2 | `02-menu.png` | Merchant menu with categories and prices |
+| 3 | `03-item.png` | Item detail with quantity stepper |
+| 4 | `04-cart.png` | Basket with subtotal, delivery fee, total |
+| 5 | `05-checkout.png` | Checkout with the Apple Maps pin on Vigan |
 
-Both verified at exactly 1320 x 2868.
+Captured by driving the real iOS build on an iPhone 17 Pro Max simulator with
+`idb` (`idb_companion` was already installed; the client went into a throwaway
+venv). Synthetic taps via AppleScript are not possible here -- the terminal
+lacks Accessibility permission -- but idb talks to the simulator directly and
+needs none.
 
-**These two are not enough to sell the app** — the store allows up to 10 and
-the strongest ones (cart, checkout with the Vigan map pin, live order
-tracking) still need capturing. I could not drive the simulator UI to reach
-them: tapping needs Accessibility permission for the terminal, which is off
-on this machine, and `simctl openurl` hits the route-group collision
-described in `docs/appstore/review-risks.md`.
+Live order tracking was deliberately **not** captured: it requires placing a
+real order against production, which would notify actual merchants and riders.
+To add it, place a test order in a safe window and run
+`xcrun simctl io booted screenshot 06-tracking.png`.
 
-Two ways to finish them:
-- Grant Terminal accessibility access in System Settings > Privacy &
-  Security > Accessibility, and I will script the remaining captures.
-- Or walk the flow yourself in the simulator and run
-  `xcrun simctl io booted screenshot <name>.png` at each screen.
+## Remaining before Submit for Review
+
+1. **App Privacy questionnaire** -- the only item with no API. Every endpoint
+   probed (`/v1/appPrivacyDetails`, `/v1/appDataUsages`, and variants) returns
+   404. Fill it in the web UI using the table above.
+2. Consider the empty-storefront fallback in `docs/appstore/review-risks.md`.
+3. Confirm the `userGeneratedContent` age-rating answer (see review-risks.md).

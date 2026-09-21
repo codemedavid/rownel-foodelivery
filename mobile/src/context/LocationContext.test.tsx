@@ -1,14 +1,16 @@
 import React from 'react';
 import { Pressable, Text } from 'react-native';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
 jest.mock('expo-location', () => ({
+  getForegroundPermissionsAsync: jest.fn(),
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
+  getLastKnownPositionAsync: jest.fn(),
   reverseGeocodeAsync: jest.fn(),
   Accuracy: { Balanced: 3 },
 }));
@@ -20,270 +22,358 @@ import {
   useUserLocation,
   USER_LOCATION_STORAGE_KEY,
 } from './LocationContext';
+import { SAVED_ADDRESSES_STORAGE_KEY } from '../lib/addressStorage';
+import type { SavedAddress } from '../lib/savedAddresses';
 
-const mockedPermissions = ExpoLocation.requestForegroundPermissionsAsync as jest.Mock;
+const mockedGetPermissions = ExpoLocation.getForegroundPermissionsAsync as jest.Mock;
+const mockedRequestPermissions = ExpoLocation.requestForegroundPermissionsAsync as jest.Mock;
 const mockedGetPosition = ExpoLocation.getCurrentPositionAsync as jest.Mock;
-const mockedReverseGeocode = ExpoLocation.reverseGeocodeAsync as jest.Mock;
+const mockedGetLastKnown = ExpoLocation.getLastKnownPositionAsync as jest.Mock;
+const mockedExpoReverse = ExpoLocation.reverseGeocodeAsync as jest.Mock;
 
-const SAVED_LOCATION = {
-  latitude: 13.6218,
-  longitude: 123.1948,
-  displayName: 'Naga City, Camarines Sur',
-  street: 'Magsaysay Ave',
+const HOME: SavedAddress = {
+  id: 'addr-home',
+  label: 'Home',
+  displayName: '12 Rizal Street, Vigan, Ilocos Sur',
+  street: '12 Rizal Street',
+  latitude: 17.5747,
+  longitude: 120.3869,
+  notes: 'Green gate',
+  isDefault: true,
+  updatedAt: 1_000,
 };
 
-const FAR_COORDS = { latitude: 13.7, longitude: 123.3 }; // ~14 km from saved
-const NEARBY_COORDS = { latitude: 13.6219, longitude: 123.1949 }; // ~15 m from saved
+const WORK: SavedAddress = {
+  ...HOME,
+  id: 'addr-work',
+  label: 'Work',
+  displayName: 'Vigan City Hall, Vigan',
+  street: 'Vigan City Hall',
+  latitude: 17.5712,
+  longitude: 120.3874,
+  notes: '',
+  isDefault: false,
+  updatedAt: 2_000,
+};
 
-const grantPermission = () => mockedPermissions.mockResolvedValue({ status: 'granted' });
-const denyPermission = () => mockedPermissions.mockResolvedValue({ status: 'denied' });
+const GPS_COORDS = { latitude: 17.58, longitude: 120.39 };
 
-const stubPosition = (coords: { latitude: number; longitude: number; accuracy?: number }) =>
-  mockedGetPosition.mockResolvedValue({ coords });
+const grantPermission = () => {
+  mockedGetPermissions.mockResolvedValue({ granted: true, canAskAgain: true });
+  mockedRequestPermissions.mockResolvedValue({ granted: true, canAskAgain: true });
+};
+
+const denyPermission = () => {
+  mockedGetPermissions.mockResolvedValue({ granted: false, canAskAgain: true });
+  mockedRequestPermissions.mockResolvedValue({ granted: false, canAskAgain: true });
+};
+
+const seedAddresses = (addresses: SavedAddress[]) =>
+  AsyncStorage.setItem(SAVED_ADDRESSES_STORAGE_KEY, JSON.stringify(addresses));
 
 function Probe() {
-  const { userLocation, locationStatus, locationError, locationLabel, requestLocation } =
-    useUserLocation();
+  const {
+    userLocation,
+    locationLabel,
+    locationDisplayName,
+    locationNotes,
+    locationStatus,
+    locationError,
+    isUsingSavedAddress,
+    isAddressBookReady,
+    addresses,
+    requestLocation,
+    deliverToCurrentLocation,
+    saveAddress,
+    deleteAddress,
+    selectAddress,
+  } = useUserLocation();
 
   return (
     <>
+      <Text testID="ready">{String(isAddressBookReady)}</Text>
       <Text testID="status">{locationStatus}</Text>
       <Text testID="error">{locationError ?? 'none'}</Text>
       <Text testID="label">{locationLabel}</Text>
+      <Text testID="display">{locationDisplayName || 'none'}</Text>
+      <Text testID="notes">{locationNotes || 'none'}</Text>
+      <Text testID="saved">{String(isUsingSavedAddress)}</Text>
+      <Text testID="count">{String(addresses.length)}</Text>
       <Text testID="coords">
         {userLocation ? `${userLocation.latitude},${userLocation.longitude}` : 'none'}
       </Text>
-      <Pressable testID="request-gps" onPress={() => requestLocation()}>
+      <Pressable testID="gps" onPress={() => void requestLocation()}>
         <Text>gps</Text>
+      </Pressable>
+      <Pressable testID="use-gps" onPress={() => void deliverToCurrentLocation()}>
+        <Text>use gps</Text>
+      </Pressable>
+      <Pressable
+        testID="add"
+        onPress={() =>
+          void saveAddress({
+            label: 'Lola',
+            displayName: "Lola's house, San Vicente",
+            latitude: 17.56,
+            longitude: 120.38,
+            notes: 'Blue gate',
+            isDefault: false,
+          })
+        }
+      >
+        <Text>add</Text>
+      </Pressable>
+      <Pressable testID="select-work" onPress={() => void selectAddress('addr-work')}>
+        <Text>select work</Text>
+      </Pressable>
+      <Pressable testID="delete-home" onPress={() => void deleteAddress('addr-home')}>
+        <Text>delete home</Text>
       </Pressable>
     </>
   );
 }
 
-const renderProvider = () =>
-  render(
-    <LocationProvider>
-      <Probe />
-    </LocationProvider>
-  );
-
-// Apple Maps is tried first, through the web deployment's reverse-geocode
-// proxy, because it returns the house number the on-device geocoder drops.
-// Tests stay offline by default and opt in with stubAppleAddress().
-const mockedFetch = jest.fn();
-
-const stubAppleAddress = (street: string, displayName: string) =>
-  mockedFetch.mockResolvedValue({
-    ok: true,
-    status: 200,
-    json: async () => ({
-      placeId: '',
-      displayName,
-      street,
-      latitude: FAR_COORDS.latitude,
-      longitude: FAR_COORDS.longitude,
-      countryCode: 'ph',
-    }),
+// Rendered inside act() because the provider's first job is an async storage
+// read: without it every test logs an update-outside-act warning.
+const renderProvider = async () => {
+  await act(async () => {
+    render(
+      <LocationProvider>
+        <Probe />
+      </LocationProvider>
+    );
   });
+};
+
+const waitForReady = () => waitFor(() => expect(screen.getByTestId('ready')).toHaveTextContent('true'));
+
+const press = async (testID: string) => {
+  await act(async () => {
+    screen.getByTestId(testID).props.onClick?.();
+    screen.getByTestId(testID).props.onPress?.();
+  });
+};
 
 describe('LocationProvider (mobile)', () => {
   beforeEach(async () => {
-    await AsyncStorage.clear();
     jest.clearAllMocks();
-    process.env.EXPO_PUBLIC_WEB_ORIGIN = 'https://row-nel.com';
-    (globalThis as unknown as { fetch: jest.Mock }).fetch = mockedFetch;
-    mockedFetch.mockRejectedValue(new Error('offline'));
-    mockedReverseGeocode.mockResolvedValue([
-      { street: 'San Roque', city: 'Pili', region: 'Camarines Sur' },
-    ]);
+    await AsyncStorage.clear();
+    grantPermission();
+    mockedGetLastKnown.mockResolvedValue(null);
+    mockedGetPosition.mockResolvedValue({ coords: GPS_COORDS });
+    mockedExpoReverse.mockResolvedValue([]);
+    // Offline by default: the Apple reverse-geocode proxy is never reachable
+    // in tests unless a case stubs it.
+    globalThis.fetch = jest.fn().mockRejectedValue(new Error('offline')) as unknown as typeof fetch;
   });
 
-  describe('Apple Maps addresses', () => {
-    it('prefers the Apple address, including the house number', async () => {
-      // Arrange
-      grantPermission();
-      stubPosition(FAR_COORDS);
-      stubAppleAddress('1 Rizal Street', '1, Rizal Street, Naga, Camarines Sur');
+  describe('launch', () => {
+    test('never touches GPS on startup — the app opens instantly', async () => {
+      await renderProvider();
+      await waitForReady();
 
-      // Act
-      renderProvider();
-
-      // Assert
-      await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
-      expect(screen.getByTestId('label')).toHaveTextContent('1 Rizal Street');
-      const saved = JSON.parse((await AsyncStorage.getItem(USER_LOCATION_STORAGE_KEY)) ?? 'null');
-      expect(saved).toMatchObject({ displayName: '1, Rizal Street, Naga, Camarines Sur' });
+      expect(mockedGetPermissions).not.toHaveBeenCalled();
+      expect(mockedRequestPermissions).not.toHaveBeenCalled();
+      expect(mockedGetPosition).not.toHaveBeenCalled();
+      expect(screen.getByTestId('status')).toHaveTextContent('idle');
     });
 
-    it('falls back to the on-device geocoder when Apple Maps is unreachable', async () => {
-      grantPermission();
-      stubPosition(FAR_COORDS);
+    test('opens on "Set your address" when nothing is saved', async () => {
+      await renderProvider();
+      await waitForReady();
 
-      renderProvider();
+      expect(screen.getByTestId('label')).toHaveTextContent('Set your address');
+      expect(screen.getByTestId('coords')).toHaveTextContent('none');
+    });
 
-      await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
-      expect(screen.getByTestId('label')).toHaveTextContent('San Roque');
+    test('restores the saved default address', async () => {
+      await seedAddresses([HOME, WORK]);
+
+      await renderProvider();
+      await waitForReady();
+
+      expect(screen.getByTestId('label')).toHaveTextContent('Home');
+      expect(screen.getByTestId('display')).toHaveTextContent('12 Rizal Street, Vigan, Ilocos Sur');
+      expect(screen.getByTestId('notes')).toHaveTextContent('Green gate');
+      expect(screen.getByTestId('coords')).toHaveTextContent('17.5747,120.3869');
+      expect(screen.getByTestId('saved')).toHaveTextContent('true');
+    });
+
+    test('migrates the single location an older build stored', async () => {
+      await AsyncStorage.setItem(
+        USER_LOCATION_STORAGE_KEY,
+        JSON.stringify({
+          latitude: 17.5747,
+          longitude: 120.3869,
+          displayName: '12 Rizal Street, Vigan',
+          street: '12 Rizal Street',
+        })
+      );
+
+      await renderProvider();
+      await waitForReady();
+
+      expect(screen.getByTestId('count')).toHaveTextContent('1');
+      expect(screen.getByTestId('display')).toHaveTextContent('12 Rizal Street, Vigan');
+      expect(await AsyncStorage.getItem(SAVED_ADDRESSES_STORAGE_KEY)).toContain('12 Rizal Street');
     });
   });
 
-  describe('first open (nothing saved)', () => {
-    it('requests permission, geolocates, reverse-geocodes, and persists', async () => {
-      grantPermission();
-      stubPosition(FAR_COORDS);
+  describe('GPS on demand', () => {
+    test('reports the coordinate as soon as it has one', async () => {
+      await renderProvider();
+      await waitForReady();
 
-      renderProvider();
-
-      await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
-      expect(screen.getByTestId('label')).toHaveTextContent('San Roque');
-      expect(screen.getByTestId('coords')).toHaveTextContent(
-        `${FAR_COORDS.latitude},${FAR_COORDS.longitude}`
-      );
-
-      const saved = JSON.parse((await AsyncStorage.getItem(USER_LOCATION_STORAGE_KEY)) ?? 'null');
-      expect(saved).toMatchObject({ street: 'San Roque' });
-    });
-
-    it('falls back to raw coordinates when reverse geocoding fails', async () => {
-      grantPermission();
-      stubPosition(FAR_COORDS);
-      mockedReverseGeocode.mockRejectedValue(new Error('geocoder down'));
-
-      renderProvider();
+      await press('gps');
 
       await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
-      expect(screen.getByTestId('label')).toHaveTextContent('Current location');
-      expect(screen.getByTestId('coords')).toHaveTextContent(
-        `${FAR_COORDS.latitude},${FAR_COORDS.longitude}`
-      );
+      expect(screen.getByTestId('coords')).toHaveTextContent('17.58,120.39');
     });
 
-    it('sets error status when permission is denied', async () => {
+    test('shows the cached fix before the fresh one arrives', async () => {
+      mockedGetLastKnown.mockResolvedValue({ coords: { latitude: 17.57, longitude: 120.38 } });
+
+      // A fresh fix still in flight: the cached one must already be usable.
+      let releaseFreshFix = () => undefined as void;
+      mockedGetPosition.mockReturnValue(
+        new Promise((resolve) => {
+          releaseFreshFix = () => resolve({ coords: GPS_COORDS });
+        })
+      );
+
+      await renderProvider();
+      await waitForReady();
+      await press('gps');
+
+      await waitFor(() => expect(screen.getByTestId('coords')).toHaveTextContent('17.57,120.38'));
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+
+      // Let it land, so the deadline timer is cleared before teardown.
+      await act(async () => {
+        releaseFreshFix();
+      });
+      await waitFor(() => expect(screen.getByTestId('coords')).toHaveTextContent('17.58,120.39'));
+    });
+
+    test('does not re-prompt when permission is already granted', async () => {
+      await renderProvider();
+      await waitForReady();
+      await press('gps');
+
+      await waitFor(() => expect(mockedGetPermissions).toHaveBeenCalled());
+      expect(mockedRequestPermissions).not.toHaveBeenCalled();
+    });
+
+    test('explains a denied permission instead of failing silently', async () => {
       denyPermission();
 
-      renderProvider();
+      await renderProvider();
+      await waitForReady();
+      await press('gps');
 
       await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('error'));
-      expect(screen.getByTestId('error')).not.toHaveTextContent('none');
-      expect(mockedGetPosition).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('subsequent opens (saved location present)', () => {
-    beforeEach(async () => {
-      await AsyncStorage.setItem(USER_LOCATION_STORAGE_KEY, JSON.stringify(SAVED_LOCATION));
+      expect(screen.getByTestId('error')).toHaveTextContent(/Location permission is off/);
     });
 
-    it('restores the saved location and still re-checks GPS in the background', async () => {
-      grantPermission();
-      stubPosition(NEARBY_COORDS);
-
-      renderProvider();
-
-      await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
-      expect(screen.getByTestId('label')).toHaveTextContent(SAVED_LOCATION.street);
-      await waitFor(() => expect(mockedGetPosition).toHaveBeenCalledTimes(1));
-    });
-
-    it('keeps the saved location when the fresh fix is within the refresh threshold', async () => {
-      grantPermission();
-      stubPosition(NEARBY_COORDS);
-
-      renderProvider();
-
-      await waitFor(() => expect(mockedGetPosition).toHaveBeenCalled());
-      expect(screen.getByTestId('coords')).toHaveTextContent(
-        `${SAVED_LOCATION.latitude},${SAVED_LOCATION.longitude}`
-      );
-      expect(mockedReverseGeocode).not.toHaveBeenCalled();
-    });
-
-    it('updates location and storage when the user has moved beyond the threshold', async () => {
-      grantPermission();
-      stubPosition(FAR_COORDS);
-
-      renderProvider();
-
-      await waitFor(() => expect(screen.getByTestId('label')).toHaveTextContent('San Roque'));
-      expect(screen.getByTestId('coords')).toHaveTextContent(
-        `${FAR_COORDS.latitude},${FAR_COORDS.longitude}`
-      );
-
-      const saved = JSON.parse((await AsyncStorage.getItem(USER_LOCATION_STORAGE_KEY)) ?? 'null');
-      expect(saved).toMatchObject({ street: 'San Roque' });
-    });
-
-    it('ignores a background fix whose accuracy is too poor to trust', async () => {
-      grantPermission();
-      // Apparent move of ~0.33 km with ±5 km accuracy — could be pure noise.
-      stubPosition({
-        latitude: SAVED_LOCATION.latitude + 0.003,
-        longitude: SAVED_LOCATION.longitude,
-        accuracy: 5000,
-      });
-
-      renderProvider();
-
-      await waitFor(() => expect(mockedGetPosition).toHaveBeenCalled());
-      expect(screen.getByTestId('coords')).toHaveTextContent(
-        `${SAVED_LOCATION.latitude},${SAVED_LOCATION.longitude}`
-      );
-      expect(mockedReverseGeocode).not.toHaveBeenCalled();
-    });
-
-    it('keeps the saved location without surfacing an error when permission is denied', async () => {
-      denyPermission();
-
-      renderProvider();
-
-      await waitFor(() => expect(mockedPermissions).toHaveBeenCalled());
-      expect(screen.getByTestId('status')).toHaveTextContent('ready');
-      expect(screen.getByTestId('error')).toHaveTextContent('none');
-      expect(screen.getByTestId('coords')).toHaveTextContent(
-        `${SAVED_LOCATION.latitude},${SAVED_LOCATION.longitude}`
-      );
-    });
-
-    it('ignores a stale background fix that resolves after a newer manual request', async () => {
-      grantPermission();
-
-      let resolveStale!: (value: unknown) => void;
-      const stalePosition = new Promise((resolve) => {
-        resolveStale = resolve;
-      });
-      mockedGetPosition
-        .mockReturnValueOnce(stalePosition) // background refresh — resolves last
-        .mockResolvedValueOnce({ coords: FAR_COORDS }); // manual request — resolves first
-      mockedReverseGeocode.mockImplementation(async ({ latitude }: { latitude: number }) => [
-        latitude === FAR_COORDS.latitude
-          ? { street: 'San Roque', city: 'Pili', region: 'Camarines Sur' }
-          : { street: 'Stale St', city: 'Stale Town', region: 'Nowhere' },
+    test('names the fix with the on-device geocoder when the proxy is unreachable', async () => {
+      mockedExpoReverse.mockResolvedValue([
+        { streetNumber: '7', street: 'Quirino Blvd', city: 'Vigan', region: 'Ilocos Sur' },
       ]);
 
-      renderProvider();
-      await waitFor(() => expect(mockedGetPosition).toHaveBeenCalledTimes(1));
+      await renderProvider();
+      await waitForReady();
+      await press('gps');
 
-      fireEvent.press(screen.getByTestId('request-gps'));
-      await waitFor(() => expect(screen.getByTestId('label')).toHaveTextContent('San Roque'));
-
-      await act(async () => {
-        resolveStale({ coords: { latitude: 13.9, longitude: 123.5 } });
-      });
-
-      expect(screen.getByTestId('label')).toHaveTextContent('San Roque');
-      expect(screen.getByTestId('coords')).toHaveTextContent(
-        `${FAR_COORDS.latitude},${FAR_COORDS.longitude}`
-      );
+      await waitFor(() => expect(screen.getByTestId('label')).toHaveTextContent('7 Quirino Blvd'));
     });
   });
 
-  it('discards corrupt saved JSON and falls back to a fresh request', async () => {
-    await AsyncStorage.setItem(USER_LOCATION_STORAGE_KEY, 'not-json{');
-    grantPermission();
-    stubPosition(FAR_COORDS);
+  describe('precedence', () => {
+    test('a saved address is not replaced by a GPS fix', async () => {
+      await seedAddresses([HOME]);
 
-    renderProvider();
+      await renderProvider();
+      await waitForReady();
+      await press('gps');
 
-    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
-    expect(screen.getByTestId('label')).toHaveTextContent('San Roque');
+      await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('ready'));
+      expect(screen.getByTestId('coords')).toHaveTextContent('17.5747,120.3869');
+      expect(screen.getByTestId('label')).toHaveTextContent('Home');
+    });
+
+    test('"deliver to my current location" overrides the saved address', async () => {
+      await seedAddresses([HOME]);
+
+      await renderProvider();
+      await waitForReady();
+      await press('use-gps');
+
+      await waitFor(() => expect(screen.getByTestId('coords')).toHaveTextContent('17.58,120.39'));
+      expect(screen.getByTestId('saved')).toHaveTextContent('false');
+    });
+
+    test('a failed GPS fix leaves the saved address in place', async () => {
+      await seedAddresses([HOME]);
+      denyPermission();
+
+      await renderProvider();
+      await waitForReady();
+      await press('use-gps');
+
+      await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('error'));
+      expect(screen.getByTestId('coords')).toHaveTextContent('17.5747,120.3869');
+      expect(screen.getByTestId('saved')).toHaveTextContent('true');
+    });
+  });
+
+  describe('managing the book', () => {
+    test('a saved address becomes the live one and reaches storage', async () => {
+      await renderProvider();
+      await waitForReady();
+
+      await press('add');
+
+      await waitFor(() => expect(screen.getByTestId('label')).toHaveTextContent('Lola'));
+      expect(screen.getByTestId('coords')).toHaveTextContent('17.56,120.38');
+      expect(screen.getByTestId('notes')).toHaveTextContent('Blue gate');
+
+      const stored = await AsyncStorage.getItem(SAVED_ADDRESSES_STORAGE_KEY);
+      expect(stored).toContain("Lola's house");
+    });
+
+    test('selecting another address switches where the order goes', async () => {
+      await seedAddresses([HOME, WORK]);
+
+      await renderProvider();
+      await waitForReady();
+      await press('select-work');
+
+      await waitFor(() => expect(screen.getByTestId('label')).toHaveTextContent('Work'));
+      expect(screen.getByTestId('coords')).toHaveTextContent('17.5712,120.3874');
+    });
+
+    test('deleting the live address falls back to the remaining one', async () => {
+      await seedAddresses([HOME, WORK]);
+
+      await renderProvider();
+      await waitForReady();
+      await press('delete-home');
+
+      await waitFor(() => expect(screen.getByTestId('count')).toHaveTextContent('1'));
+      expect(screen.getByTestId('label')).toHaveTextContent('Work');
+      expect(screen.getByTestId('coords')).toHaveTextContent('17.5712,120.3874');
+    });
+
+    test('deleting the only address leaves the app asking for one', async () => {
+      await seedAddresses([HOME]);
+
+      await renderProvider();
+      await waitForReady();
+      await press('delete-home');
+
+      await waitFor(() => expect(screen.getByTestId('count')).toHaveTextContent('0'));
+      expect(screen.getByTestId('label')).toHaveTextContent('Set your address');
+      expect(screen.getByTestId('coords')).toHaveTextContent('none');
+    });
   });
 });

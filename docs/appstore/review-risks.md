@@ -89,3 +89,52 @@ route paths across groups would have caught this.
 
 **Suggested fix.** Give the rider and admin layouts a role guard that redirects
 non-members to `/`, and widen `routeStructure.test.ts` beyond index files.
+
+---
+
+## 3. Cosmetic — checkout back button reads "(tabs)"
+
+The checkout header's back control renders the literal Expo Router group name
+`(tabs)` instead of a human label. Visible in
+`screenshots/05-checkout.png`, which is now live on the store listing.
+
+Fix: give `app/checkout.tsx` an explicit `options={{ headerBackTitle: 'Basket' }}`
+(or set `headerBackTitleVisible: false`) rather than letting the router infer
+the title from the parent route group.
+
+---
+
+## 4. Flaky test blocks the release gate ~20% of runs
+
+`src/context/LocationContext.test.tsx` -> "prefers the Apple address, including
+the house number" fails with ``​`render` function has not been called`` in
+roughly one full-suite run in five. It always hits whichever test queries
+first, and it blocked two deploy attempts.
+
+Established by instrumenting it:
+
+- `render()` does **not** throw -- wrapped in try/catch, nothing caught.
+- So `cleanup()` is resetting RNTL's `screen` singleton between `render()` and
+  the first query.
+- Passes 12/12 in isolation; only flakes in the full suite.
+
+A warm-up `render()` in `beforeAll` was tried and **made it worse** (all 12
+tests failed every run, because `render` outside a test does not register
+`screen`); that change was reverted.
+
+Mitigation in place: `scripts/deploy-ios.sh` retries the suite once. A real
+breakage fails both attempts; a 20% flake clears ~96% of the time. This is a
+deliberate tolerance, not a fix -- the underlying race is still there.
+
+Likely next step: stop using the module-level `screen` singleton in this file
+and assert against the object returned by `render()`.
+
+---
+
+## 5. Delivery fee can exceed the order value
+
+A ₱327 basket from the featured merchant quotes ₱540.83 delivery (24.5 km),
+for a ₱867.83 total -- visible in `screenshots/04-cart.png`. Not a review
+blocker, but it is what a first-time customer sees, and it compounds the
+thin-coverage problem in finding 1: the merchants that are reachable from
+Vigan centre are mostly far enough away to price themselves out.

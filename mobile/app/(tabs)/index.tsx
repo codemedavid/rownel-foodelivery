@@ -44,8 +44,14 @@ const describeCategory = (category: string) =>
 
 export default function HomeScreen() {
   const { merchants, isLoading, error, refetch } = useMerchants();
-  const { userLocation, locationStatus, locationError, locationLabel, requestLocation } =
-    useUserLocation();
+  const {
+    userLocation,
+    locationStatus,
+    locationError,
+    locationLabel,
+    locationDisplayName,
+    isAddressBookReady,
+  } = useUserLocation();
   const [search, setSearch] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -119,9 +125,9 @@ export default function HomeScreen() {
     <View style={[styles.hero, { paddingTop: insets.top + spacing.lg }]}>
       <Pressable
         style={styles.locationRow}
-        onPress={() => requestLocation()}
+        onPress={() => router.push('/addresses')}
         accessibilityRole="button"
-        accessibilityLabel="Refresh your delivery location"
+        accessibilityLabel="Change your delivery address"
       >
         <View style={styles.locationIconTile}>
           <Ionicons name="location" size={13} color={colors.onPrimary} />
@@ -129,8 +135,13 @@ export default function HomeScreen() {
         <View style={styles.locationText}>
           <Text style={styles.locationCaption}>Deliver to</Text>
           <Text style={styles.locationLabel} numberOfLines={1}>
-            {locationStatus === 'locating' ? 'Detecting your location…' : locationLabel}
+            {locationStatus === 'locating' ? 'Finding you…' : locationLabel}
           </Text>
+          {!!locationDisplayName && (
+            <Text style={styles.locationSubLabel} numberOfLines={1}>
+              {locationDisplayName}
+            </Text>
+          )}
         </View>
         <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
       </Pressable>
@@ -199,18 +210,21 @@ export default function HomeScreen() {
 
   const listHeader = (
     <View>
-      {locationStatus === 'error' && !userLocation && (
+      {isAddressBookReady && !userLocation && (
         <View style={styles.locationBanner}>
-          <Ionicons name="warning-outline" size={20} color={colors.accentDark} />
+          <Ionicons name="location-outline" size={20} color={colors.accentDark} />
           <View style={styles.locationBannerBody}>
             <Text style={styles.locationBannerTitle}>
-              Turn on location to see restaurants near you
+              Set your address to see restaurants near you
             </Text>
-            {locationError ? (
-              <Text style={styles.locationBannerText}>{locationError}</Text>
-            ) : null}
-            <Pressable style={styles.locationBannerButton} onPress={() => requestLocation()}>
-              <Text style={styles.locationBannerButtonText}>Try again</Text>
+            <Text style={styles.locationBannerText}>
+              {locationError ?? 'Type it in yourself, or use your GPS — whichever is easier.'}
+            </Text>
+            <Pressable
+              style={styles.locationBannerButton}
+              onPress={() => router.push('/addresses')}
+            >
+              <Text style={styles.locationBannerButtonText}>Set my address</Text>
             </Pressable>
           </View>
         </View>
@@ -429,6 +443,7 @@ const styles = StyleSheet.create({
   locationText: { flex: 1 },
   locationCaption: { fontSize: 11, color: colors.textMuted, fontWeight: '700', letterSpacing: 0.4 },
   locationLabel: { fontSize: 14, fontWeight: '800', color: colors.text },
+  locationSubLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 1 },
   greeting: {
     fontSize: 28,
     fontWeight: '800',

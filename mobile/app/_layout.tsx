@@ -69,6 +69,8 @@ function RootNavigator() {
         options={{ title: 'Track your order', headerBackVisible: false }}
       />
       <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+      <Stack.Screen name="addresses" options={{ title: 'Delivery addresses' }} />
+      <Stack.Screen name="address/[id]" options={{ title: 'Address' }} />
     </Stack>
   );
 }

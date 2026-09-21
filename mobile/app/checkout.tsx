@@ -101,10 +101,11 @@ export default function CheckoutScreen() {
   } = useCart();
   const {
     userLocation,
-    locationStatus,
-    locationError,
     locationDisplayName,
-    requestLocation,
+    locationLabel,
+    locationNotes,
+    selectedAddress,
+    isAddressBookReady,
   } = useUserLocation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -161,13 +162,21 @@ export default function CheckoutScreen() {
   const deliveryFee = getDeliveryFeeTotal(quotes);
   const total = subtotal + deliveryFee;
 
-  // Prefill the address from the GPS reverse geocode, but never overwrite what
-  // the customer has typed or pinned themselves.
+  // Prefill from the chosen delivery address, but never overwrite what the
+  // customer has typed or pinned themselves on this screen.
   const isAddressEditedRef = useRef(false);
   useEffect(() => {
     if (isAddressEditedRef.current || !locationDisplayName) return;
     setAddress(locationDisplayName);
   }, [locationDisplayName]);
+
+  // A saved address's door notes are rider instructions, so they belong in the
+  // notes field rather than buried in the address line.
+  const isNotesEditedRef = useRef(false);
+  useEffect(() => {
+    if (isNotesEditedRef.current || !locationNotes) return;
+    setNotes(locationNotes);
+  }, [locationNotes]);
 
   const handleAddressChange = (value: string) => {
     isAddressEditedRef.current = true;
@@ -309,34 +318,28 @@ export default function CheckoutScreen() {
         </Section>
 
         <Section icon="location-outline" title="Delivery address">
-          <View style={styles.locationCard}>
+          <Pressable
+            style={styles.locationCard}
+            onPress={() => router.push('/addresses')}
+            accessibilityRole="button"
+            accessibilityLabel="Change the delivery address"
+          >
             <Ionicons
-              name={locationStatus === 'error' ? 'warning-outline' : 'navigate-circle-outline'}
+              name={selectedAddress ? 'bookmark' : 'navigate-circle-outline'}
               size={18}
-              color={locationStatus === 'error' ? colors.danger : colors.primary}
+              color={colors.primary}
             />
             <View style={styles.locationTextGroup}>
               <Text style={styles.locationTitle}>
-                {locationStatus === 'locating' ? 'Locating you…' : 'Current location (GPS)'}
+                {selectedAddress ? locationLabel : 'Current location (GPS)'}
               </Text>
               <Text style={styles.locationValue} numberOfLines={2}>
-                {locationDisplayName || locationError || 'Location not set yet'}
+                {locationDisplayName ||
+                  (isAddressBookReady ? 'No address set — tap to add one' : 'Loading…')}
               </Text>
             </View>
-            <Pressable
-              onPress={requestLocation}
-              disabled={locationStatus === 'locating'}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Use my current location"
-            >
-              {locationStatus === 'locating' ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons name="refresh" size={18} color={colors.primary} />
-              )}
-            </Pressable>
-          </View>
+            <Text style={styles.locationAction}>Change</Text>
+          </Pressable>
 
           <AddressAutocompleteInput
             value={address}
@@ -357,8 +360,8 @@ export default function CheckoutScreen() {
           />
 
           <Text style={styles.hint}>
-            Search a landmark, or drag the pin to the exact gate. The pin is
-            what your rider navigates to.
+            Edits here apply to this order only. To keep an address for next
+            time, tap Change above and save it.
           </Text>
         </Section>
 
@@ -440,7 +443,10 @@ export default function CheckoutScreen() {
             placeholder="Anything we should know? (optional)"
             placeholderTextColor={colors.textMuted}
             value={notes}
-            onChangeText={setNotes}
+            onChangeText={(value) => {
+              isNotesEditedRef.current = true;
+              setNotes(value);
+            }}
             multiline
           />
         </Section>
@@ -587,6 +593,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   locationTextGroup: { flex: 1 },
+  locationAction: { fontSize: 13, fontWeight: '800', color: colors.primary },
   locationTitle: { fontSize: 11.5, fontWeight: '800', color: colors.textMuted, letterSpacing: 0.3 },
   locationValue: { fontSize: 13.5, fontWeight: '600', color: colors.text, marginTop: 2 },
   hint: { fontSize: 11.5, color: colors.textMuted, lineHeight: 16 },
