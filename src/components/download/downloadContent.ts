@@ -39,7 +39,7 @@ export interface InstallStep {
 export const ANDROID_INSTALL_STEPS: readonly InstallStep[] = [
   {
     title: 'Tap Download APK',
-    body: 'The Expo build page opens — tap Install there. Chrome then asks you to confirm, because the file does not come from the Play Store. Choose Download anyway.',
+    body: 'The file starts downloading straight away. Chrome asks you to confirm, because it does not come from the Play Store. Choose Download anyway.',
   },
   {
     title: 'Open the downloaded file',
@@ -64,7 +64,7 @@ export const DOWNLOAD_FAQ: readonly FaqEntry[] = [
   {
     question: 'Is the APK safe to install?',
     answer:
-      'Yes. It is built and signed by Row-Nel on Expo Application Services and downloaded straight from Expo — the same pipeline that will publish the Play Store and App Store versions. Only install it from this page or from a link Row-Nel sent you.',
+      "Yes. It is built and signed by Row-Nel on Expo Application Services — the same pipeline that will publish the Play Store and App Store versions — and served from Row-Nel's own GitHub release page. Only install it from this page or from a link Row-Nel sent you.",
   },
   {
     question: 'Why is it not on the Play Store yet?',

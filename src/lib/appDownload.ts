@@ -1,29 +1,38 @@
 /**
  * Everything the /download page needs to point people at a real build.
  *
- * When a new Android build finishes on EAS, the only edit needed is
- * ANDROID_EAS_BUILD_ID below (or ANDROID_INSTALL_URL, if the APK is hosted
- * somewhere other than Expo). Until a link is configured the page renders a
- * "build on the way" state rather than a dead button.
+ * The APK is served from a GitHub release on this repository, so the link is
+ * the file itself and never expires — EAS internal-distribution artifacts are
+ * deleted after 14 days, which used to silently break this page. Until a link
+ * is configured the page renders a "build on the way" state, not a dead button.
+ *
+ * To publish a new Android build:
+ *   1. eas build -p android --profile preview   (from mobile/)
+ *   2. download the artifact, then
+ *      gh release create android-v<version> <file>.apk
+ *   3. point ANDROID_INSTALL_URL_OVERRIDE at the new asset and update
+ *      ANDROID_EAS_BUILD_ID / APK_SIZE_LABEL to match.
  */
 
 const EAS_ACCOUNT = 'itscodemedavid';
 const EAS_PROJECT_SLUG = 'rownel-foodelivery';
 
-/** Paste the build id from `eas build:list` (or the tail of the Expo build URL). */
+/** Provenance only — the build the published APK came from. Not the link. */
 export const ANDROID_EAS_BUILD_ID = 'a7c8a822-f296-4b4f-aed4-5051536088bb';
 
 /**
- * Overrides the Expo install page. Set this when the APK is served from
- * somewhere else; leave it blank to use the EAS build id above.
+ * The live download. A GitHub release asset is a direct .apk with no expiry
+ * and no bandwidth metering; blank this to fall back to the Expo install page
+ * built from the build id above.
  */
-export const ANDROID_INSTALL_URL_OVERRIDE = '';
+export const ANDROID_INSTALL_URL_OVERRIDE =
+  'https://github.com/codemedavid/rownel-foodelivery/releases/download/android-v1.0.0/rownel-1.0.0.apk';
 
 /** Set once the iOS app is live; until then the page says "coming soon". */
 export const IOS_APP_STORE_URL = '';
 
 export const APP_VERSION = '1.0.0';
-export const APK_SIZE_LABEL = '~106 MB';
+export const APK_SIZE_LABEL = '~111 MB';
 export const ANDROID_MIN_OS = 'Android 8.0';
 export const IOS_MIN_OS = 'iOS 16';
 export const SUPPORT_EMAIL = 'support@row-nel.com';

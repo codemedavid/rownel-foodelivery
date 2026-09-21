@@ -21,7 +21,7 @@ const InstallSteps: React.FC = () => (
         <div className="mt-6 flex gap-3 rounded-2xl border border-brand-100 bg-brand-50/60 p-4">
           <ShieldCheck className="h-5 w-5 flex-shrink-0 text-brand-700" />
           <p className="text-sm leading-relaxed text-brand-900">
-            The file is signed by Row-Nel and served by Expo, the build service behind the app. Only install builds
+            The file is signed by Row-Nel and served from Row-Nel&apos;s own GitHub release page. Only install builds
             linked from this page.
           </p>
         </div>
