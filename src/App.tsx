@@ -23,6 +23,7 @@ import ToastHost from './components/ToastHost';
 import CartPage from './components/CartPage';
 import ProfilePage from './components/ProfilePage';
 import PrivacyPolicy from './components/legal/PrivacyPolicy';
+import DeleteAccount from './components/legal/DeleteAccount';
 import DownloadPage from './components/download/DownloadPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { MerchantProvider } from './contexts/MerchantContext';
@@ -50,6 +51,7 @@ function App() {
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
+                    <Route path="/delete-account" element={<DeleteAccount />} />
                     <Route path="/download" element={<DownloadPage />} />
                     <Route path="/admin/login" element={<AdminLogin />} />
                     <Route

@@ -103,3 +103,49 @@ export const PRIVACY_SECTIONS: readonly LegalSection[] = [
     ],
   },
 ] as const;
+
+// What delete_my_account() actually does — see
+// supabase/migrations/20260921000000_add_account_deletion.sql. Google Play
+// links this page from the store listing, so it must name the steps and say
+// what is deleted and what is kept.
+export const ACCOUNT_DELETION_SECTIONS: readonly LegalSection[] = [
+  {
+    heading: 'Delete your account in the app',
+    bullets: [
+      'Open the Row-Nel Food Delivery app and sign in.',
+      'Go to the Profile tab.',
+      'Tap "Delete account", then confirm twice.',
+    ],
+  },
+  {
+    heading: 'Delete your account on the website',
+    bullets: [
+      'Go to row-nel.com/profile and sign in.',
+      'Select "Delete Account", then confirm.',
+    ],
+  },
+  {
+    heading: 'Can\'t sign in?',
+    paragraphs: [
+      'Email us from the address on your account and ask us to delete it. We will confirm by email once it is done.',
+    ],
+  },
+  {
+    heading: 'What is deleted',
+    bullets: [
+      'Your sign-in details: email address and password.',
+      'Your profile: name and phone number.',
+      'Your notification settings and the push notification tokens for your devices.',
+      'The name, phone number, delivery address and notes on your past orders.',
+    ],
+    paragraphs: [
+      'Deletion happens immediately and cannot be undone. Saved delivery addresses are stored only on your phone, not on our servers; uninstalling the app or clearing its data removes them.',
+    ],
+  },
+  {
+    heading: 'What is kept',
+    paragraphs: [
+      'The orders themselves — items, prices, payment method and dates — are kept as accounting records, with your personal details removed as above, so they can no longer be linked to you. Delivery rider accounts are closed by contacting us, because rider earnings records must be kept.',
+    ],
+  },
+];
