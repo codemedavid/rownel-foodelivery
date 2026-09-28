@@ -7,7 +7,6 @@ import { useMenuContext } from '../../contexts/MenuContext';
 import { useCartContext } from '../../contexts/CartContext';
 import { useCategories } from '../../hooks/useCategories';
 import { isCategoryAvailable, isMerchantOpen } from '../../lib/timeUtils';
-import { supportsPasabay } from '../../lib/services';
 import { scoreTextMatch, tokenizeQuery } from '../../lib/textMatch';
 import OptimizedImage from '../OptimizedImage';
 import MenuItemRow from './MenuItemRow';
@@ -159,7 +158,6 @@ const MerchantPage: React.FC = () => {
                 <RatingBadge rating={merchant.rating} reviews={merchant.totalReviews} />
                 <MetaChip icon="time">{merchant.estimatedDeliveryTime || '25–40 min'}</MetaChip>
                 {merchant.minimumOrder > 0 && <span className="text-xs text-gray-500">Min. {formatPeso(merchant.minimumOrder)}</span>}
-                {supportsPasabay(merchant) && <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700">Pasabay {formatPeso(merchant.fixedDeliveryFee ?? 0)}</span>}
               </div>
             </div>
             {merchant.logoUrl && (

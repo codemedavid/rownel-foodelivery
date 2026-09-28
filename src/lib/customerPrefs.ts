@@ -1,24 +1,15 @@
 /**
  * Small, device-local customer preferences so a guest never has to retype
- * their name and number, and the service they picked on Home carries into
- * checkout.
+ * their name and number.
  */
 
 const CONTACT_KEY = 'rownel:customer-contact';
-const FULFILMENT_KEY = 'rownel:fulfilment';
 
 export interface CustomerContact {
   name: string;
   contactNumber: string;
   landmark?: string;
 }
-
-export interface FulfilmentPreference {
-  serviceType: 'delivery' | 'pickup';
-  deliveryMode: 'priority' | 'economy';
-}
-
-const DEFAULT_FULFILMENT: FulfilmentPreference = { serviceType: 'delivery', deliveryMode: 'priority' };
 
 const readJson = <T>(key: string): T | null => {
   try {
@@ -45,20 +36,6 @@ export function readCustomerContact(): CustomerContact | null {
 
 export function saveCustomerContact(contact: CustomerContact): void {
   writeJson(CONTACT_KEY, contact);
-}
-
-export function readFulfilmentPreference(): FulfilmentPreference {
-  const parsed = readJson<Partial<FulfilmentPreference>>(FULFILMENT_KEY);
-  return {
-    serviceType: parsed?.serviceType === 'pickup' ? 'pickup' : DEFAULT_FULFILMENT.serviceType,
-    deliveryMode: parsed?.deliveryMode === 'economy' ? 'economy' : DEFAULT_FULFILMENT.deliveryMode,
-  };
-}
-
-export function saveFulfilmentPreference(update: Partial<FulfilmentPreference>): FulfilmentPreference {
-  const next = { ...readFulfilmentPreference(), ...update };
-  writeJson(FULFILMENT_KEY, next);
-  return next;
 }
 
 /** Philippine mobile numbers: 09XXXXXXXXX or +639XXXXXXXXX, spaces/dashes tolerated. */

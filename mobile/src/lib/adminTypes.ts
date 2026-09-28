@@ -41,6 +41,9 @@ export interface Order {
   id: string;
   createdAt: number;
   merchantId: string;
+  /** Store name/address, when the query embeds the merchant row. */
+  merchantName?: string;
+  merchantAddress?: string;
   customerName: string;
   contactNumber: string;
   serviceType: ServiceType;

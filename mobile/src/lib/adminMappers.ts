@@ -32,10 +32,16 @@ const mapOrderItem = (row: Row): OrderItem => ({
   subtotal: Number(row.subtotal ?? 0),
 });
 
+// Present only when the query embeds the store, e.g. `merchants(name, address)`.
+const joinedMerchant = (row: Row): Row =>
+  row.merchants && typeof row.merchants === 'object' ? (row.merchants as Row) : {};
+
 export const mapOrder = (row: Row): Order => ({
   id: String(row.id),
   createdAt: ms(row.created_at) ?? 0,
   merchantId: String(row.merchant_id ?? ''),
+  merchantName: str(joinedMerchant(row).name),
+  merchantAddress: str(joinedMerchant(row).address),
   customerName: String(row.customer_name ?? ''),
   contactNumber: String(row.contact_number ?? ''),
   serviceType: (row.service_type as Order['serviceType']) ?? 'delivery',

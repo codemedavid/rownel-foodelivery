@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { mapOfferWithOrder } from './riderMappers';
 import type { OfferWithOrder } from './riderTypes';
 
-const OFFER_WITH_ORDER = '*, orders(*, order_items(*))';
+const OFFER_WITH_ORDER = '*, orders(*, order_items(*), merchants(name, address))';
 
 const rows = (data: unknown): Record<string, unknown>[] =>
   Array.isArray(data) ? (data as Record<string, unknown>[]) : [];

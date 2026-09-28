@@ -6,29 +6,20 @@ import { useCartContext } from '../contexts/CartContext';
 import { useMerchant } from '../contexts/MerchantContext';
 import { useUserLocation } from '../contexts/LocationContext';
 import { createOrder } from '../hooks/useOrdersData';
-import { resolveDeliveryMode } from '../lib/deliveryMode';
 import { getMinOrderStatus, isMerchantOpen } from '../lib/timeUtils';
 import { requestNotificationPermission } from '../lib/notificationUtils';
 import { addOrderToHistory } from '../lib/orderHistory';
-import {
-  isValidPhMobile,
-  readCustomerContact,
-  readFulfilmentPreference,
-  saveCustomerContact,
-  saveFulfilmentPreference,
-} from '../lib/customerPrefs';
-import {
-  basketSupportsEconomy,
-  pickPrimaryDeliveryMerchant,
-  quoteAllMerchants,
-  totalFeeForMode,
-  type DeliveryMode,
-} from '../lib/checkoutQuotes';
+import { isValidPhMobile, readCustomerContact, saveCustomerContact } from '../lib/customerPrefs';
+import { pickPrimaryDeliveryMerchant, quoteAllMerchants } from '../lib/checkoutQuotes';
 import DeliveryAddressSheet, { type DeliveryAddress } from './checkout/DeliveryAddressSheet';
-import { AddressCard, Card, DeliveryModePicker, FulfilmentToggle, PaymentPicker, inputClass } from './checkout/CheckoutSections';
+import { AddressCard, Card, PaymentPicker, inputClass } from './checkout/CheckoutSections';
 import { formatPeso } from './ui';
 
 const IP_LOOKUP_TIMEOUT_MS = 3000;
+
+// Delivery is the only service and every order goes out as a rush delivery.
+const SERVICE_TYPE = 'delivery' as const;
+const DELIVERY_MODE = 'priority' as const;
 
 async function lookupClientIp(): Promise<string | undefined> {
   try {
@@ -44,9 +35,9 @@ async function lookupClientIp(): Promise<string | undefined> {
 }
 
 /**
- * Mobile-first checkout: delivery or pick-up, address prefilled from the
- * shopper's saved location, contact details remembered on the device,
- * Rush/Pasabay choice, payment instructions, and a sticky place-order bar.
+ * Mobile-first checkout: delivery address prefilled from the shopper's saved
+ * location, contact details remembered on the device, payment instructions,
+ * and a sticky place-order bar.
  */
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
@@ -56,10 +47,6 @@ const Checkout: React.FC = () => {
   const { userLocation, locationDisplayName } = useUserLocation();
 
   const savedContact = useMemo(readCustomerContact, []);
-  const savedFulfilment = useMemo(readFulfilmentPreference, []);
-
-  const [serviceType, setServiceType] = useState<'delivery' | 'pickup'>(savedFulfilment.serviceType);
-  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(savedFulfilment.deliveryMode);
   const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress | null>(() =>
     userLocation && locationDisplayName
       ? { address: locationDisplayName, latitude: userLocation.latitude, longitude: userLocation.longitude }
@@ -96,22 +83,14 @@ const Checkout: React.FC = () => {
   }, [cartItems]);
   const merchantIds = useMemo(() => Object.keys(itemsByMerchant), [itemsByMerchant]);
 
-  const isDelivery = serviceType === 'delivery';
   const dropoff = useMemo(
-    () => (isDelivery && deliveryAddress ? { latitude: deliveryAddress.latitude, longitude: deliveryAddress.longitude } : null),
-    [isDelivery, deliveryAddress]
+    () => (deliveryAddress ? { latitude: deliveryAddress.latitude, longitude: deliveryAddress.longitude } : null),
+    [deliveryAddress]
   );
 
-  const hasEconomy = useMemo(() => basketSupportsEconomy(merchants, merchantIds), [merchants, merchantIds]);
-  useEffect(() => {
-    if (!hasEconomy && deliveryMode === 'economy') setDeliveryMode('priority');
-  }, [hasEconomy, deliveryMode]);
-
-  const priorityFee = useMemo(() => totalFeeForMode(merchants, merchantIds, dropoff, 'priority'), [merchants, merchantIds, dropoff]);
-  const economyFee = useMemo(() => totalFeeForMode(merchants, merchantIds, dropoff, 'economy'), [merchants, merchantIds, dropoff]);
-  const quotes = useMemo(() => quoteAllMerchants(merchants, merchantIds, dropoff, deliveryMode), [merchants, merchantIds, dropoff, deliveryMode]);
+  const quotes = useMemo(() => quoteAllMerchants(merchants, merchantIds, dropoff, DELIVERY_MODE), [merchants, merchantIds, dropoff]);
   const primaryMerchantId = useMemo(() => pickPrimaryDeliveryMerchant(quotes), [quotes]);
-  const deliveryFee = isDelivery && primaryMerchantId ? quotes[primaryMerchantId].deliveryFee ?? 0 : 0;
+  const deliveryFee = primaryMerchantId ? quotes[primaryMerchantId].deliveryFee ?? 0 : 0;
 
   const subtotal = getTotalPrice();
   const grandTotal = subtotal + deliveryFee;
@@ -143,8 +122,8 @@ const Checkout: React.FC = () => {
   const blockers: string[] = [];
   if (merchantIssues.some((m) => !m.openStatus.isOpen)) blockers.push('A store in your basket is closed right now.');
   if (merchantIssues.some((m) => !m.minOrder.met)) blockers.push('Minimum order not met for a store in your basket.');
-  if (isDelivery && !deliveryAddress) blockers.push('Add your delivery address.');
-  if (isDelivery && deliveryAddress && merchantIssues.some((m) => !m.quote.deliverable)) blockers.push('Your address is outside a store’s delivery area.');
+  if (!deliveryAddress) blockers.push('Add your delivery address.');
+  if (deliveryAddress && merchantIssues.some((m) => !m.quote.deliverable)) blockers.push('Your address is outside a store’s delivery area.');
   if (paymentMethods.length === 0) blockers.push('No payment method available.');
 
   const trimmedName = customerName.trim();
@@ -157,7 +136,7 @@ const Checkout: React.FC = () => {
   const handlePlaceOrder = async () => {
     setShowValidation(true);
     if (!canPlaceOrder) {
-      if (isDelivery && !deliveryAddress) setIsAddressOpen(true);
+      if (!deliveryAddress) setIsAddressOpen(true);
       return;
     }
     setSubmitting(true);
@@ -174,22 +153,22 @@ const Checkout: React.FC = () => {
         const items = itemsByMerchant[merchantId];
         const merchant = merchants.find((m) => m.id === merchantId);
         const quote = quotes[merchantId];
-        const merchantFee = isDelivery && merchantId === primaryMerchantId ? deliveryFee : 0;
+        const merchantFee = merchantId === primaryMerchantId ? deliveryFee : 0;
         const orderTotal = merchantSubtotal(merchantId) + merchantFee;
 
         const orderId = await createOrder({
           merchantId,
           customerName: trimmedName,
           contactNumber: trimmedPhone,
-          serviceType,
-          address: isDelivery ? deliveryAddress?.address : undefined,
-          deliveryLatitude: isDelivery ? deliveryAddress?.latitude : undefined,
-          deliveryLongitude: isDelivery ? deliveryAddress?.longitude : undefined,
+          serviceType: SERVICE_TYPE,
+          address: deliveryAddress?.address,
+          deliveryLatitude: deliveryAddress?.latitude,
+          deliveryLongitude: deliveryAddress?.longitude,
           merchantLatitude: merchant?.latitude ?? undefined,
           merchantLongitude: merchant?.longitude ?? undefined,
-          distanceKm: isDelivery ? quote?.distanceKm : undefined,
+          distanceKm: quote?.distanceKm,
           deliveryFee: merchantFee,
-          deliveryMode: isDelivery ? resolveDeliveryMode(hasEconomy, deliveryMode) : 'priority',
+          deliveryMode: DELIVERY_MODE,
           paymentMethod,
           referenceNumber: reference.trim() || undefined,
           notes: mergedNotes || undefined,
@@ -219,10 +198,10 @@ const Checkout: React.FC = () => {
           merchantName: merchant?.name ?? 'Store',
           customerName: trimmedName,
           contactNumber: trimmedPhone,
-          serviceType,
+          serviceType: SERVICE_TYPE,
           total: orderTotal,
           deliveryFee: merchantFee,
-          address: isDelivery ? deliveryAddress?.address : undefined,
+          address: deliveryAddress?.address,
           paymentMethod,
           placedAt: Date.now(),
           items: items.map((item) => ({ name: item.name, quantity: item.quantity, subtotal: item.totalPrice * item.quantity })),
@@ -231,7 +210,6 @@ const Checkout: React.FC = () => {
       }
 
       saveCustomerContact({ name: trimmedName, contactNumber: trimmedPhone, landmark: landmark.trim() || undefined });
-      saveFulfilmentPreference({ serviceType, deliveryMode });
       clearCart();
       // Fired from the click handler so browsers that need a gesture accept it.
       void requestNotificationPermission();
@@ -255,50 +233,15 @@ const Checkout: React.FC = () => {
       </div>
 
       <div className="mx-auto max-w-2xl space-y-4 px-4 py-4">
-        <Card>
-          <FulfilmentToggle
-            value={serviceType}
-            onChange={(value) => {
-              setServiceType(value);
-              saveFulfilmentPreference({ serviceType: value });
-            }}
-          />
-          {isDelivery ? (
-            <div className="mt-3 space-y-3">
-              <AddressCard
-                address={deliveryAddress?.address ?? null}
-                onEdit={() => setIsAddressOpen(true)}
-                error={showValidation && !deliveryAddress ? 'Required for delivery' : null}
-              />
-              <input type="text" value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder="Landmark or delivery note for the rider (optional)" className={inputClass} />
-              <DeliveryModePicker
-                value={deliveryMode}
-                priorityFee={priorityFee}
-                economyFee={economyFee}
-                hasEconomy={hasEconomy}
-                onChange={(mode) => {
-                  setDeliveryMode(mode);
-                  saveFulfilmentPreference({ deliveryMode: mode });
-                }}
-              />
-            </div>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {merchantIssues.map((m) => {
-                const merchant = merchants.find((x) => x.id === m.merchantId);
-                return (
-                  <div key={m.merchantId} className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                    <Store className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-700" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{m.name}</p>
-                      <p className="text-xs text-gray-600">{merchant?.formattedAddress || merchant?.address || 'Pick up at the store counter.'}</p>
-                    </div>
-                  </div>
-                );
-              })}
-              <p className="text-xs text-gray-500">No delivery fee. We’ll notify you when your order is ready for pick-up.</p>
-            </div>
-          )}
+        <Card title="Delivery">
+          <div className="space-y-3">
+            <AddressCard
+              address={deliveryAddress?.address ?? null}
+              onEdit={() => setIsAddressOpen(true)}
+              error={showValidation && !deliveryAddress ? 'Required for delivery' : null}
+            />
+            <input type="text" value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder="Landmark or delivery note for the rider (optional)" className={inputClass} />
+          </div>
         </Card>
 
         <Card title="Your details">
@@ -352,7 +295,7 @@ const Checkout: React.FC = () => {
                     <AlertTriangle className="h-3.5 w-3.5" /> Add {formatPeso(m.minOrder.remaining)} more to reach the {formatPeso(m.minOrder.minimum)} minimum.
                   </p>
                 )}
-                {isDelivery && deliveryAddress && !m.quote.deliverable && (
+                {deliveryAddress && !m.quote.deliverable && (
                   <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs text-red-700">
                     <AlertTriangle className="h-3.5 w-3.5" /> {m.quote.reason}
                   </p>
@@ -361,12 +304,10 @@ const Checkout: React.FC = () => {
             ))}
             <div className="space-y-1.5 border-t border-dashed border-gray-200 pt-3 text-sm">
               <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatPeso(subtotal)}</span></div>
-              {isDelivery && (
-                <div className="flex justify-between text-gray-600">
-                  <span>Delivery fee {merchantIds.length > 1 && <span className="text-xs text-gray-400">(one fee, furthest store)</span>}</span>
-                  <span>{formatPeso(deliveryFee)}</span>
-                </div>
-              )}
+              <div className="flex justify-between text-gray-600">
+                <span>Delivery fee {merchantIds.length > 1 && <span className="text-xs text-gray-400">(one fee, furthest store)</span>}</span>
+                <span>{formatPeso(deliveryFee)}</span>
+              </div>
               <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-bold text-gray-900"><span>Total</span><span>{formatPeso(grandTotal)}</span></div>
             </div>
           </div>
@@ -392,7 +333,7 @@ const Checkout: React.FC = () => {
               canPlaceOrder ? 'bg-brand-600 hover:bg-brand-700' : 'bg-gray-400'
             }`}
           >
-            <span className="text-sm font-semibold">{submitting ? 'Placing order…' : isDelivery ? 'Place delivery order' : 'Place pick-up order'}</span>
+            <span className="text-sm font-semibold">{submitting ? 'Placing order…' : 'Place delivery order'}</span>
             <span className="text-base font-bold">{formatPeso(grandTotal)}</span>
           </button>
         </div>

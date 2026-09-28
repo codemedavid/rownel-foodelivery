@@ -11,8 +11,13 @@ import { nextRiderAction, type RiderAction } from '../../../src/lib/riderActions
 import { openDirections } from '../../../src/lib/mapsLink';
 import { openDialer } from '../../../src/lib/phoneLink';
 import { statusStyle } from '../../../src/lib/statusColors';
-import { formatPeso, colors, radius, spacing } from '../../../src/theme';
+import { colors, spacing } from '../../../src/theme';
 import { Badge, Button, EmptyState } from '../../../src/components/ui';
+import {
+  DropOffSection,
+  OrderSummarySection,
+  PickupSection,
+} from '../../../src/components/rider/DeliveryDetailSections';
 
 const ACTION_LABEL: Record<RiderAction, string> = {
   pickup: 'Confirm pickup',
@@ -77,7 +82,9 @@ export default function RiderDeliveryScreen() {
     [runAction]
   );
 
-  const onNavigate = useCallback(async () => {
+  const merchant = merchants.find((candidate) => candidate.id === order?.merchantId);
+
+  const onNavigateToCustomer = useCallback(async () => {
     if (!order) return;
     const opened = await openDirections({
       latitude: order.deliveryLatitude,
@@ -87,17 +94,24 @@ export default function RiderDeliveryScreen() {
     if (!opened) Alert.alert('No destination', 'This order has no delivery address or coordinates.');
   }, [order]);
 
-  const onCall = useCallback(async () => {
-    const opened = await openDialer(order?.contactNumber);
+  const onNavigateToStore = useCallback(async () => {
+    const opened = await openDirections({
+      latitude: merchant?.latitude ?? order?.merchantLatitude,
+      longitude: merchant?.longitude ?? order?.merchantLongitude,
+      address: merchant?.address ?? order?.merchantAddress,
+    });
+    if (!opened) Alert.alert('No destination', 'This store has no address or coordinates.');
+  }, [merchant, order]);
+
+  const callNumber = useCallback(async (phone: string | undefined, who: string) => {
+    const opened = await openDialer(phone);
     if (!opened) {
       Alert.alert(
         'Cannot place call',
-        order?.contactNumber
-          ? `This device cannot dial ${order.contactNumber}.`
-          : 'This order has no contact number.'
+        phone ? `This device cannot dial ${phone}.` : `The ${who} has no contact number.`
       );
     }
-  }, [order]);
+  }, []);
 
   if (!order) {
     return isLoading ? null : (
@@ -108,10 +122,12 @@ export default function RiderDeliveryScreen() {
   const style = statusStyle(order.status);
   const action = nextRiderAction(order);
 
-  // The merchant's own coordinates, so the map shows both ends of the job —
-  // where the food is collected and where it is going.
-  const merchant = merchants.find((candidate) => candidate.id === order.merchantId);
-  const pickup = toMapPoint(merchant?.latitude, merchant?.longitude);
+  // Both ends of the job on the map — where the food is collected and where
+  // it is going. The order row keeps the store's coordinates as a fallback.
+  const pickup = toMapPoint(
+    merchant?.latitude ?? order.merchantLatitude,
+    merchant?.longitude ?? order.merchantLongitude
+  );
   const dropOff = toMapPoint(order.deliveryLatitude, order.deliveryLongitude);
 
   return (
@@ -122,45 +138,26 @@ export default function RiderDeliveryScreen() {
         <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <View style={styles.copy}>
-            <Text style={styles.name}>{order.customerName}</Text>
-            <Text style={styles.meta}>#{order.id.slice(0, 8).toUpperCase()}</Text>
-          </View>
-          <Badge label={style.label} color={style.color} backgroundColor={style.background} />
-        </View>
-        <Text style={styles.address}>{order.address ?? 'No address given'}</Text>
-        {order.distanceKm != null && <Text style={styles.meta}>{order.distanceKm.toFixed(1)} km away</Text>}
-        <View style={styles.actions}>
-          <Button label="Navigate" variant="secondary" onPress={onNavigate} style={styles.action} />
-          <Button label="Call" variant="secondary" onPress={onCall} style={styles.action} />
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.orderId}>Order #{order.id.slice(0, 8).toUpperCase()}</Text>
+        <Badge label={style.label} color={style.color} backgroundColor={style.background} />
       </View>
 
       <OrderRouteMap merchant={pickup} destination={dropOff} />
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Order</Text>
-        {order.order_items.map((item) => (
-          <View key={item.id} style={styles.itemRow}>
-            <Text style={styles.itemName}>
-              {item.quantity}× {item.name}
-            </Text>
-            <Text style={styles.itemPrice}>{formatPeso(item.subtotal)}</Text>
-          </View>
-        ))}
-        <View style={styles.divider} />
-        <View style={styles.itemRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{formatPeso(order.total)}</Text>
-        </View>
-        <Text style={styles.meta}>
-          {order.paymentMethod.toUpperCase()}
-          {order.deliveryFee != null ? ` · ${formatPeso(order.deliveryFee)} delivery fee` : ''}
-        </Text>
-        {!!order.notes && <Text style={styles.notes}>“{order.notes}”</Text>}
-      </View>
+      <PickupSection
+        storeName={merchant?.name ?? order.merchantName}
+        storeAddress={merchant?.address ?? order.merchantAddress}
+        storePhone={merchant?.contactNumber}
+        onNavigate={onNavigateToStore}
+        onCall={() => void callNumber(merchant?.contactNumber, 'store')}
+      />
+      <DropOffSection
+        order={order}
+        onNavigate={onNavigateToCustomer}
+        onCall={() => void callNumber(order.contactNumber, 'customer')}
+      />
+      <OrderSummarySection order={order} />
 
       {action && !isViewingAs && (
         <Button label={ACTION_LABEL[action]} isLoading={isBusy} onPress={() => confirmAction(action)} />
@@ -175,26 +172,7 @@ export default function RiderDeliveryScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl },
-  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.lg, gap: spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  copy: { flex: 1, gap: 2 },
-  name: { fontSize: 18, fontWeight: '800', color: colors.text },
-  address: { fontSize: 14, color: colors.text },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  orderId: { fontSize: 16, fontWeight: '800', color: colors.text },
   meta: { fontSize: 12, color: colors.textSecondary },
-  actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
-  action: { flex: 1 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  itemRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  itemName: { fontSize: 14, color: colors.text, flex: 1 },
-  itemPrice: { fontSize: 14, color: colors.textSecondary },
-  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.xs },
-  totalLabel: { fontSize: 15, fontWeight: '800', color: colors.text },
-  totalValue: { fontSize: 15, fontWeight: '800', color: colors.primary },
-  notes: { fontSize: 13, color: colors.textSecondary, fontStyle: 'italic' },
 });

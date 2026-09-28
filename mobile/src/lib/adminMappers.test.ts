@@ -29,6 +29,23 @@ describe('mapOrder', () => {
     expect(order.order_items[0]).toMatchObject({ name: 'Burger', unitPrice: 100, subtotal: 100 });
   });
 
+  it('reads the joined store name and address', () => {
+    const order = mapOrder({
+      id: 'o1',
+      total: 0,
+      status: 'ready',
+      merchants: { name: 'Jollibee Vigan', address: 'Plaza Burgos' },
+    });
+    expect(order.merchantName).toBe('Jollibee Vigan');
+    expect(order.merchantAddress).toBe('Plaza Burgos');
+  });
+
+  it('leaves the store fields empty when the store was not joined', () => {
+    const order = mapOrder({ id: 'o1', total: 0, status: 'ready' });
+    expect(order.merchantName).toBeUndefined();
+    expect(order.merchantAddress).toBeUndefined();
+  });
+
   it('defaults missing items to an empty array', () => {
     expect(mapOrder({ id: 'o', total: 0, status: 'pending' }).order_items).toEqual([]);
   });

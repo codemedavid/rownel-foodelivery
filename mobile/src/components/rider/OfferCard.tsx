@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors, formatPeso, radius, spacing } from '../../theme';
 import { Button } from '../ui';
 import { secondsRemaining } from '../../lib/offerFilters';
+import { summarizeItems } from '../../lib/orderItemOptions';
 import type { OfferWithOrder } from '../../lib/riderTypes';
 
 interface Props {
@@ -30,9 +31,15 @@ export const OfferCard = ({ item, now, isBusy, isReadOnly = false, onAccept, onR
             #{offer.orderId.slice(0, 8).toUpperCase()}
             {offer.distanceKm != null ? ` · ${offer.distanceKm.toFixed(1)} km` : ''}
           </Text>
+          {!!order?.merchantName && (
+            <Text style={styles.meta} numberOfLines={1}>
+              From {order.merchantName}
+              {order.merchantAddress ? ` · ${order.merchantAddress}` : ''}
+            </Text>
+          )}
           {!!order?.address && (
             <Text style={styles.meta} numberOfLines={2}>
-              {order.address}
+              To {order.address}
             </Text>
           )}
         </View>
@@ -41,8 +48,16 @@ export const OfferCard = ({ item, now, isBusy, isReadOnly = false, onAccept, onR
         </View>
       </View>
 
-      {order?.deliveryFee != null && (
-        <Text style={styles.fee}>{formatPeso(order.deliveryFee)} delivery fee</Text>
+      {!!order && order.order_items.length > 0 && (
+        <Text style={styles.items} numberOfLines={3}>
+          {summarizeItems(order.order_items)}
+        </Text>
+      )}
+
+      {!!order && (
+        <Text style={styles.fee}>
+          {formatPeso(order.deliveryFee ?? 0)} delivery fee · {formatPeso(order.total)} order total
+        </Text>
       )}
 
       <View style={styles.actions}>
@@ -78,6 +93,7 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: 2 },
   merchant: { fontSize: 15, fontWeight: '700', color: colors.text },
   meta: { fontSize: 12, color: colors.textSecondary },
+  items: { fontSize: 13, color: colors.text },
   fee: { fontSize: 14, fontWeight: '700', color: colors.primary },
   timer: {
     minWidth: 46,

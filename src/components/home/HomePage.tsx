@@ -7,7 +7,6 @@ import { decorateAndFilterMerchantsByDistance, type MerchantWithDistance } from 
 import { useMenu } from '../../hooks/useMenu';
 import { isMerchantOpen } from '../../lib/timeUtils';
 import { SERVICES, getService, merchantsForService, type ServiceDefinition, type ServiceId } from '../../lib/services';
-import { readFulfilmentPreference, saveFulfilmentPreference } from '../../lib/customerPrefs';
 import ServicesGrid from './ServicesGrid';
 import PromoCarousel from './PromoCarousel';
 import LocationEditorSheet from './LocationEditorSheet';
@@ -30,12 +29,6 @@ const CATEGORY_META: Record<string, { emoji: string; label: string }> = {
 const describeCategory = (category: string) =>
   CATEGORY_META[category] ?? { emoji: '🍴', label: category.charAt(0).toUpperCase() + category.slice(1) };
 
-const serviceFromPreference = (): ServiceId => {
-  const pref = readFulfilmentPreference();
-  if (pref.serviceType === 'pickup') return 'pickup';
-  return pref.deliveryMode === 'economy' ? 'pasabay' : 'food';
-};
-
 const byOpenThenDistance = (a: MerchantWithDistance, b: MerchantWithDistance) => {
   const aOpen = isMerchantOpen(a.openingHours).isOpen;
   const bOpen = isMerchantOpen(b.openingHours).isOpen;
@@ -54,7 +47,7 @@ const HomePage: React.FC = () => {
   const { userLocation, locationStatus, locationError, locationStreet, locationDisplayName, isManualPromptRequested, requestLocation } =
     useUserLocation();
 
-  const [activeServiceId, setActiveServiceId] = useState<ServiceId>(serviceFromPreference);
+  const [activeServiceId, setActiveServiceId] = useState<ServiceId>('food');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -104,7 +97,6 @@ const HomePage: React.FC = () => {
   const selectService = (service: ServiceDefinition) => {
     setActiveServiceId(service.id);
     setActiveCategory(null);
-    if (service.fulfilment) saveFulfilmentPreference(service.fulfilment);
   };
 
   if (loading) {
@@ -127,7 +119,7 @@ const HomePage: React.FC = () => {
               </span>
               <span className="min-w-0">
                 <span className="block text-[11px] font-medium uppercase tracking-wide text-white/80">
-                  {activeService.fulfilment?.serviceType === 'pickup' ? 'Your location' : 'Deliver to'}
+                  Deliver to
                 </span>
                 <span className="flex items-center gap-1 text-sm font-bold">
                   <span className="truncate">{locationStatus === 'locating' ? 'Detecting…' : locationStreet}</span>
@@ -207,11 +199,7 @@ const HomePage: React.FC = () => {
           <EmptyState
             emoji={activeService.emoji}
             title={`No ${activeService.name} stores near you yet`}
-            body={
-              activeService.id === 'pasabay'
-                ? 'Pasabay is offered by stores with a fixed delivery fee. Try Food for rush delivery.'
-                : 'Try another service, widen your location, or check back soon.'
-            }
+            body="Try another service, widen your location, or check back soon."
           />
         ) : (
           <>

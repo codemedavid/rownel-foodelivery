@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Phone, Package, CheckCircle,
-  ChevronRight, Navigation, MessageCircle, AlertTriangle,
+  ChevronRight, Navigation, MessageCircle, AlertTriangle, Store,
 } from 'lucide-react';
 import OrderChat from './OrderChat';
 import RiderTrackingMap from './RiderTrackingMap';
@@ -10,11 +10,23 @@ import { useRiderLocation } from '../hooks/useRiderLocation';
 import { useLiveQuery } from '../hooks/useLiveQuery';
 import { ordersApi, ridersApi, messagesApi } from '../lib/deliveryApi';
 import { useAuth } from '../contexts/AuthContext';
+import { useMerchant } from '../contexts/MerchantContext';
+import { describeItemOptions } from '../lib/orderItemOptions';
+
+const CASH_METHODS = new Set(['cash', 'cod']);
+
+const directionsUrl = (latitude?: number | null, longitude?: number | null, address?: string): string | null => {
+  if (latitude != null && longitude != null) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+  }
+  return address?.trim() ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address.trim())}` : null;
+};
 
 const RiderOrderDetail: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { merchants } = useMerchant();
   const {
     data: order,
     loading: orderLoading,
@@ -75,10 +87,17 @@ const RiderOrderDetail: React.FC = () => {
     finally { setBusy(false); }
   };
 
-  const mapsHref =
-    order.deliveryLatitude && order.deliveryLongitude
-      ? `https://www.google.com/maps/dir/?api=1&destination=${order.deliveryLatitude},${order.deliveryLongitude}`
-      : null;
+  const mapsHref = directionsUrl(order.deliveryLatitude, order.deliveryLongitude, order.address);
+
+  const merchant = merchants.find((m) => m.id === order.merchantId);
+  const storeAddress = merchant?.formattedAddress || merchant?.address;
+  const storeMapsHref = directionsUrl(
+    merchant?.latitude ?? order.merchantLatitude,
+    merchant?.longitude ?? order.merchantLongitude,
+    storeAddress
+  );
+  const itemsTotal = (order.order_items ?? []).reduce((sum, item) => sum + item.subtotal, 0);
+  const isCash = CASH_METHODS.has(order.paymentMethod?.toLowerCase() ?? '');
 
   const nextOrder = [...activeOrders]
     .filter((o) => o.id !== order.id && o.status !== 'completed' && o.status !== 'cancelled')
@@ -124,6 +143,35 @@ const RiderOrderDetail: React.FC = () => {
               />
             </div>
           )}
+
+          {/* Pickup store */}
+          <div className="bg-white rounded-2xl p-4">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Pick up from</p>
+            <p className="font-bold text-lg text-black flex items-center gap-2">
+              <Store className="h-4 w-4 text-gray-400 shrink-0" /> {merchant?.name ?? 'Store'}
+            </p>
+            <p className="text-sm text-gray-700 mt-1">{storeAddress ?? 'No store address on file'}</p>
+            <div className="mt-3 flex items-center gap-2 flex-wrap">
+              {storeMapsHref && (
+                <a
+                  href={storeMapsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-black active:scale-[0.98] transition-all"
+                >
+                  <Navigation className="h-4 w-4" /> Directions to store
+                </a>
+              )}
+              {merchant?.contactNumber && (
+                <a
+                  href={`tel:${merchant.contactNumber}`}
+                  className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-200 active:scale-[0.98] transition-all"
+                >
+                  <Phone className="h-4 w-4" /> Call store
+                </a>
+              )}
+            </div>
+          </div>
 
           {/* Customer info */}
           <div className="bg-white rounded-2xl p-4">
@@ -188,9 +236,9 @@ const RiderOrderDetail: React.FC = () => {
                     <span className="text-sm text-gray-900">
                       <span className="font-semibold">{item.quantity}×</span> {item.name}
                     </span>
-                    {item.variation != null && (
-                      <p className="text-xs text-gray-400 mt-0.5">{JSON.stringify(item.variation)}</p>
-                    )}
+                    {describeItemOptions(item.variation, item.addOns).map((line) => (
+                      <p key={line} className="text-xs text-gray-500 mt-0.5">{line}</p>
+                    ))}
                   </div>
                   <span className="text-sm text-gray-700 shrink-0">₱{item.subtotal.toFixed(2)}</span>
                 </div>
@@ -198,6 +246,10 @@ const RiderOrderDetail: React.FC = () => {
             </div>
 
             <div className="border-t mt-3 pt-3 space-y-1.5">
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Items</span>
+                <span>₱{itemsTotal.toFixed(2)}</span>
+              </div>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Delivery fee</span>
                 <span>₱{(order.deliveryFee ?? 0).toFixed(2)}</span>
@@ -210,12 +262,13 @@ const RiderOrderDetail: React.FC = () => {
 
             <div className="mt-3 flex items-center gap-3 flex-wrap">
               <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                order.paymentMethod?.toLowerCase() === 'cod'
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-green-100 text-green-700'
+                isCash ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
               }`}>
-                {order.paymentMethod?.toLowerCase() === 'cod' ? '💵 Collect Cash' : '✓ Already Paid'}
+                {isCash ? `💵 Collect ₱${order.total.toFixed(2)} cash` : `✓ Paid via ${order.paymentMethod?.toUpperCase()}`}
               </span>
+              {order.referenceNumber && (
+                <span className="text-xs text-gray-500">Ref: {order.referenceNumber}</span>
+              )}
             </div>
 
             {order.notes && (

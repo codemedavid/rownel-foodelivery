@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bike, Zap, ShoppingBag, MapPin, ChevronRight, AlertTriangle } from 'lucide-react';
+import { MapPin, ChevronRight, AlertTriangle } from 'lucide-react';
 import type { PaymentMethod as PaymentMethodRecord } from '../../hooks/usePaymentMethods';
 import { formatPeso } from '../ui';
 
@@ -12,32 +12,6 @@ export const Card: React.FC<{ title?: string; children: React.ReactNode; classNa
 
 export const inputClass =
   'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm placeholder-gray-400 focus:border-brand-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-600/20';
-
-export const FulfilmentToggle: React.FC<{
-  value: 'delivery' | 'pickup';
-  onChange: (value: 'delivery' | 'pickup') => void;
-}> = ({ value, onChange }) => (
-  <div className="grid grid-cols-2 gap-1 rounded-xl bg-gray-100 p-1">
-    {(
-      [
-        { id: 'delivery', label: 'Delivery', icon: Bike },
-        { id: 'pickup', label: 'Pick-up', icon: ShoppingBag },
-      ] as const
-    ).map(({ id, label, icon: Icon }) => (
-      <button
-        key={id}
-        type="button"
-        onClick={() => onChange(id)}
-        aria-pressed={value === id}
-        className={`flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold transition-colors ${
-          value === id ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-600'
-        }`}
-      >
-        <Icon className="h-4 w-4" /> {label}
-      </button>
-    ))}
-  </div>
-);
 
 export const AddressCard: React.FC<{ address: string | null; onEdit: () => void; error?: string | null }> = ({ address, onEdit, error }) => (
   <button
@@ -56,43 +30,6 @@ export const AddressCard: React.FC<{ address: string | null; onEdit: () => void;
     <ChevronRight className="h-5 w-5 flex-shrink-0 text-gray-400" />
   </button>
 );
-
-export const DeliveryModePicker: React.FC<{
-  value: 'priority' | 'economy';
-  priorityFee: number;
-  economyFee: number;
-  hasEconomy: boolean;
-  onChange: (mode: 'priority' | 'economy') => void;
-}> = ({ value, priorityFee, economyFee, hasEconomy, onChange }) => {
-  const options = [
-    { id: 'priority' as const, label: 'Rush', eta: '30–45 min', fee: priorityFee, icon: Zap, enabled: true },
-    { id: 'economy' as const, label: 'Pasabay', eta: '45–120 min · budget', fee: economyFee, icon: Bike, enabled: hasEconomy },
-  ];
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {options.map(({ id, label, eta, fee, icon: Icon, enabled }) => (
-        <button
-          key={id}
-          type="button"
-          disabled={!enabled}
-          onClick={() => onChange(id)}
-          aria-pressed={value === id}
-          className={`rounded-xl border-2 p-3 text-left transition-colors disabled:opacity-40 ${
-            value === id ? 'border-brand-600 bg-brand-50' : 'border-gray-200 bg-white'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={`flex items-center gap-1.5 text-sm font-bold ${value === id ? 'text-brand-700' : 'text-gray-800'}`}>
-              <Icon className="h-4 w-4" /> {label}
-            </span>
-            <span className="text-sm font-bold text-gray-900">{formatPeso(fee)}</span>
-          </div>
-          <p className="mt-1 text-[11px] text-gray-500">{enabled ? eta : 'Not offered by these stores'}</p>
-        </button>
-      ))}
-    </div>
-  );
-};
 
 export const PaymentPicker: React.FC<{
   methods: PaymentMethodRecord[];

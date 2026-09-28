@@ -63,13 +63,13 @@ function RootNavigator() {
       <Stack.Screen name="(rider)" options={{ headerShown: false }} />
       <Stack.Screen name="merchant/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="item/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
-      <Stack.Screen name="checkout" options={{ title: 'Checkout' }} />
+      <Stack.Screen name="checkout" options={{ title: 'Checkout', headerBackTitle: 'Back' }} />
       <Stack.Screen
         name="order/[id]"
         options={{ title: 'Track your order', headerBackVisible: false }}
       />
-      <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
-      <Stack.Screen name="addresses" options={{ title: 'Delivery addresses' }} />
+      <Stack.Screen name="notifications" options={{ title: 'Notifications', headerBackTitle: 'Back' }} />
+      <Stack.Screen name="addresses" options={{ title: 'Delivery addresses', headerBackTitle: 'Back' }} />
       <Stack.Screen name="address/[id]" options={{ title: 'Address' }} />
     </Stack>
   );

@@ -14,15 +14,10 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../src/lib/supabase';
-import {
-  buildMerchantOrderInputs,
-  resolveDeliveryMode,
-  validateCheckoutForm,
-} from '../src/lib/checkout';
+import { buildMerchantOrderInputs, validateCheckoutForm } from '../src/lib/checkout';
 import { getMerchantSubtotal } from '../src/lib/cart';
 import {
   getDeliveryFeeTotal,
-  hasEconomyOption,
   quoteMerchants,
   selectPrimaryMerchantId,
 } from '../src/lib/deliveryQuotes';
@@ -35,21 +30,12 @@ import { MapLocationPicker } from '../src/components/map/MapLocationPicker';
 import type { AddressCandidate } from '../src/lib/geocoding';
 import type { MapPoint } from '../src/lib/map/mapEmbedProtocol';
 import { colors, formatPeso, radius, shadows, spacing } from '../src/theme';
-import { DeliveryMode, PaymentMethod } from '../src/types';
+import { PaymentMethod } from '../src/types';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
-// Delivery is the only service type — customers choose how fast it moves,
-// exactly like the web checkout's "Delivery Option" block.
-const DELIVERY_MODES: Array<{
-  value: DeliveryMode;
-  label: string;
-  eta: string;
-  icon: IconName;
-}> = [
-  { value: 'priority', label: 'RUSH ORDER', eta: '30 – 45 mins', icon: 'flash-outline' },
-  { value: 'economy', label: 'PASABUY', eta: '45 – 120 mins', icon: 'bicycle-outline' },
-];
+// Delivery is the only service and every order goes out as a rush delivery.
+const DELIVERY_MODE = 'priority' as const;
 
 const PAYMENT_METHODS: Array<{ value: PaymentMethod; label: string; icon: IconName }> = [
   { value: 'gcash', label: 'GCash', icon: 'phone-portrait-outline' },
@@ -112,7 +98,6 @@ export default function CheckoutScreen() {
 
   const [customerName, setCustomerName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
-  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('priority');
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('gcash');
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -131,32 +116,14 @@ export default function CheckoutScreen() {
   // stops scrolling for as long as the customer is touching the map.
   const [isMapActive, setIsMapActive] = useState(false);
 
-  // Both modes are quoted so each option can show its own price up front,
-  // mirroring the web checkout.
   // The pin wins over the GPS fix: it is what the customer last said is right.
   const deliveryPoint = pinnedLocation ?? userLocation;
 
-  const priorityQuotes = useMemo(
-    () => quoteMerchants(merchantIds, merchantsById, deliveryPoint, 'priority'),
+  const quotes = useMemo(
+    () => quoteMerchants(merchantIds, merchantsById, deliveryPoint, DELIVERY_MODE),
     [merchantIds, merchantsById, deliveryPoint]
   );
-  const economyQuotes = useMemo(
-    () => quoteMerchants(merchantIds, merchantsById, deliveryPoint, 'economy'),
-    [merchantIds, merchantsById, deliveryPoint]
-  );
-
-  const quotes = deliveryMode === 'economy' ? economyQuotes : priorityQuotes;
   const primaryMerchantId = useMemo(() => selectPrimaryMerchantId(quotes), [quotes]);
-
-  const modeFees: Record<DeliveryMode, number> = {
-    priority: getDeliveryFeeTotal(priorityQuotes),
-    economy: getDeliveryFeeTotal(economyQuotes),
-  };
-
-  const offersEconomy = useMemo(
-    () => hasEconomyOption(merchantIds, merchantsById),
-    [merchantIds, merchantsById]
-  );
 
   // One fee for the whole basket — the furthest restaurant's (web parity).
   const deliveryFee = getDeliveryFeeTotal(quotes);
@@ -229,7 +196,7 @@ export default function CheckoutScreen() {
         deliveryLatitude: deliveryPoint?.latitude,
         deliveryLongitude: deliveryPoint?.longitude,
         paymentMethod,
-        deliveryMode: resolveDeliveryMode(offersEconomy, deliveryMode),
+        deliveryMode: DELIVERY_MODE,
         referenceNumber: referenceNumber || undefined,
         notes: notes || undefined,
       },
@@ -359,48 +326,17 @@ export default function CheckoutScreen() {
             onInteractionEnd={() => setIsMapActive(false)}
           />
 
-          <Text style={styles.hint}>
-            Edits here apply to this order only. To keep an address for next
-            time, tap Change above and save it.
-          </Text>
-        </Section>
-
-        <Section icon="bicycle-outline" title="Delivery option">
-          <View style={styles.segmentRow}>
-            {DELIVERY_MODES.map((option) => {
-              const isActive = deliveryMode === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  style={[styles.segment, isActive && styles.segmentActive]}
-                  onPress={() => setDeliveryMode(option.value)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: isActive }}
-                >
-                  <View style={styles.segmentTop}>
-                    <Ionicons
-                      name={option.icon}
-                      size={16}
-                      color={isActive ? colors.primary : colors.textSecondary}
-                    />
-                    <Text style={[styles.segmentLabel, isActive && styles.segmentLabelActive]}>
-                      {option.label}
-                    </Text>
-                  </View>
-                  <Text style={[styles.segmentPrice, isActive && styles.segmentPriceActive]}>
-                    {formatPeso(modeFees[option.value])}
-                  </Text>
-                  <Text style={styles.segmentEta}>{option.eta}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
           {undeliverableReason && (
             <View style={styles.errorRow}>
               <Ionicons name="alert-circle" size={14} color={colors.danger} />
               <Text style={styles.errorText}>{undeliverableReason}</Text>
             </View>
           )}
+
+          <Text style={styles.hint}>
+            Edits here apply to this order only. To keep an address for next
+            time, tap Change above and save it.
+          </Text>
         </Section>
 
         <Section icon="wallet-outline" title="Payment">
@@ -563,25 +499,6 @@ const styles = StyleSheet.create({
   inputError: { borderColor: colors.danger, backgroundColor: colors.dangerLight },
   errorRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: spacing.sm },
   errorText: { flex: 1, color: colors.danger, fontSize: 12.5, fontWeight: '600' },
-
-  segmentRow: { flexDirection: 'row', gap: spacing.sm },
-  segment: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.surfaceSunken,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-    paddingVertical: spacing.md,
-  },
-  segmentActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  segmentTop: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  segmentLabel: { fontSize: 12.5, fontWeight: '800', color: colors.textSecondary, letterSpacing: 0.3 },
-  segmentLabelActive: { color: colors.primaryDark },
-  segmentPrice: { fontSize: 16, fontWeight: '800', color: colors.text },
-  segmentPriceActive: { color: colors.primary },
-  segmentEta: { fontSize: 11.5, color: colors.textMuted, fontWeight: '600' },
 
   locationCard: {
     flexDirection: 'row',

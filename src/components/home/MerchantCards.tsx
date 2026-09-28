@@ -1,7 +1,6 @@
 import React from 'react';
 import type { MerchantWithDistance } from '../../utils/merchantDistance';
 import { isMerchantOpen } from '../../lib/timeUtils';
-import { supportsPasabay } from '../../lib/services';
 import OptimizedImage from '../OptimizedImage';
 import { RatingBadge, MetaChip, formatDistance } from '../ui';
 
@@ -13,10 +12,6 @@ const ClosedBadge: React.FC = () => (
   <span className="absolute left-2 top-2 rounded-full bg-gray-900/85 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
     Closed
   </span>
-);
-
-const PasabayTag: React.FC = () => (
-  <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700">Pasabay</span>
 );
 
 const CoverImage: React.FC<{ merchant: MerchantWithDistance; className: string }> = ({ merchant, className }) => {
@@ -83,7 +78,6 @@ export const MerchantListRow: React.FC<{
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <h3 className="truncate text-base font-bold text-gray-900">{merchant.name}</h3>
-          {supportsPasabay(merchant) && <PasabayTag />}
         </div>
         <p className="truncate text-xs text-gray-500">{merchant.cuisineType || merchant.description || 'Restaurant'}</p>
         {matchedDishes && matchedDishes.length > 0 && (

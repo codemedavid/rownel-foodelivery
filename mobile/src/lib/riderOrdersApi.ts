@@ -2,7 +2,8 @@ import { supabase } from './supabase';
 import { mapOrder } from './adminMappers';
 import type { Order } from './adminTypes';
 
-const ORDER_WITH_ITEMS = '*, order_items(*)';
+// The store is embedded so every rider view can say where to pick up.
+const ORDER_WITH_ITEMS = '*, order_items(*), merchants(name, address)';
 const HISTORY_LIMIT = 50;
 
 const rows = (data: unknown): Record<string, unknown>[] =>

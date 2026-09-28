@@ -57,8 +57,8 @@ const PhoneMockup: React.FC = () => (
         <div className="mt-3 flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-400 to-yellow-500 px-3 py-2.5">
           <span className="text-base">🛵</span>
           <span className="text-[9px] font-bold leading-tight text-yellow-900">
-            Pasabay fixed fee
-            <span className="block font-medium text-yellow-800">Budget delivery around town</span>
+            Rush delivery
+            <span className="block font-medium text-yellow-800">Hot food at your door in 30–45 min</span>
           </span>
         </div>
 

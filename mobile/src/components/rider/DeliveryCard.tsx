@@ -4,6 +4,7 @@ import { colors, formatPeso, radius, spacing } from '../../theme';
 import { Badge } from '../ui';
 import { statusStyle } from '../../lib/statusColors';
 import { nextRiderAction } from '../../lib/riderActions';
+import { summarizeItems } from '../../lib/orderItemOptions';
 import type { Order } from '../../lib/adminTypes';
 
 interface Props {
@@ -31,12 +32,22 @@ export const DeliveryCard = ({ order, onPress }: Props) => {
       <View style={styles.header}>
         <View style={styles.copy}>
           <Text style={styles.name}>{order.customerName}</Text>
+          {!!order.merchantName && (
+            <Text style={styles.meta} numberOfLines={1}>
+              From {order.merchantName}
+            </Text>
+          )}
           <Text style={styles.meta} numberOfLines={2}>
-            {order.address ?? 'No address given'}
+            To {order.address ?? 'no address given'}
           </Text>
         </View>
         <Badge label={style.label} color={style.color} backgroundColor={style.background} />
       </View>
+      {order.order_items.length > 0 && (
+        <Text style={styles.items} numberOfLines={2}>
+          {summarizeItems(order.order_items)}
+        </Text>
+      )}
       <View style={styles.footer}>
         <Text style={styles.total}>{formatPeso(order.total)}</Text>
         {!!action && <Text style={styles.action}>{ACTION_HINT[action]}</Text>}
@@ -57,6 +68,7 @@ const styles = StyleSheet.create({
   copy: { flex: 1, gap: 2 },
   name: { fontSize: 15, fontWeight: '700', color: colors.text },
   meta: { fontSize: 12, color: colors.textSecondary },
+  items: { fontSize: 13, color: colors.text },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   total: { fontSize: 14, fontWeight: '700', color: colors.text },
   action: { fontSize: 12, fontWeight: '600', color: colors.primary },

@@ -57,7 +57,7 @@ describe('riderOffersApi', () => {
     await riderOffersApi.listMine('r1');
 
     expect(mockFrom).toHaveBeenCalledWith('order_offers');
-    expect(argsOf(chain, 'select')[0][0]).toBe('*, orders(*, order_items(*))');
+    expect(argsOf(chain, 'select')[0][0]).toBe('*, orders(*, order_items(*), merchants(name, address))');
     expect(argsOf(chain, 'eq')).toEqual([['rider_id', 'r1'], ['status', 'pending']]);
     expect(argsOf(chain, 'gt')[0][0]).toBe('expires_at');
   });
