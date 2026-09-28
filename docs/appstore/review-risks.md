@@ -92,15 +92,31 @@ non-members to `/`, and widen `routeStructure.test.ts` beyond index files.
 
 ---
 
-## 3. Cosmetic — checkout back button reads "(tabs)"
+## 3. Cosmetic — route-group names leaked into back buttons — FIXED, ships in 1.0.1
 
-The checkout header's back control renders the literal Expo Router group name
-`(tabs)` instead of a human label. Visible in
-`screenshots/05-checkout.png`, which is now live on the store listing.
+Three screens rendered the literal Expo Router group name as their back-button
+label, because none set `headerBackTitle` and the router falls back to the
+parent route's name:
 
-Fix: give `app/checkout.tsx` an explicit `options={{ headerBackTitle: 'Basket' }}`
-(or set `headerBackTitleVisible: false`) rather than letting the router infer
-the title from the parent route group.
+| Screen | Pushed from | Leaked label |
+|---|---|---|
+| `checkout` | `(tabs)/cart` | `(tabs)` |
+| `notifications` | `(tabs)/profile`, `(rider)/_layout`, `(admin)/settings` | `(tabs)` / `(rider)` / `(admin)` |
+| `addresses` | `(tabs)/profile`, `(tabs)/index` | `(tabs)` |
+
+`notifications` was the worst of the three — the label changed with the
+caller's role. `item/[id]` was already correct and showed the fix: set
+`headerBackTitle` explicitly.
+
+Fixed in `app/_layout.tsx` by adding `headerBackTitle: 'Back'` to all three.
+Typecheck clean, 449/449 tests pass. **Not visually verified on a device** —
+the change is declarative and matches the working `item/[id]` pattern.
+
+**Not in the store yet.** 1.0.0 was already WAITING_FOR_REVIEW when this was
+fixed, and shipping it would have meant cancelling the submission and losing
+queue position over a cosmetic label. The fix rides in 1.0.1.
+`screenshots/05-checkout.png` on the live listing still shows `(tabs)`;
+recapture it when 1.0.1 builds.
 
 ---
 

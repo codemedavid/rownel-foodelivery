@@ -36,11 +36,13 @@ const ok = (r) => r.status >= 200 && r.status < 300;
 
 const NOTES = `Row-Nel is a local delivery service. It operates only in Vigan City, Ilocos Sur, Philippines.
 
-IMPORTANT: when the app asks for location access on first launch, please choose "Don't Allow". The storefront only lists merchants that deliver to your current position, so allowing location from outside Vigan City will correctly - but unhelpfully - show an empty list. Declining the prompt lists every merchant so you can review the app.
+IMPORTANT, so the storefront is not empty: the app only lists merchants that deliver to your current position, so from outside Vigan City the list will correctly - but unhelpfully - be empty. Any one of these gives you a full storefront:
 
-If you prefer to test with location enabled, please set a simulated location of 17.5747, 120.3869 (Vigan City).
+(a) Tap "Deliver to" at the top of the home screen and enter a Vigan City address, for example: Avenida Quezon, Barangay I, Vigan City, 2700 Ilocos Sur. This is the quickest route and works at any time.
+(b) Set a simulated location of 17.5747, 120.3869 (Vigan City).
+(c) Choose "Don't Allow" on the location prompt at first launch, which lists every merchant.
 
-Sign in with the demo account above to browse merchants, build a cart and reach checkout, where the delivery pin can be dragged.
+Sign in with the demo account above to browse merchants, build a cart and reach checkout, where the delivery pin can be dragged to an exact gate.
 
 The build also contains rider and administrative dashboards used only by Row-Nel staff and contracted riders. They are unlocked by a server-side role on the account and are not part of the customer experience.`;
 
